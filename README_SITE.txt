@@ -1,7 +1,6 @@
-ALDANMAZ APPS - GitHub Pages v5
+ALDANMAZ APPS - GitHub Pages SEO v6
 
-GitHub'a ZIP dosyasını değil, bu ZIP'i açtıktan sonra içindeki TÜM dosyaları yükleyin.
-Mevcut dosyaların üzerine yazılmasına izin verin ve Commit changes yapın.
+Bu paket Google ve diğer arama motorlarının siteyi daha kolay bulabilmesi için hazırlanmıştır.
+Eklenenler: robots.txt, sitemap.xml, canonical URL, Open Graph meta etiketleri, SEO açıklaması, SoftwareApplication yapılandırılmış verisi ve .nojekyll.
 
-Ana dosya: index.html
-APK: SallaFener-1.2.0.apk
+Google Search Console doğrulaması ayrıca yapılmalıdır.
