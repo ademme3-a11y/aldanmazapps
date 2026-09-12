@@ -3,69 +3,83 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="Aldanmaz Apps - Android uygulamalarını doğrudan APK olarak indirin.">
+  <meta name="description" content="Aldanmaz Apps - Android uygulamaları ve doğrudan APK indirme.">
   <title>Aldanmaz Apps</title>
   <link rel="icon" href="icon.png">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<header class="topbar">
-  <div class="wrap topbar-inner">
-    <div class="brand">ALDANMAZ <span>APPS</span></div>
-    <a class="privacy-link" href="gizlilik.html">Gizlilik</a>
-  </div>
-</header>
-
-<main class="wrap">
-  <section class="intro">
-    <h1>Android Uygulamaları</h1>
-    <p>Basit, reklamsız ve doğrudan indirilebilir uygulamalar.</p>
-  </section>
-
-  <section class="app-list" aria-label="Uygulama listesi">
-    <article class="app-item">
-      <img class="icon" src="icon.png" alt="Salla Fener">
-      <div class="app-info">
-        <h2>Salla Fener</h2>
-        <p>Telefonu 3 kez güçlü sallayın; fener açılsın. Tekrar 3 kez sallayın; kapansın.</p>
-        <div class="meta">Sürüm 1.2.0 · Android 8.0+ · Ücretsiz</div>
-        <div class="badges">
-          <span>Reklamsız</span>
-          <span>İnternetsiz</span>
-          <span>Veri toplamaz</span>
-        </div>
-      </div>
-      <div class="download-box">
-        <a class="download-btn" href="SallaFener-1.2.0.apk" download>APK İNDİR</a>
-        <a class="small-link" href="gizlilik.html">Gizlilik Politikası</a>
-      </div>
-    </article>
-  </section>
-
-  <section class="quick-info">
-    <h3>Kurulum</h3>
-    <p>APK dosyasını indirin, açın ve Android isterse <strong>“Bu kaynaktan yüklemeye izin ver”</strong> seçeneğini etkinleştirin.</p>
-  </section>
-
-  <section class="shots-section">
-    <h3>Ekran Görüntüleri</h3>
-    <div class="shots">
-      <img src="shot1.png" alt="Salla Fener kapalı">
-      <img src="shot2.png" alt="Salla Fener izleme açık">
-      <img src="shot3.png" alt="Salla Fener fener açık">
-      <img src="shot4.png" alt="Salla Fener ayarlar">
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="./" aria-label="Aldanmaz Apps ana sayfa">
+        <span>ALDANMAZ</span> APPS
+      </a>
+      <a class="header-link" href="gizlilik.html">Gizlilik</a>
     </div>
-  </section>
+  </header>
 
-  <section class="checksum">
-    <h3>Dosya doğrulama</h3>
-    <p>SHA-256</p>
-    <code>91cfbfdaf884d0eec8ab23955daf64eb44c73dba2512dced3b3de76396eda8aa</code>
-  </section>
-</main>
+  <main class="container">
+    <section class="page-intro">
+      <h1>Android Uygulamaları</h1>
+      <p>Uygulamaları inceleyin ve APK dosyasını doğrudan indirin.</p>
+    </section>
 
-<footer>
-  <div class="wrap">© 2026 Aldanmaz Apps</div>
-</footer>
+    <section class="apps" aria-label="Uygulamalar">
+      <article class="app-card">
+        <div class="app-main">
+          <img class="app-icon" src="icon.png" alt="Salla Fener uygulama ikonu">
+          <div class="app-copy">
+            <h2>Salla Fener</h2>
+            <p class="summary">Telefonu 3 kez güçlü sallayarak feneri açın. Tekrar 3 kez sallayarak kapatın.</p>
+            <p class="meta">Sürüm 1.2.0 <span>•</span> Android 8.0+ <span>•</span> Ücretsiz</p>
+          </div>
+        </div>
+
+        <a class="download-button" href="SallaFener-1.2.0.apk" download>
+          <span class="download-icon">↓</span>
+          APK İNDİR
+        </a>
+      </article>
+    </section>
+
+    <section class="info-section">
+      <h3>Öne çıkanlar</h3>
+      <div class="feature-grid">
+        <div class="feature"><strong>3 sallama</strong><span>Feneri hızlıca açar veya kapatır.</span></div>
+        <div class="feature"><strong>Cep koruması</strong><span>Cepte yanlışlıkla çalışmayı azaltır.</span></div>
+        <div class="feature"><strong>Ekran kapalı desteği</strong><span>İsteğe bağlı arka plan algılama sunar.</span></div>
+        <div class="feature"><strong>Gizlilik</strong><span>Reklam yok, internet yok, kişisel veri toplanmaz.</span></div>
+      </div>
+    </section>
+
+    <section class="screenshots-section">
+      <div class="section-heading">
+        <h3>Ekran görüntüleri</h3>
+        <span>Uygulamanın gerçek ekranları</span>
+      </div>
+      <div class="screenshots">
+        <figure><img src="shot1.png" alt="Salla Fener kapalı ekranı"><figcaption>Kapalı</figcaption></figure>
+        <figure><img src="shot2.png" alt="Salla Fener izleme ekranı"><figcaption>İzleniyor</figcaption></figure>
+        <figure><img src="shot3.png" alt="Salla Fener açık ekranı"><figcaption>Fener açık</figcaption></figure>
+        <figure><img src="shot4.png" alt="Salla Fener ayarlar ekranı"><figcaption>Ayarlar</figcaption></figure>
+      </div>
+    </section>
+
+    <section class="bottom-info">
+      <div>
+        <h3>Kurulum</h3>
+        <p>APK dosyasını indirin ve açın. Android isterse <strong>“Bu kaynaktan yüklemeye izin ver”</strong> seçeneğini etkinleştirin.</p>
+      </div>
+      <div>
+        <h3>Dosya ve gizlilik</h3>
+        <p>İndirilen dosya: <strong>SallaFener-1.2.0.apk</strong></p>
+        <p><a href="gizlilik.html">Gizlilik politikasını görüntüle</a> · <a href="SallaFener-1.2.0-SHA256.txt">SHA-256</a></p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">© 2026 Aldanmaz Apps</div>
+  </footer>
 </body>
 </html>
