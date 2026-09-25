@@ -1,0 +1,35 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Local configuration file (SDK path, API keys, vb.)
+local.properties
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+.navigation/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Log/OS dosyaları
+*.log
+.DS_Store
+
+# Keystore dosyaları (imzalama anahtarların GitHub'a asla gitmemeli)
+*.jks
+*.keystore
+
+# Build çıktıları
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Test/lint çıktıları
+/captures
+.navigation
