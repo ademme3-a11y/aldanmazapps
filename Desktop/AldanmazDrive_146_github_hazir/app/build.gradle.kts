@@ -26,7 +26,7 @@ if (!googleServicesFile.exists()) {
 if (googleServicesFile.exists()) apply(plugin = "com.google.gms.google-services")
 
 val localProperties = Properties().apply {
-    val localPropertiesFile = rootProject.file("local.properties")
+    val localPropertiesFile = rootProject.rootProject.file("local.properties")
     if (localPropertiesFile.exists()) localPropertiesFile.inputStream().use { load(it) }
 }
 val tomTomApiKey = localProperties.getProperty("TOMTOM_API_KEY", "")
@@ -93,3 +93,4 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }
+// 146: stable debug signing is intentionally fixed for upgrade installs.
