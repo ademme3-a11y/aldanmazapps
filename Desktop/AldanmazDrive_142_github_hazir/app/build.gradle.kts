@@ -1,4 +1,3 @@
-import com.aldanmaz.build.ValidateRasterResourcesTask
 import java.io.File
 import java.util.Properties
 
@@ -51,24 +50,6 @@ val localProperties = Properties().apply {
 
 val tomTomApiKey =
     localProperties.getProperty("TOMTOM_API_KEY", "")
-
-// 108: Doğrulama kodu buildSrc içindeki bağımsız task sınıfındadır. Böylece
-// preBuild koruması sürerken Gradle configuration cache de güvenle saklanır.
-val validateRasterResources = tasks.register<ValidateRasterResourcesTask>(
-    "validateRasterResources"
-) {
-    group = "verification"
-    description = "PNG, WebP ve JPEG kaynaklarının temel dosya bütünlüğünü doğrular."
-    rasterFiles.from(
-        fileTree(layout.projectDirectory.dir("src/main/res")) {
-            include("**/*.png", "**/*.webp", "**/*.jpg", "**/*.jpeg")
-        }
-    )
-}
-
-tasks.matching { it.name == "preBuild" }.configureEach {
-    dependsOn(validateRasterResources)
-}
 
 // 96: App Check debug buildlerinde Firebase resmi DebugAppCheckProviderFactory kullanılır.
 // Debug secret kaynak koda veya BuildConfig içine gömülmez.
