@@ -2572,6 +2572,8 @@ private fun LandscapeDashboard(
             dailyFuelCost = todayEstimatedFuelCost,
             dailyFuelLiters = todayEstimatedFuelConsumedLiters,
             dailyDistanceKm = todayTotalDistanceKm,
+            tripDistanceKm = tripDistanceKm,
+            tripFuelCost = tripEstimatedFuelCost,
             isCompassPanelVisible = isCompassPanelVisible,
             isCompassSensorAvailable = isCompassSensorAvailable,
             compassHeadingDegrees = compassHeadingDegrees,
@@ -2704,6 +2706,8 @@ private fun PortraitDashboard(
             dailyFuelCost = todayEstimatedFuelCost,
             dailyFuelLiters = todayEstimatedFuelConsumedLiters,
             dailyDistanceKm = todayTotalDistanceKm,
+            tripDistanceKm = tripDistanceKm,
+            tripFuelCost = tripEstimatedFuelCost,
             isCompassPanelVisible = isCompassPanelVisible,
             isCompassSensorAvailable = isCompassSensorAvailable,
             compassHeadingDegrees = compassHeadingDegrees,
@@ -2801,6 +2805,8 @@ private fun SpeedPanel(
     dailyFuelCost: Double,
     dailyFuelLiters: Double,
     dailyDistanceKm: Double,
+    tripDistanceKm: Double,
+    tripFuelCost: Double,
     isCompassPanelVisible: Boolean,
     isCompassSensorAvailable: Boolean,
     compassHeadingDegrees: Float?,
@@ -2899,6 +2905,18 @@ private fun SpeedPanel(
                                 color = PrimaryText,
                                 fontSize = if (compact) 13.sp else 17.sp,
                                 fontWeight = FontWeight.ExtraBold,
+                                maxLines = 1
+                            )
+                            Text(
+                                text = String.format(
+                                    Locale("tr", "TR"),
+                                    "Sürüş: %d Km (%d ₺)",
+                                    tripDistanceKm.coerceIn(0.0, 999.0).roundToInt(),
+                                    tripFuelCost.coerceAtLeast(0.0).roundToInt()
+                                ),
+                                color = CyanBright,
+                                fontSize = if (compact) 11.sp else 14.sp,
+                                fontWeight = FontWeight.Bold,
                                 maxLines = 1
                             )
                         }

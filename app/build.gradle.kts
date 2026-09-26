@@ -84,8 +84,8 @@ android {
         applicationId = "com.aldanmaz.drivedashboard"
         minSdk = 29
         targetSdk = 37
-        versionCode = 177
-        versionName = "138"
+        versionCode = 181
+        versionName = "142"
 
         testInstrumentationRunner =
             "androidx.test.runner.AndroidJUnitRunner"
