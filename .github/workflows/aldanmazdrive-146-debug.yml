@@ -1,0 +1,55 @@
+name: Aldanmaz Drive 146 Debug Build
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Desktop/AldanmazDrive_146_github_hazir/**'
+      - '.github/workflows/aldanmazdrive-146-debug.yml'
+  workflow_dispatch:
+
+jobs:
+  build-debug:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: Desktop/AldanmazDrive_146_github_hazir
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Configure TomTom API key
+        env:
+          TOMTOM_API_KEY: ${{ secrets.TOMTOM_API_KEY }}
+        run: |
+          if [ -z "$TOMTOM_API_KEY" ]; then
+            echo "TOMTOM_API_KEY GitHub Actions secret is missing."
+            exit 1
+          fi
+          printf 'TOMTOM_API_KEY=%s\n' "$TOMTOM_API_KEY" > local.properties
+      - name: Verify stable debug signing key
+        run: |
+          test -f app/aldanmaz-debug.keystore
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --no-daemon
+      - name: Create source ZIP
+        run: zip -r ../AldanmazDrive_146.zip . -x '.gradle/*' 'app/build/*' 'local.properties' '**/.DS_Store'
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AldanmazDrive_146_Debug_APK
+          path: Desktop/AldanmazDrive_146_github_hazir/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload 146 ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: AldanmazDrive_146_ZIP
+          path: Desktop/AldanmazDrive_146.zip
+          if-no-files-found: error
+          retention-days: 30
