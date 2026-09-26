@@ -1,0 +1,50 @@
+name: Aldanmaz Drive 143 Debug Build
+# 143 build trigger refresh
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Desktop/AldanmazDrive_143_github_hazir/**'
+      - '.github/workflows/aldanmazdrive-143-debug.yml'
+  workflow_dispatch:
+
+jobs:
+  build-debug:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: Desktop/AldanmazDrive_143_github_hazir
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Create source ZIP
+        run: zip -r ../AldanmazDrive_143.zip . -x '.gradle/*' 'app/build/*' '**/.DS_Store'
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AldanmazDrive_143_Debug_APK
+          path: Desktop/AldanmazDrive_143_github_hazir/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload 143 ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: AldanmazDrive_143_ZIP
+          path: Desktop/AldanmazDrive_143.zip
+          if-no-files-found: error
+          retention-days: 30
