@@ -1,20 +1,7 @@
-# Alışveriş Ajanı
+# Alışveriş Ajanı V5
 
-Android 8.0+ için genel amaçlı ürün karşılaştırma uygulaması.
-
-## V1
-- Doğal ürün sorgusu için temel arayüz
-- Maksimum fiyat filtresi
-- Minimum puan filtresi
-- Stok filtresi
-- Kargo dahil toplam fiyat modeli
-- İlk 3 sonuç sıralama çekirdeği
-- Mağaza kapsamı: Amazon TR, Trendyol, Hepsiburada, Pazarama, n11, Migros, A101, ŞOK, BİM, MediaMarkt, Teknosa
-
-> Not: Bu APK, canlı mağaza bağlayıcılarından önce UI/karşılaştırma çekirdeğini doğrulayan ilk teknik sürümdür. Canlı fiyat/stok katmanı bir sonraki geliştirme adımıdır.
-
-Build pipeline: GitHub Actions.
-
-
-## V4
-Gerçek ürün URL doğrulaması, marka ve sorgu eşleşmesi sıkılaştırıldı.
+20 satırlık A4 alışveriş karşılaştırma listesi.
+Kriterler: Ürün, Marka, Ebat/Miktar, maksimum fiyat, minimum puan ve stok.
+Ebat/Miktar: L, ml, kg, g, mg, adet, MB, GB, TB ve inç.
+Ürün, marka, miktar, fiyat, puan, stok ve doğrudan ürün URL'si doğrulanmadan sonuç gösterilmez.
+Canlı tarama: Trendyol, Hepsiburada, Amazon TR, n11, Pazarama, MediaMarkt, Teknosa.
