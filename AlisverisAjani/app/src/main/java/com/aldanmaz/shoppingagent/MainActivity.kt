@@ -117,7 +117,7 @@ private object Engine{
  }
  private fun fetch(st:Store,s:Spec):List<ProductResult>{
   val out=mutableListOf<ProductResult>()
-  val urls=listOf(st.search(query(s))) .flatten()
+  val urls=st.search(query(s))
   for(url in urls){
    val doc=runCatching{Jsoup.connect(url).userAgent(UA).timeout(12000).followRedirects(true).get()}.getOrNull()?:continue
    doc.select("script[type=application/ld+json]").forEach{x->runCatching{parseJson(x.data(),st,out)}}
@@ -141,12 +141,17 @@ private object Engine{
  private fun query(s:Spec):String{ val p=mutableListOf<String>();s.brand?.let{p+=it};s.size?.let{p+="$it inç"};if(s.raw.isNotBlank())p+=s.raw;return p.distinct().joinToString(" ") }
  private fun verify(p:ProductResult,s:Spec):ProductResult?{
   if(s.brand!=null&&!norm(p.title).contains(norm(s.brand)))return null
-  if(s.size!=null&&!Regex("(?i)(^|\\\\D)${s.size}\\\\s*(?:inç|inch|\\\"|inc)($|\\\\D)").containsMatchIn(p.title))return null
+  if(s.size!=null&&!Regex("""(?i)(^|\\D)"""+s.size+"""\\s*(?:inç|inch|["]|inc)($|\\D)""").containsMatchIn(p.title))return null
   if(p.rating==null||p.rating<s.minRating||!p.stock)return null
   if(s.max!=null&&p.price>s.max)return null
   if(!p.url.startsWith("https://")||p.url.endsWith("/")||p.url.contains("/arama")||p.url.contains("/sr?"))return null
   val checks=buildList{if(s.brand!=null)add("Marka "+s.brand);if(s.size!=null)add(s.size.toString()+"\"");add("Puan %.1f".format(p.rating));add("Fiyat doğrulandı")}
   return p.copy(checks=checks)
+ }
+ private fun isProductUrl(u:String):Boolean{
+  if(!u.startsWith("https://")||u.endsWith("/"))return false
+  val bad=listOf("/arama","/search","/sr?","?q=","/kategori","/category","/magaza")
+  return bad.none{u.contains(it,true)}
  }
  private fun engineCandidates(st:Store,s:Spec):List<String>{
   val q=URLEncoder.encode(query(s)+" site:"+st.host,"UTF-8")
