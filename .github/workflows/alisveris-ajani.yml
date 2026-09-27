@@ -1,7 +1,8 @@
 name: Build Alisveris Ajani APK
 on:
-  pull_request:
-    branches: [ main ]
+  push:
+    branches: [ shopping-agent-v4 ]
+    paths: [ 'AlisverisAjani/**' ]
   workflow_dispatch:
 jobs:
   build:
@@ -23,5 +24,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: AlisverisAjani-debug
+          name: AlisverisAjani-v4-debug
           path: AlisverisAjani/app/build/outputs/apk/debug/app-debug.apk
