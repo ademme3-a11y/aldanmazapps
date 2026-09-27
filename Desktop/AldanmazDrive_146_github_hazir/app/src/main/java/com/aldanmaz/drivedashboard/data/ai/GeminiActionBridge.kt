@@ -198,6 +198,7 @@ object GeminiActionBridge {
         "close_gemini",
         "reset_statistics",
         "reset_fuel_statistics",
+        "add_fuel",
         "reset_trip_distance",
     )
 
@@ -298,6 +299,7 @@ object GeminiActionBridge {
             "close_live", "stop_gemini", "gemini_close", "gemini_kapat", "görüşmeyi_bitir", "gorusmeyi_bitir", "sohbeti_kapat", "sohbet_kapat", "konusmayi_kapat", "konuşmayı_kapat" -> "close_gemini"
             "reset_stats", "istatistik_sifirla", "istatistik_sıfırla" -> "reset_statistics"
             "reset_fuel", "yakıt_sifirla", "yakit_sifirla" -> "reset_fuel_statistics"
+            "add_fuel", "add_fuel_liters", "yakıt_ekle", "yakit_ekle", "depo_yakit_ekle", "depoya_yakit_ekle" -> "add_fuel"
             "reset_trip", "yolculuk_sifirla", "yolculuk_sıfırla" -> "reset_trip_distance"
             else -> raw
         }
