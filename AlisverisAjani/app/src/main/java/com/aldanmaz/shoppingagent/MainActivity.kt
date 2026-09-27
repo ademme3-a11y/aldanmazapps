@@ -106,18 +106,37 @@ class MainActivity:ComponentActivity(){
 
 private object Engine{
  private val brands=listOf("Samsung","LG","Sony","Philips","TCL","Xiaomi","Apple","Huawei","Lenovo","Asus","Acer","Bosch","Arçelik","Beko","Vestel","Dyson","Brita","Ariel","Persil","Omo")
- fun analyze(q:String,max:Double?,rating:Double):Spec{
-  val n=norm(q);val b=brands.firstOrNull{n.contains(norm(it))}
-  val z=Regex("(?i)(?:^|\\\\s)(\\\\d{2,3})\\\\s*(?:inç|inch|\\\")").find(q)?.groupValues?.get(1)?.toIntOrNull()
+ fun analyze(q:String,brandInput:String,sizeInput:String,max:Double?,rating:Double):Spec{
+  val n=norm(q)
+  val b=brandInput.trim().takeIf{it.isNotBlank()}?:brands.firstOrNull{n.contains(norm(it))}
+  val z=sizeInput.filter{it.isDigit()}.toIntOrNull()?:Regex("""(?i)(?:^|\s)(\d{2,3})\s*(?:inç|inch|")""").find(q)?.groupValues?.get(1)?.toIntOrNull()
   return Spec(q.trim(),b,z,max,rating)
  }
  suspend fun search(s:Spec):List<ProductResult>{
   return stores.flatMap{st->runCatching{fetch(st,s)}.getOrDefault(emptyList())}.filter{it.stock&&it.price>0&&(s.max==null||it.price<=s.max)}.sortedBy{it.price}.distinctBy{norm(it.title)}
  }
  private fun fetch(st:Store,s:Spec):List<ProductResult>{
-  val doc=Jsoup.connect(st.search(query(s))).userAgent(UA).timeout(15000).followRedirects(true).get();val out=mutableListOf<ProductResult>()
-  doc.select("script[type=application/ld+json]").forEach{x->runCatching{parseJson(x.data(),st,out)}};if(out.isEmpty())anchors(doc,st,out)
-  return out.mapNotNull{verify(it,s)}.take(20)
+  val out=mutableListOf<ProductResult>()
+  val urls=listOf(st.search(query(s))) .flatten()
+  for(url in urls){
+   val doc=runCatching{Jsoup.connect(url).userAgent(UA).timeout(12000).followRedirects(true).get()}.getOrNull()?:continue
+   doc.select("script[type=application/ld+json]").forEach{x->runCatching{parseJson(x.data(),st,out)}}
+   if(out.isEmpty())anchors(doc,st,out)
+   if(out.isNotEmpty())break
+  }
+  if(out.isEmpty()){
+   for(candidate in engineCandidates(st,s).take(5)){
+    runCatching{
+     val pd=Jsoup.connect(candidate).userAgent(UA).timeout(8000).followRedirects(true).get()
+     docJson(pd,st,out)
+    }
+   }
+  }
+  return out.mapNotNull{verify(it,s)}.distinctBy{it.url}.take(30)
+ }
+ private fun docJson(doc:org.jsoup.nodes.Document,st:Store,out:MutableList<ProductResult>){
+  doc.select("script[type=application/ld+json]").forEach{x->runCatching{parseJson(x.data(),st,out)}}
+  if(out.isEmpty())anchors(doc,st,out)
  }
  private fun query(s:Spec):String{ val p=mutableListOf<String>();s.brand?.let{p+=it};s.size?.let{p+="$it inç"};if(s.raw.isNotBlank())p+=s.raw;return p.distinct().joinToString(" ") }
  private fun verify(p:ProductResult,s:Spec):ProductResult?{
@@ -128,6 +147,14 @@ private object Engine{
   if(!p.url.startsWith("https://")||p.url.endsWith("/")||p.url.contains("/arama")||p.url.contains("/sr?"))return null
   val checks=buildList{if(s.brand!=null)add("Marka "+s.brand);if(s.size!=null)add(s.size.toString()+"\"");add("Puan %.1f".format(p.rating));add("Fiyat doğrulandı")}
   return p.copy(checks=checks)
+ }
+ private fun engineCandidates(st:Store,s:Spec):List<String>{
+  val q=URLEncoder.encode(query(s)+" site:"+st.host,"UTF-8")
+  val d=runCatching{Jsoup.connect("https://www.bing.com/search?q="+q).userAgent(UA).timeout(8000).get()}.getOrNull()?:return emptyList()
+  return d.select("li.b_algo h2 a[href]").mapNotNull{a->
+   val u=a.absUrl("href")
+   if(u.startsWith("https://")&&u.contains(st.host)&&isProductUrl(u))u else null
+  }.distinct()
  }
  private fun parseJson(raw:String,st:Store,out:MutableList<ProductResult>){
   val x=raw.trim();if(x.startsWith("{"))walk(org.json.JSONObject(x),st,out)
