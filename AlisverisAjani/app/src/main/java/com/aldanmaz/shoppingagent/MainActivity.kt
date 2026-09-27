@@ -51,7 +51,7 @@ class MainActivity:ComponentActivity(){
   lifecycleScope.launch{
    done("Canlı mağazalar taranıyor…",emptyList())
    val r=withContext(Dispatchers.IO){Engine.search(s)}
-   done(if(r.isEmpty())"Doğrulanmış uygun ürün bulunamadı.":r.size.toString()+" doğrulanmış ürün bulundu.",r)
+   done(if(r.isEmpty()) "Doğrulanmış uygun ürün bulunamadı." else r.size.toString()+" doğrulanmış ürün bulundu.",r)
   }
  }
 }
