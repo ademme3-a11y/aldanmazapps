@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -38,6 +39,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShoppingAgentApp() {
     var query by remember { mutableStateOf("") }
@@ -45,6 +47,7 @@ fun ShoppingAgentApp() {
     var minRating by remember { mutableStateOf(4f) }
     var onlyStock by remember { mutableStateOf(true) }
     var results by remember { mutableStateOf<List<ProductResult>>(emptyList()) }
+    val context = LocalContext.current
 
     MaterialTheme(colorScheme = lightColorScheme(primary = Color(0xFF1D4ED8), secondary = Color(0xFF0F766E))) {
         Scaffold(
@@ -114,7 +117,7 @@ fun ShoppingAgentApp() {
                     item { Text("En uygun 3 sonuç", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black) }
                     items(results.take(3)) { result ->
                         ResultCard(result) {
-                            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(result.url)))
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(result.url)))
                         }
                     }
                 } else {
