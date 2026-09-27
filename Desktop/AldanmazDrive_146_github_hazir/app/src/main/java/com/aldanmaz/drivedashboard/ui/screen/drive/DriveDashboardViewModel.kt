@@ -2105,6 +2105,9 @@ class DriveDashboardViewModel(
     private fun enterParkMode() {
         if (_uiState.value.isParkMode) return
 
+        // Park ekranına geçerken kalıcı günlük km ledger'ını tekrar oku.
+        restoreDailyDistanceLedger()
+
         parkStartedElapsedRealtime = SystemClock.elapsedRealtime()
         movementConfirmationSamples = 0
 
