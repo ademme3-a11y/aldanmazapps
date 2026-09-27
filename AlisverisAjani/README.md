@@ -14,3 +14,7 @@ Android 8.0+ için genel amaçlı ürün karşılaştırma uygulaması.
 > Not: Bu APK, canlı mağaza bağlayıcılarından önce UI/karşılaştırma çekirdeğini doğrulayan ilk teknik sürümdür. Canlı fiyat/stok katmanı bir sonraki geliştirme adımıdır.
 
 Build pipeline: GitHub Actions.
+
+
+## V3
+Gerçek ürün URL doğrulaması, marka ve sorgu eşleşmesi sıkılaştırıldı.
