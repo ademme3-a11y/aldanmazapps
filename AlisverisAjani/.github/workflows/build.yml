@@ -2,6 +2,8 @@ name: Build Alisveris Ajani V5
 on:
   push:
     branches: [ shopping-agent-v5 ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 jobs:
   build:
