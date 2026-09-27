@@ -107,10 +107,15 @@ class MainActivity:ComponentActivity(){
 
 private object Engine{
  private val brands=listOf("Samsung","LG","Sony","Philips","TCL","Xiaomi","Apple","Huawei","Lenovo","Asus","Acer","Bosch","Arçelik","Beko","Vestel","Dyson","Brita","Ariel","Persil","Omo")
- fun analyze(q:String,max:Double?,rating:Double):Spec{
-  val n=norm(q);val b=brands.firstOrNull{n.contains(norm(it))}
+ fun analyze(q:String,chosenBrand:String?,max:Double?,rating:Double):Spec{
+  val n=norm(q)
+  val b=chosenBrand ?: brands.firstOrNull{n.contains(norm(it))}
   val z=Regex("(?i)(?:^|\\\\s)(\\\\d{2,3})\\\\s*(?:inç|inch|\\\")").find(q)?.groupValues?.get(1)?.toIntOrNull()
-  return Spec(q.trim(),b,z,max,rating)
+  val stop=setOf("ve","ile","icin","için","bir","adet","paket","tl","lira","max","maks","puan","urun","ürün","tv","televizyon","inch","inç","inc")
+  val tokens=n.split(" ").filter{
+   it.length>=3 && !stop.contains(it) && it!=norm(b ?: "") && !it.matches(Regex("\\\\d+"))
+  }.distinct().take(8)
+  return Spec(q.trim(),b,z,max,rating,tokens)
  }
  suspend fun search(s:Spec):List<ProductResult>{
   return stores.flatMap{st->runCatching{fetch(st,s)}.getOrDefault(emptyList())}.filter{it.stock&&it.price>0&&(s.max==null||it.price<=s.max)}.sortedBy{it.price}.distinctBy{norm(it.title)}
