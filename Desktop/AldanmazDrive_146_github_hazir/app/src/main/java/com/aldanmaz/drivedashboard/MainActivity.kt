@@ -803,6 +803,7 @@ class MainActivity : ComponentActivity() {
                             "refresh_weather" -> weatherViewModel.retry()
                             "reset_statistics" -> driveViewModel.resetAllStatistics()
                             "reset_fuel_statistics" -> driveViewModel.resetAllStatistics()
+                            "add_fuel" -> addGeminiFuelLiters(context, command.value, fuelRepository)
                             "reset_trip_distance" -> driveViewModel.resetTripDistance()
                             "close_gemini" -> GeminiLiveForegroundService.stop(context)
                         }
@@ -2090,6 +2091,43 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun addGeminiFuelLiters(
+        context: android.content.Context,
+        rawValue: String?,
+        repository: FuelPreferencesRepository,
+    ) {
+        val raw = rawValue?.trim().orEmpty()
+        val normalized = raw
+            .replace(',', '.')
+            .replace(Regex("(?i)\\blitre(s)?\\b"), " ")
+            .replace(Regex("(?i)\\bl(l|lt)\\b"), " ")
+            .trim()
+        val liters = Regex("""(?<![0-9.])(?:[0-9]+(?:\\.[0-9]+)?|\\.[0-9]+)(?![0-9.])""")
+            .find(normalized)?.value?.toDoubleOrNull()
+
+        if (liters == null || liters <= 0.0) {
+            android.widget.Toast.makeText(context,
+                "Gemini için eklenecek yakıt miktarını litre olarak belirtin. Örnek: 10 litre.",
+                android.widget.Toast.LENGTH_LONG).show()
+            return
+        }
+
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            runCatching { repository.addFuel(addedLiters = liters, totalCost = 0.0, fillTank = false) }
+                .onSuccess {
+                    withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        android.widget.Toast.makeText(context,
+                            "Yakıt eklendi: ${"%.1f".format(java.util.Locale("tr", "TR"), liters)} L",
+                            android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
+                .onFailure { error ->
+                    withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        android.widget.Toast.makeText(context, error.message ?: "Yakıt eklenemedi.", android.widget.Toast.LENGTH_LONG).show()
+                    }
+                }
+        }
+    }
     private fun deviceHasTelephony(context: android.content.Context): Boolean {
         val tm = context.getSystemService(android.content.Context.TELEPHONY_SERVICE) as? TelephonyManager
         return tm?.phoneType != null && tm.phoneType != TelephonyManager.PHONE_TYPE_NONE
