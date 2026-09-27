@@ -64,7 +64,7 @@ android {
     buildFeatures { compose = true; buildConfig = true }
 }
 dependencies {
-    implementation(platform(libs.compose.bom))
+    implementation(platform(libs.androidx.compose.bom))
     implementation(platform("com.google.firebase:firebase-bom:34.19.0"))
     implementation("com.google.firebase:firebase-ai")
     implementation("com.google.firebase:firebase-appcheck-debug")
