@@ -45,10 +45,10 @@ android {
     }
     signingConfigs {
         create("stableDebug") {
-            storeFile = file("aldanmaz-debug.keystore")
-            storePassword = "Aldanmaz146Debug"
-            keyAlias = "aldanmazdebug"
-            keyPassword = "Aldanmaz146Debug"
+            storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
         }
     }
     buildTypes {
