@@ -12,3 +12,5 @@ Android 8.0+ için genel amaçlı ürün karşılaştırma uygulaması.
 - Mağaza kapsamı: Amazon TR, Trendyol, Hepsiburada, Pazarama, n11, Migros, A101, ŞOK, BİM, MediaMarkt, Teknosa
 
 > Not: Bu APK, canlı mağaza bağlayıcılarından önce UI/karşılaştırma çekirdeğini doğrulayan ilk teknik sürümdür. Canlı fiyat/stok katmanı bir sonraki geliştirme adımıdır.
+
+Build pipeline: GitHub Actions.
