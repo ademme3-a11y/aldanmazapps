@@ -32,7 +32,7 @@ import java.net.URLEncoder
 import java.util.Locale
 
 data class ProductResult(val store:String,val title:String,val price:Double,val rating:Double?,val stock:Boolean,val url:String,val checks:List<String>)
-private data class Spec(val raw:String,val brand:String?,val size:Int?,val max:Double?,val minRating:Double)
+data class Spec(val raw:String,val brand:String?,val size:Int?,val max:Double?,val minRating:Double)
 private data class Store(val name:String,val host:String,val search:(String)->String)
 
 private val stores=listOf(
@@ -107,7 +107,7 @@ private object Engine{
  private val brands=listOf("Samsung","LG","Sony","Philips","TCL","Xiaomi","Apple","Huawei","Lenovo","Asus","Acer","Bosch","Arçelik","Beko","Vestel","Dyson","Brita","Ariel","Persil","Omo")
  fun analyze(q:String,max:Double?,rating:Double):Spec{
   val n=norm(q);val b=brands.firstOrNull{n.contains(norm(it))}
-  val z=Regex("(?i)(?:^|\\s)(\\d{2,3})\\s*(?:inç|inch|\\\")").find(q)?.groupValues?.get(1)?.toIntOrNull()
+  val z=Regex("""(?i)(?:^|\\s)(\\d{2,3})\\s*(?:inç|inch|")""").find(q)?.groupValues?.get(1)?.toIntOrNull()
   return Spec(q.trim(),b,z,max,rating)
  }
  suspend fun search(s:Spec):List<ProductResult>{
@@ -121,7 +121,7 @@ private object Engine{
  private fun query(s:Spec)=s.raw+(if(s.size!=null&&!norm(s.raw).contains(s.size.toString()))" "+s.size+" inç" else "")
  private fun verify(p:ProductResult,s:Spec):ProductResult?{
   if(s.brand!=null&&!norm(p.title).contains(norm(s.brand)))return null
-  if(s.size!=null&&!Regex("(?i)(^|\\D)"+s.size+"\\s*(?:inç|inch|\\\"|inc)($|\\D)").containsMatchIn(p.title))return null
+  if(s.size!=null&&!Regex("""(?i)(^|\\D)${s.size}\\s*(?:inç|inch|"|inc)($|\\D)""").containsMatchIn(p.title))return null
   if(p.rating==null||p.rating<s.minRating||!p.stock)return null
   if(s.max!=null&&p.price>s.max)return null
   if(!p.url.startsWith("https://")||p.url.endsWith("/")||p.url.contains("/arama")||p.url.contains("/sr?"))return null
