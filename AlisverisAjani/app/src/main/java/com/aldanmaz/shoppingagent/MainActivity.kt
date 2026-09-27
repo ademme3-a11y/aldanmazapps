@@ -32,7 +32,7 @@ import java.net.URLEncoder
 import java.util.Locale
 
 data class ProductResult(val store:String,val title:String,val price:Double,val rating:Double?,val stock:Boolean,val url:String,val checks:List<String>)
-data class Spec(val raw:String,val brand:String?,val size:Int?,val max:Double?,val minRating:Double)
+data class Spec(val raw:String,val brand:String?,val size:Int?,val max:Double?,val minRating:Double,val tokens:List<String>)
 data class Store(val name:String,val host:String,val search:(String)->String)
 
 private val stores=listOf(
@@ -59,7 +59,7 @@ class MainActivity:ComponentActivity(){
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable private fun App(){
  val a=LocalContext.current as MainActivity;val c=LocalContext.current
- var q by remember{mutableStateOf("")};var max by remember{mutableStateOf("")};var min by remember{mutableStateOf(4f)}
+ var q by remember{mutableStateOf("")};var brand by remember{mutableStateOf("")};var max by remember{mutableStateOf("")};var min by remember{mutableStateOf(4f)}
  var onlyStock by remember{mutableStateOf(true)};var busy by remember{mutableStateOf(false)}
  var status by remember{mutableStateOf("Hazır")};var results by remember{mutableStateOf(emptyList<ProductResult>())};var spec by remember{mutableStateOf<Spec?>(null)}
  MaterialTheme(colorScheme=lightColorScheme(primary=Color(0xFF1D4ED8))){
@@ -67,11 +67,12 @@ class MainActivity:ComponentActivity(){
    LazyColumn(Modifier.fillMaxSize().background(Color(0xFFF7F8FA)).padding(pad),contentPadding=PaddingValues(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
     item{Card(shape=RoundedCornerShape(24.dp)){Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
      Text("Ne arıyorsunuz?",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
-     OutlinedTextField(q,{q=it},Modifier.fillMaxWidth(),placeholder={Text("Örn. Samsung 65 inç TV")},leadingIcon={Icon(Icons.Default.Search,null)},singleLine=true,shape=RoundedCornerShape(16.dp))
+     OutlinedTextField(q,{q=it},Modifier.fillMaxWidth(),placeholder={Text("Örn. Samsung 65 inç QLED TV")},leadingIcon={Icon(Icons.Default.Search,null)},singleLine=true,shape=RoundedCornerShape(16.dp))
+     OutlinedTextField(brand,{brand=it},Modifier.fillMaxWidth(),label={Text("Marka (isteğe bağlı)")},placeholder={Text("Örn. Samsung")},singleLine=true,shape=RoundedCornerShape(16.dp))
      Row(horizontalArrangement=Arrangement.spacedBy(8.dp),verticalAlignment=Alignment.CenterVertically){
       OutlinedTextField(max,{max=it.filter{ch->ch.isDigit()||ch=='.'||ch==','}},Modifier.weight(1f),label={Text("Maks. TL")},singleLine=true)
       Button(enabled=q.isNotBlank()&&!busy,onClick={
-       val mx=max.replace(".","").replace(",",".").toDoubleOrNull();val s=Engine.analyze(q,mx,min.toDouble());spec=s;busy=true
+       val mx=max.replace(".","").replace(",",".").toDoubleOrNull();val s=Engine.analyze(q,brand.trim().ifBlank{null},mx,min.toDouble());spec=s;busy=true
        a.search(s){msg,data->status=msg;results=if(onlyStock)data.filter{it.stock}else data;busy=false}
       },modifier=Modifier.height(56.dp),shape=RoundedCornerShape(16.dp)){Icon(Icons.Default.Search,null);Spacer(Modifier.width(5.dp));Text(if(busy)"TARANIYOR" else "ARA",fontWeight=FontWeight.Bold)}
      }
@@ -79,6 +80,7 @@ class MainActivity:ComponentActivity(){
     spec?.let{s->item{Card(shape=RoundedCornerShape(20.dp),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.primaryContainer)){Column(Modifier.padding(14.dp)){
      Text("AJANIN ANLADIĞI İSTEK",fontWeight=FontWeight.Black,fontSize=12.sp)
      Text("Marka: "+(s.brand?:"belirtilmedi")+" • Ebat: "+(s.size?.toString()?.plus("\"")?:"belirtilmedi")+" • Maks: "+(s.max?.let{money(it)+" TL"}?:"belirtilmedi")+" • Puan ≥ "+("%.1f".format(s.minRating)))
+     if(s.tokens.isNotEmpty()) Text("Zorunlu eşleşmeler: "+s.tokens.joinToString(" • "),style=MaterialTheme.typography.bodySmall)
     }}}}
     item{Card(shape=RoundedCornerShape(20.dp)){Column(Modifier.padding(16.dp)){
      Row(verticalAlignment=Alignment.CenterVertically){Icon(Icons.Default.Tune,null);Spacer(Modifier.width(8.dp));Text("Ajan filtreleri",fontWeight=FontWeight.Bold)}
@@ -118,13 +120,14 @@ private object Engine{
   doc.select("script[type=application/ld+json]").forEach{x->runCatching{parseJson(x.data(),st,out)}};if(out.isEmpty())anchors(doc,st,out)
   return out.mapNotNull{verify(it,s)}.take(20)
  }
- private fun query(s:Spec)=s.raw+(if(s.size!=null&&!norm(s.raw).contains(s.size.toString()))" "+s.size+" inç" else "")
+ private fun query(s:Spec)=buildString{if(s.brand!=null&&!norm(s.raw).contains(norm(s.brand)))append(s.brand).append(" ");append(s.raw);if(s.size!=null&&!norm(s.raw).contains(s.size.toString()))append(" ").append(s.size).append(" inç")}
  private fun verify(p:ProductResult,s:Spec):ProductResult?{
   if(s.brand!=null&&!norm(p.title).contains(norm(s.brand)))return null
   if(s.size!=null&&!Regex("(?i)(^|\\\\D)${s.size}\\\\s*(?:inç|inch|\\\"|inc)($|\\\\D)").containsMatchIn(p.title))return null
+  if(s.tokens.any{!norm(p.title).contains(it)})return null
   if(p.rating==null||p.rating<s.minRating||!p.stock)return null
   if(s.max!=null&&p.price>s.max)return null
-  if(!p.url.startsWith("https://")||p.url.endsWith("/")||p.url.contains("/arama")||p.url.contains("/sr?"))return null
+  if(!p.url.startsWith("https://")||p.url.endsWith("/")||p.url.contains("/arama")||p.url.contains("/sr?")||p.url.contains("/search"))return null
   val checks=buildList{if(s.brand!=null)add("Marka "+s.brand);if(s.size!=null)add(s.size.toString()+"\"");add("Puan %.1f".format(p.rating));add("Fiyat doğrulandı")}
   return p.copy(checks=checks)
  }
