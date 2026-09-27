@@ -16,5 +16,5 @@ Android 8.0+ için genel amaçlı ürün karşılaştırma uygulaması.
 Build pipeline: GitHub Actions.
 
 
-## V3
+## V4
 Gerçek ürün URL doğrulaması, marka ve sorgu eşleşmesi sıkılaştırıldı.
