@@ -117,7 +117,7 @@ private object Engine{
  }
  private fun fetch(st:Store,s:Spec):List<ProductResult>{
   val out=mutableListOf<ProductResult>()
-  val urls=st.search(query(s))
+  val urls=listOf(st.search(query(s)))
   for(url in urls){
    val doc=runCatching{Jsoup.connect(url).userAgent(UA).timeout(12000).followRedirects(true).get()}.getOrNull()?:continue
    doc.select("script[type=application/ld+json]").forEach{x->runCatching{parseJson(x.data(),st,out)}}
