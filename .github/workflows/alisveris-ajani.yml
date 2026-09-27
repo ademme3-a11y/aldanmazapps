@@ -3,6 +3,8 @@ on:
   push:
     branches: [ shopping-agent-v4 ]
     paths: [ 'AlisverisAjani/**' ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 jobs:
   build:
