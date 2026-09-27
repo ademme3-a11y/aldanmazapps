@@ -32,7 +32,7 @@ import java.net.URLEncoder
 import java.util.Locale
 
 data class ProductResult(val store:String,val title:String,val price:Double,val rating:Double?,val stock:Boolean,val url:String,val checks:List<String>)
-data class Spec(val raw:String,val brand:String?,val size:Int?,val max:Double?,val minRating:Double,val tokens:List<String>)
+data class QuantityRequirement(val value:Double,val unit:String,val normalized:Double,val raw:String)\ndata class Spec(val raw:String,val brand:String?,val size:Int?,val quantity:QuantityRequirement?,val max:Double?,val minRating:Double,val tokens:List<String>)
 data class Store(val name:String,val host:String,val search:(String)->String)
 
 private val stores=listOf(
@@ -59,7 +59,7 @@ class MainActivity:ComponentActivity(){
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable private fun App(){
  val a=LocalContext.current as MainActivity;val c=LocalContext.current
- var q by remember{mutableStateOf("")};var brand by remember{mutableStateOf("")};var max by remember{mutableStateOf("")};var min by remember{mutableStateOf(4f)}
+ var q by remember{mutableStateOf("")};var brand by remember{mutableStateOf("")};var quantity by remember{mutableStateOf("")};var max by remember{mutableStateOf("")};var min by remember{mutableStateOf(4f)}
  var onlyStock by remember{mutableStateOf(true)};var busy by remember{mutableStateOf(false)}
  var status by remember{mutableStateOf("Hazır")};var results by remember{mutableStateOf(emptyList<ProductResult>())};var spec by remember{mutableStateOf<Spec?>(null)}
  MaterialTheme(colorScheme=lightColorScheme(primary=Color(0xFF1D4ED8))){
@@ -68,18 +68,18 @@ class MainActivity:ComponentActivity(){
     item{Card(shape=RoundedCornerShape(24.dp)){Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
      Text("Ne arıyorsunuz?",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
      OutlinedTextField(q,{q=it},Modifier.fillMaxWidth(),placeholder={Text("Örn. Samsung 65 inç QLED TV")},leadingIcon={Icon(Icons.Default.Search,null)},singleLine=true,shape=RoundedCornerShape(16.dp))
-     OutlinedTextField(brand,{brand=it},Modifier.fillMaxWidth(),label={Text("Marka (isteğe bağlı)")},placeholder={Text("Örn. Samsung")},singleLine=true,shape=RoundedCornerShape(16.dp))
+     OutlinedTextField(brand,{brand=it},Modifier.fillMaxWidth(),label={Text("Marka (isteğe bağlı)")},placeholder={Text("Örn. Samsung")},singleLine=true,shape=RoundedCornerShape(16.dp))\n     OutlinedTextField(quantity,{quantity=it},Modifier.fillMaxWidth(),label={Text("EBAT / MİKTAR (isteğe bağlı)")},placeholder={Text("Örn. 65 inç • 10 kg • 500 gr • 1 L • 2500 ml • 128 GB")},singleLine=true,shape=RoundedCornerShape(16.dp),leadingIcon={Icon(Icons.Default.Straighten,null)})
      Row(horizontalArrangement=Arrangement.spacedBy(8.dp),verticalAlignment=Alignment.CenterVertically){
       OutlinedTextField(max,{max=it.filter{ch->ch.isDigit()||ch=='.'||ch==','}},Modifier.weight(1f),label={Text("Maks. TL")},singleLine=true)
       Button(enabled=q.isNotBlank()&&!busy,onClick={
-       val mx=max.replace(".","").replace(",",".").toDoubleOrNull();val s=Engine.analyze(q,brand.trim().ifBlank{null},mx,min.toDouble());spec=s;busy=true
+       val mx=max.replace(".","").replace(",",".").toDoubleOrNull();val s=Engine.analyze(q,brand.trim().ifBlank{null},quantity.trim().ifBlank{null},mx,min.toDouble());spec=s;busy=true
        a.search(s){msg,data->status=msg;results=if(onlyStock)data.filter{it.stock}else data;busy=false}
       },modifier=Modifier.height(56.dp),shape=RoundedCornerShape(16.dp)){Icon(Icons.Default.Search,null);Spacer(Modifier.width(5.dp));Text(if(busy)"TARANIYOR" else "ARA",fontWeight=FontWeight.Bold)}
      }
     }}}
     spec?.let{s->item{Card(shape=RoundedCornerShape(20.dp),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.primaryContainer)){Column(Modifier.padding(14.dp)){
      Text("AJANIN ANLADIĞI İSTEK",fontWeight=FontWeight.Black,fontSize=12.sp)
-     Text("Marka: "+(s.brand?:"belirtilmedi")+" • Ebat: "+(s.size?.toString()?.plus("\"")?:"belirtilmedi")+" • Maks: "+(s.max?.let{money(it)+" TL"}?:"belirtilmedi")+" • Puan ≥ "+("%.1f".format(s.minRating)))
+     Text("Marka: "+(s.brand?:"belirtilmedi")+" • Ebat: "+(s.size?.toString()?.plus("\"")?:"belirtilmedi")+" • Miktar: "+(s.quantity?.raw?:"belirtilmedi")+" • Maks: "+(s.max?.let{money(it)+" TL"}?:"belirtilmedi")+" • Puan ≥ "+("%.1f".format(s.minRating)))
      if(s.tokens.isNotEmpty()) Text("Zorunlu eşleşmeler: "+s.tokens.joinToString(" • "),style=MaterialTheme.typography.bodySmall)
     }}}}
     item{Card(shape=RoundedCornerShape(20.dp)){Column(Modifier.padding(16.dp)){
@@ -115,7 +115,7 @@ private object Engine{
   val tokens=n.split(" ").filter{
    it.length>=3 && !stop.contains(it) && it!=norm(b ?: "") && !it.matches(Regex("\\\\d+"))
   }.distinct().take(8)
-  return Spec(q.trim(),b,z,max,rating,tokens)
+  return Spec(q.trim(),b,z,quantity,max,rating,tokens)
  }
  suspend fun search(s:Spec):List<ProductResult>{
   return stores.flatMap{st->runCatching{fetch(st,s)}.getOrDefault(emptyList())}.filter{it.stock&&it.price>0&&(s.max==null||it.price<=s.max)}.sortedBy{it.price}.distinctBy{norm(it.title)}
@@ -125,7 +125,7 @@ private object Engine{
   doc.select("script[type=application/ld+json]").forEach{x->runCatching{parseJson(x.data(),st,out)}};if(out.isEmpty())anchors(doc,st,out)
   return out.mapNotNull{verify(it,s)}.take(20)
  }
- private fun query(s:Spec)=buildString{if(s.brand!=null&&!norm(s.raw).contains(norm(s.brand)))append(s.brand).append(" ");append(s.raw);if(s.size!=null&&!norm(s.raw).contains(s.size.toString()))append(" ").append(s.size).append(" inç")}
+ private fun query(s:Spec)=buildString{if(s.brand!=null&&!norm(s.raw).contains(norm(s.brand)))append(s.brand).append(" ");append(s.raw);if(s.size!=null&&!norm(s.raw).contains(s.size.toString()))append(" ").append(s.size).append(" inç");if(s.quantity!=null&&!norm(s.raw).contains(norm(s.quantity.raw)))append(" ").append(s.quantity.raw)}
  private fun verify(p:ProductResult,s:Spec):ProductResult?{
   if(s.brand!=null&&!norm(p.title).contains(norm(s.brand)))return null
   if(s.size!=null&&!Regex("(?i)(^|\\\\D)${s.size}\\\\s*(?:inç|inch|\\\"|inc)($|\\\\D)").containsMatchIn(p.title))return null
@@ -157,7 +157,7 @@ private object Engine{
    out+=ProductResult(st.name,title,pr,r,!txt.contains("tükendi",true)&&!txt.contains("stok yok",true),href,emptyList())
   }
  }
- private fun price(raw:String):Double?{val x=raw.trim().replace(" TL","").replace("₺","").replace(" ","");if(x.contains(","))return x.replace(".","").replace(",",".").toDoubleOrNull();val p=x.split(".");return if(p.size==2&&p[1].length==3)x.replace(".","").toDoubleOrNull()else x.toDoubleOrNull()}
+ private fun parseQuantity(raw:String):QuantityRequirement?{\n  val m=quantityRx.find(raw.trim())?:return null\n  val value=m.groupValues[1].replace(",",".").toDoubleOrNull()?:return null\n  val unit=normalizeUnit(m.groupValues[2])\n  val normalized=when(unit){\n   "kg"->value*1000.0; "g"->value; "l"->value*1000.0; "ml"->value; "tb"->value*1024.0; "gb"->value; "mb"->value/1024.0; else->value\n  }\n  return QuantityRequirement(value,unit,normalized,raw.trim())\n}\nprivate fun normalizeUnit(u:String)=when(u.lowercase(Locale("tr","TR"))){\n "kilogram","kilogramme"->"kg";"gram","gr"->"g";"lt","litre","liter"->"l";"mililitre"->"ml";else->u.lowercase(Locale("tr","TR"))\n}\nprivate fun quantityMatches(title:String,req:QuantityRequirement):Boolean{\n  val t=norm(title)\n  val matches=quantityRx.findAll(t).toList()\n  if(matches.isEmpty())return false\n  return matches.any{m->\n   val value=m.groupValues[1].replace(",",".").toDoubleOrNull()?:return@any false\n   val unit=normalizeUnit(m.groupValues[2])\n   val normalized=when(unit){\n    "kg"->value*1000.0;"g"->value;"l"->value*1000.0;"ml"->value;"tb"->value*1024.0;"gb"->value;"mb"->value/1024.0;else->value\n   }\n   if(kotlin.math.abs(normalized-req.normalized)>0.0001)return@any false\n   val start=m.range.first\n   val before=t.substring(0,start).takeLast(12)\n   val multiplier=Regex("(?i)(?:^|\\\\s)([2-9]\\\\d*|\\\\d+)\\\\s*[x×*]\\\\s*$").containsMatchIn(before)\n   !multiplier\n  }\n}\nprivate fun price(raw:String):Double?{val x=raw.trim().replace(" TL","").replace("₺","").replace(" ","");if(x.contains(","))return x.replace(".","").replace(",",".").toDoubleOrNull();val p=x.split(".");return if(p.size==2&&p[1].length==3)x.replace(".","").toDoubleOrNull()else x.toDoubleOrNull()}
  private fun absolute(host:String,u:String)=if(u.startsWith("http"))u else if(u.startsWith("/"))"https://"+host+u else "https://"+host+"/"+u
  private fun norm(x:String)=x.lowercase(Locale("tr","TR")).replace("ı","i").replace("ş","s").replace("ğ","g").replace("ü","u").replace("ö","o").replace("ç","c").replace(Regex("\\s+")," ").trim()
 }
