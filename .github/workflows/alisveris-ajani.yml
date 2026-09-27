@@ -1,7 +1,7 @@
 name: Build Alisveris Ajani APK
 on:
-  push:
-    branches: [ shopping-agent-v1 ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 jobs:
   build:
