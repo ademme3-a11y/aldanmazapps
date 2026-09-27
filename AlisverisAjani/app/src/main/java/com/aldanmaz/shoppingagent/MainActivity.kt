@@ -78,7 +78,7 @@ class MainActivity:ComponentActivity(){
     }}}
     spec?.let{s->item{Card(shape=RoundedCornerShape(20.dp),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.primaryContainer)){Column(Modifier.padding(14.dp)){
      Text("AJANIN ANLADIĞI İSTEK",fontWeight=FontWeight.Black,fontSize=12.sp)
-     Text("Marka: "+(s.brand?:"belirtilmedi")+" • Ebat: "+(s.size?.toString()?.plus(""")?:"belirtilmedi")+" • Maks: "+(s.max?.let{money(it)+" TL"}?:"belirtilmedi")+" • Puan ≥ "+("%.1f".format(s.minRating)))
+     Text("Marka: "+(s.brand?:"belirtilmedi")+" • Ebat: "+(s.size?.toString()?.plus("\"")?:"belirtilmedi")+" • Maks: "+(s.max?.let{money(it)+" TL"}?:"belirtilmedi")+" • Puan ≥ "+("%.1f".format(s.minRating)))
     }}}}
     item{Card(shape=RoundedCornerShape(20.dp)){Column(Modifier.padding(16.dp)){
      Row(verticalAlignment=Alignment.CenterVertically){Icon(Icons.Default.Tune,null);Spacer(Modifier.width(8.dp));Text("Ajan filtreleri",fontWeight=FontWeight.Bold)}
@@ -125,7 +125,7 @@ private object Engine{
   if(p.rating==null||p.rating<s.minRating||!p.stock)return null
   if(s.max!=null&&p.price>s.max)return null
   if(!p.url.startsWith("https://")||p.url.endsWith("/")||p.url.contains("/arama")||p.url.contains("/sr?"))return null
-  val checks=buildList{if(s.brand!=null)add("Marka "+s.brand);if(s.size!=null)add(s.size.toString()+""");add("Puan %.1f".format(p.rating));add("Fiyat doğrulandı")}
+  val checks=buildList{if(s.brand!=null)add("Marka "+s.brand);if(s.size!=null)add(s.size.toString()+"\"");add("Puan %.1f".format(p.rating));add("Fiyat doğrulandı")}
   return p.copy(checks=checks)
  }
  private fun parseJson(raw:String,st:Store,out:MutableList<ProductResult>){
