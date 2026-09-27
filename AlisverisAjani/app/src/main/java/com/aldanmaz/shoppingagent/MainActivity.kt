@@ -220,54 +220,62 @@ private fun ProductRow(no: Int, p: Product, open: () -> Unit) {
 }
 
 private object Engine {
-    private val qtyRx = Regex("""(?i)(\d+(?:[.,]\d+)?)\s*(kg|g|gr|gram|l|lt|litre|liter|ml|mg|adet|ad|paket|kutu|tb|gb|mb|inç|inch|inc|")""")
-    private val priceRx = Regex("""(?i)(\d{1,3}(?:[. ]\d{3})*(?:,\d{1,2})?|\d+(?:[.,]\d{1,2})?)\s*(?:TL|₺)""")
-    private val ratingRx = Regex("""(?<!\d)([0-5](?:[.,]\d))(?=\s*(?:\(|/|★|puan))""")
+    private val qtyRx = Regex("""(?i)(\\d+(?:[.,]\\d+)?)\\s*(kg|g|gr|gram|l|lt|litre|liter|ml|mg|adet|ad|paket|kutu|tb|gb|mb|inç|inch|inc|")""")
+    private val priceRx = Regex("""(?i)(\\d{1,3}(?:[. ]\\d{3})*(?:,\\d{1,2})?|\\d+(?:[.,]\\d{1,2})?)\\s*(?:TL|₺)""")
+    private val ratingRx = Regex("""(?<!\\d)([0-5](?:[.,]\\d))(?=\\s*(?:\\(|/|★|puan))""")
+    private val badStockRx = Regex("""(?i)stok\\s*yok|tükendi|tukendi|satışta değil|satis\\s*ta degil|out of stock""")
 
-    fun analyze(product: String, brand: String?, quantity: String?, max: Double?, rating: Double): Spec {
-        return Spec(product.trim(), brand, quantity?.let { parseQty(it) }, max, rating)
-    }
+    fun analyze(product: String, brand: String?, quantity: String?, max: Double?, rating: Double): Spec =
+        Spec(product.trim(), brand, quantity?.let(::parseQty), max, rating)
 
-    fun search(s: Spec): List<Product> {
-        return stores.flatMap { store ->
-            runCatching { fetch(store, s) }.getOrDefault(emptyList())
-        }.filter { verify(it, s) }
-            .distinctBy { it.url.substringBefore("#").substringBefore("?").trimEnd('/') }
-            .sortedBy { it.price }
-            .take(20)
-    }
+    fun search(s: Spec): List<Product> = stores.flatMap { store ->
+        runCatching { fetch(store, s) }.getOrDefault(emptyList())
+    }.filter { verify(it, s) }
+     .distinctBy { it.url.substringBefore("#").substringBefore("?").trimEnd('/') }
+     .sortedBy { it.price }.take(20)
 
     private fun fetch(store: Store, s: Spec): List<Product> {
-        val q = s.product + if (s.brand.isNullOrBlank()) "" else " " + s.brand + if (s.qty == null) "" else " " + s.qty.raw
+        val q = buildString {
+            append(s.product)
+            s.brand?.takeIf { it.isNotBlank() }?.let { append(' ').append(it) }
+            s.qty?.raw?.let { append(' ').append(it) }
+        }
         val doc = Jsoup.connect(store.search(q)).userAgent(USER_AGENT).timeout(18000).followRedirects(true).get()
         val out = mutableListOf<Product>()
         doc.select("script[type=application/ld+json]").forEach { script ->
             runCatching { parseJson(script.data(), store, out) }
         }
-        if (out.isEmpty()) parseAnchors(doc, store, out)
+        parseAnchors(doc, store, out)
         return out
     }
 
     private fun verify(p: Product, s: Spec): Boolean {
-        if (!p.url.startsWith("https://") || p.url.contains("arama") || p.url.contains("/search") || p.url.contains("/sr?")) return false
+        val uri = Uri.parse(p.url)
+        if (uri.scheme != "https") return false
         if (!sameHost(p.url, stores.firstOrNull { it.name == p.store }?.host)) return false
-        if (s.brand != null && !normalize(p.title).contains(normalize(s.brand))) return false
+        val path = uri.path.orEmpty().lowercase(Locale.US)
+        if (path.isBlank() || path == "/" || path.contains("arama") || path.contains("search")) return false
+        val title = normalize(p.title)
+        if (s.brand != null && !title.contains(normalize(s.brand))) return false
         val tokens = normalize(s.product).split(" ").filter { it.length >= 3 && it !in STOP }
-        if (tokens.any { !normalize(p.title).contains(it) }) return false
+        if (tokens.any { !title.contains(it) }) return false
         if (s.qty != null) {
             val actual = parseQty(p.amount.ifBlank { p.title }) ?: return false
             if (!sameQuantity(actual, s.qty)) return false
         }
-        if (p.price <= 0 || (s.max != null && p.price > s.max)) return false
+        if (p.price <= 0.0 || (s.max != null && p.price > s.max)) return false
         if (p.rating == null || p.rating < s.rating) return false
         return true
     }
 
     private fun parseJson(raw: String, store: Store, out: MutableList<Product>) {
-        if (raw.trim().startsWith("{")) walk(JSONObject(raw), store, out)
-        else if (raw.trim().startsWith("[")) {
-            val a = JSONArray(raw)
-            for (i in 0 until a.length()) a.optJSONObject(i)?.let { walk(it, store, out) }
+        val text = raw.trim()
+        when {
+            text.startsWith("{") -> runCatching { walk(JSONObject(text), store, out) }
+            text.startsWith("[") -> runCatching {
+                val a = JSONArray(text)
+                for (i in 0 until a.length()) a.optJSONObject(i)?.let { walk(it, store, out) }
+            }
         }
     }
 
@@ -275,11 +283,18 @@ private object Engine {
         if (o.optString("@type").contains("Product", true)) {
             val title = o.optString("name").trim()
             val url = o.optString("url").trim()
-            val offers = o.optJSONObject("offers")
-            val price = parsePrice(offers?.optString("price") ?: offers?.optString("lowPrice") ?: "")
+            val offers = o.opt("offers")
+            val offer = when (offers) {
+                is JSONObject -> offers
+                is JSONArray -> (0 until offers.length()).mapNotNull { offers.optJSONObject(it) }.firstOrNull()
+                else -> null
+            }
+            val price = parsePrice(offer?.optString("price").orEmpty().ifBlank { offer?.optString("lowPrice").orEmpty() })
             val rating = o.optJSONObject("aggregateRating")?.optString("ratingValue")?.replace(",", ".")?.toDoubleOrNull()
+            val availability = offer?.optString("availability").orEmpty()
+            val stock = availability.isBlank() || availability.contains("InStock", true) || availability.contains("LimitedAvailability", true)
             if (title.isNotBlank() && url.isNotBlank() && price != null) {
-                out += Product(store.name, title, extractAmount(title), price, rating, true, absolute(store.host, url))
+                out += Product(store.name, title, extractAmount(title), price, rating, stock, absolute(store.host, url))
             }
         }
         val keys = o.keys()
@@ -296,12 +311,13 @@ private object Engine {
             val url = a.absUrl("href")
             val title = a.text().trim()
             if (title.length < 12 || url.isBlank() || !sameHost(url, store.host)) return@forEach
-            if (url.contains("arama") || url.contains("/search") || url.endsWith("/")) return@forEach
+            val path = Uri.parse(url).path.orEmpty().lowercase(Locale.US)
+            if (path.isBlank() || path == "/" || path.contains("arama") || path.contains("search")) return@forEach
             val parent = a.parent()?.parent()?.text().orEmpty().ifBlank { title }
             val pm = priceRx.find(parent) ?: return@forEach
             val price = parsePrice(pm.groupValues[1]) ?: return@forEach
             val rating = ratingRx.find(parent)?.groupValues?.get(1)?.replace(",", ".")?.toDoubleOrNull()
-            val stock = !Regex("(?i)stok yok|tükendi|satışta değil|out of stock").containsMatchIn(parent)
+            val stock = !badStockRx.containsMatchIn(parent)
             out += Product(store.name, title, extractAmount(parent), price, rating, stock, url)
         }
     }
@@ -314,48 +330,53 @@ private object Engine {
     }
 
     private fun sameQuantity(a: Qty, b: Qty): Boolean {
-        val groups = setOf(
-            setOf("g", "kg", "mg"),
-            setOf("ml", "l"),
-            setOf("mb", "gb", "tb"),
-            setOf("adet", "ad")
-        )
-        if (a.unit == b.unit || groups.any { a.unit in it && b.unit in it }) return abs(a.normalized - b.normalized) < 0.001
-        return a.unit == "inc" && b.unit == "inc" && abs(a.value - b.value) < 0.001
+        if (a.unit == "inc" || b.unit == "inc") return a.unit == b.unit && abs(a.value - b.value) < 0.001
+        val compatible = when {
+            a.unit in setOf("g", "kg", "mg") && b.unit in setOf("g", "kg", "mg") -> true
+            a.unit in setOf("ml", "l") && b.unit in setOf("ml", "l") -> true
+            a.unit in setOf("mb", "gb", "tb") && b.unit in setOf("mb", "gb", "tb") -> true
+            a.unit == "adet" && b.unit == "adet" -> true
+            else -> false
+        }
+        return compatible && abs(a.normalized - b.normalized) < 0.001
     }
 
     private fun unit(raw: String): String = when (normalize(raw)) {
-        "kg", "kilogram" -> "kg"
+        "kg" -> "kg"
         "g", "gr", "gram" -> "g"
         "mg" -> "mg"
         "l", "lt", "litre", "liter" -> "l"
         "ml" -> "ml"
-        "adet", "ad" -> "adet"
+        "adet", "ad", "paket", "kutu" -> "adet"
         "tb" -> "tb"
         "gb" -> "gb"
         "mb" -> "mb"
-        "inç", "inch", "inc", """ -> "inc"
+        "inç", "inch", "inc", "\"" -> "inc"
         else -> normalize(raw)
     }
 
     private fun normalizeQty(v: Double, u: String): Double = when (u) {
-        "kg" -> v * 1000
+        "kg" -> v * 1000.0
         "g" -> v
-        "mg" -> v / 1000
-        "l" -> v * 1000
+        "mg" -> v / 1000.0
+        "l" -> v * 1000.0
         "ml" -> v
-        "tb" -> v * 1048576
-        "gb" -> v * 1024
+        "tb" -> v * 1048576.0
+        "gb" -> v * 1024.0
+        "mb" -> v
         else -> v
     }
 
     private fun extractAmount(text: String): String = qtyRx.find(text)?.value?.trim().orEmpty()
+
     private fun parsePrice(raw: String): Double? {
         val x = raw.trim().replace("TL", "", true).replace("₺", "").replace(" ", "")
         if (x.isBlank()) return null
-        return if (x.contains(",")) x.replace(".", "").replace(",", ".").toDoubleOrNull()
-        else if (x.count { it == '.' } == 1 && x.substringAfter(".").length == 3) x.replace(".", "").toDoubleOrNull()
-        else x.toDoubleOrNull()
+        return when {
+            x.contains(",") -> x.replace(".", "").replace(",", ".").toDoubleOrNull()
+            x.count { it == '.' } == 1 && x.substringAfter(".").length == 3 -> x.replace(".", "").toDoubleOrNull()
+            else -> x.toDoubleOrNull()
+        }
     }
 }
 
