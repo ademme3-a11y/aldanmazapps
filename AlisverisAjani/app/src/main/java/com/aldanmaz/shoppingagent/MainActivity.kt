@@ -49,7 +49,11 @@ private val stores = listOf(
     Store("n11", "n11.com") { q -> "https://www.n11.com/arama?q=" + enc(q) },
     Store("Pazarama", "pazarama.com") { q -> "https://www.pazarama.com/arama?q=" + enc(q) },
     Store("MediaMarkt", "mediamarkt.com.tr") { q -> "https://www.mediamarkt.com.tr/tr/search.html?query=" + enc(q) },
-    Store("Teknosa", "teknosa.com") { q -> "https://www.teknosa.com/arama/?s=" + enc(q) }
+    Store("Teknosa", "teknosa.com") { q -> "https://www.teknosa.com/arama/?s=" + enc(q) },
+    Store("Migros", "migros.com.tr") { q -> "https://www.migros.com.tr/arama?q=" + enc(q) },
+    Store("A101", "a101.com.tr") { q -> "https://www.a101.com.tr/arama?q=" + enc(q) },
+    Store("CarrefourSA", "carrefoursa.com") { q -> "https://www.carrefoursa.com/search?q=" + enc(q) },
+    Store("SOK", "sokmarket.com.tr") { q -> "https://www.sokmarket.com.tr/arama?q=" + enc(q) }
 )
 
 class MainActivity : ComponentActivity() {
