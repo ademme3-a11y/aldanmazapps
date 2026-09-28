@@ -248,47 +248,7 @@ class FuelViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             runCatching {
-                val effectiveLiters = if (state.fillTank) {
-                    (state.tankCapacityLiters - state.currentFuelLiters).coerceAtLeast(0.0)
-                } else {
-                    liters
-                }
-                val freshLocation = runCatching { findCurrentLocation() }.getOrNull()
-                val lastLocation = freshLocation ?: findBestLastKnownLocation()
-                val storedLatitude = dailyTripPrefs.takeIf { it.contains("lastLatitudeBits") }
-                    ?.let { java.lang.Double.longBitsToDouble(it.getLong("lastLatitudeBits", 0L)) }
-                val storedLongitude = dailyTripPrefs.takeIf { it.contains("lastLongitudeBits") }
-                    ?.let { java.lang.Double.longBitsToDouble(it.getLong("lastLongitudeBits", 0L)) }
-                val latitude = lastLocation?.latitude ?: storedLatitude
-                val longitude = lastLocation?.longitude ?: storedLongitude
-                val address = if (latitude != null && longitude != null) {
-                    runCatching { reverseGeocode(latitude, longitude) }.getOrNull()
-                } else {
-                    null
-                }
-
-                repository.addFuel(
-                    addedLiters = liters,
-                    totalCost = cost,
-                    fillTank = state.fillTank,
-                )
-                val driverPrefs = getApplication<Application>()
-                    .getSharedPreferences("driver_profiles", Context.MODE_PRIVATE)
-                val driverId = driverPrefs.getString("active_driver_id", null)
-                    ?: driverPrefs.getString("default_driver_id", "1")
-                    ?: "1"
-                val defaultName = if (driverId == "2") "Nurdan" else "Mehmet"
-                val driverName = driverPrefs.getString("driver_${driverId}_name", defaultName)
-                    ?.trim().orEmpty().ifBlank { defaultName }
-                purchaseHistoryRepository.add(
-                    driverId = driverId,
-                    driverName = driverName,
-                    liters = effectiveLiters,
-                    costTl = cost,
-                    latitude = latitude,
-                    longitude = longitude,
-                    address = address,
-                )
+                val effectiveLiters = saveFuelPurchase(\n                    addedLiters = liters,\n                    totalCost = cost,\n                    fillTank = state.fillTank,\n                )
             }.onSuccess {
                 _uiState.update {
                     it.copy(
