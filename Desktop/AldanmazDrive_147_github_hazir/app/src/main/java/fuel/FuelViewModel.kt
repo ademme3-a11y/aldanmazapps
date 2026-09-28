@@ -271,7 +271,7 @@ class FuelViewModel(application: Application) : AndroidViewModel(application) {
             .replace(Regex("(?i)\\blitre(s)?\\b"), " ")
             .replace(Regex("(?i)\\bl(l|lt)\\b"), " ")
             .trim()
-        val liters = Regex("""(?<![0-9.])(?:[0-9]+(?:\\.[0-9]+)?|\\.[0-9]+)(?![0-9.])""")
+        val liters = Regex("""(?<![0-9.])(?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+)(?![0-9.])""")
             .find(normalized)?.value?.toDoubleOrNull()
 
         if (liters == null || liters <= 0.0) {
