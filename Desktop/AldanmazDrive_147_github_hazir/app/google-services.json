@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1009672894895",
+    "project_id": "aldanmaz-drive",
+    "storage_bucket": "aldanmaz-drive.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1009672894895:android:e7af2318a70715aae7175a",
+        "android_client_info": {
+          "package_name": "com.aldanmaz.drivedashboard"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDQq6QJuSxwURXTtaLmr7Q1sHj-969B3wc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
