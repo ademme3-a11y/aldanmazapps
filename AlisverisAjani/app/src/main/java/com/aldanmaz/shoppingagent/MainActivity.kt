@@ -228,19 +228,28 @@ private fun ProductRow(no: Int, p: Product, open: () -> Unit) {
 }
 
 private object Engine {
-    private val qtyRx = Regex("""(?i)(\\d+(?:[.,]\\d+)?)\\s*(kg|g|gr|gram|l|lt|litre|liter|ml|mg|adet|ad|paket|kutu|tb|gb|mb|inç|inch|inc|")""")
-    private val priceRx = Regex("""(?i)(\\d{1,3}(?:[. ]\\d{3})*(?:,\\d{1,2})?|\\d+(?:[.,]\\d{1,2})?)\\s*(?:TL|₺)""")
-    private val ratingRx = Regex("""(?<!\\d)([0-5](?:[.,]\\d))(?=\\s*(?:\\(|/|★|puan))""")
-    private val badStockRx = Regex("""(?i)stok\\s*yok|tükendi|tukendi|satışta değil|satis\\s*ta degil|out of stock""")
+    private val qtyRx = Regex("""(?i)(\d+(?:[.,]\d+)?)\s*(kg|g|gr|gram|l|lt|litre|liter|ml|mg|adet|ad|paket|kutu|tb|gb|mb|inç|inch|inc|")""")
+    private val priceRx = Regex("""(?i)(\d{1,3}(?:[. ]\d{3})*(?:,\d{1,2})?|\d+(?:[.,]\d{1,2})?)\s*(?:TL|₺)""")
+    private val ratingRx = Regex("""(?<!\d)([0-5](?:[.,]\d))(?=\s*(?:\(|/|★|puan))""")
+    private val badStockRx = Regex("""(?i)stok\s*yok|tükendi|tukendi|satışta değil|satis\s*ta degil|out of stock""")
 
     fun analyze(product: String, brand: String?, quantity: String?, max: Double?, rating: Double): Spec =
         Spec(product.trim(), brand, quantity?.let(::parseQty), max, rating)
 
-    fun search(s: Spec): List<Product> = stores.flatMap { store ->
-        runCatching { fetch(store, s) }.getOrDefault(emptyList())
-    }.filter { verify(it, s) }
-     .distinctBy { it.url.substringBefore("#").substringBefore("?").trimEnd('/') }
-     .sortedBy { it.price }.take(20)
+    fun search(s: Spec): List<Product> {
+        val candidates = mutableListOf<Product>()
+        for (store in stores) {
+            if (candidates.size >= 80) break
+            val batch = runCatching { fetch(store, s) }.getOrDefault(emptyList())
+            candidates.addAll(batch.take(20))
+        }
+        return candidates.asSequence()
+            .filter { verify(it, s) }
+            .distinctBy { it.url.substringBefore("#").substringBefore("?").trimEnd('/') }
+            .sortedBy { it.price }
+            .take(20)
+            .toList()
+    }
 
     private fun fetch(store: Store, s: Spec): List<Product> {
         val q = buildString {
@@ -251,14 +260,14 @@ private object Engine {
         val doc = Jsoup.connect(store.search(q))
             .userAgent(USER_AGENT)
             .timeout(10000)
-            .maxBodySize(2_000_000)
+            .maxBodySize(600_000)
             .followRedirects(true)
             .get()
-        val out = mutableListOf<Product>()
-        doc.select("script[type=application/ld+json]").forEach { script ->
-            runCatching { parseJson(script.data(), store, out) }
+        val out = ArrayList<Product>(32)
+        doc.select("script[type=application/ld+json]").take(20).forEach { script ->
+            if (out.size < 20) runCatching { parseJson(script.data(), store, out) }
         }
-        parseAnchors(doc, store, out)
+        if (out.size < 20) parseAnchors(doc, store, out)
         return out
     }
 
@@ -320,7 +329,7 @@ private object Engine {
     }
 
     private fun parseAnchors(doc: Document, store: Store, out: MutableList<Product>) {
-        doc.select("a[href]").forEach { a ->
+        doc.select("a[href]").take(200).forEach { a ->
             val url = a.absUrl("href")
             val title = a.text().trim()
             if (title.length < 12 || url.isBlank() || !sameHost(url, store.host)) return@forEach
@@ -331,7 +340,7 @@ private object Engine {
             val price = parsePrice(pm.groupValues[1]) ?: return@forEach
             val rating = ratingRx.find(parent)?.groupValues?.get(1)?.replace(",", ".")?.toDoubleOrNull()
             val stock = !badStockRx.containsMatchIn(parent)
-            out += Product(store.name, title, extractAmount(parent), price, rating, stock, url)
+            if (out.size < 20) out += Product(store.name, title, extractAmount(parent), price, rating, stock, url)
         }
     }
 
@@ -398,7 +407,7 @@ private const val USER_AGENT = "Mozilla/5.0 (Linux; Android 16; SM-A256B) AppleW
 
 private fun normalize(s: String): String = s.lowercase(Locale("tr", "TR"))
     .replace("ı", "i").replace("ş", "s").replace("ğ", "g").replace("ü", "u").replace("ö", "o").replace("ç", "c")
-    .replace(Regex("\\s+"), " ").trim()
+    .replace(Regex("\s+"), " ").trim()
 
 private fun sameHost(url: String, host: String?): Boolean =
     host != null && (Uri.parse(url).host?.lowercase(Locale.US)?.endsWith(host.lowercase(Locale.US)) == true)
