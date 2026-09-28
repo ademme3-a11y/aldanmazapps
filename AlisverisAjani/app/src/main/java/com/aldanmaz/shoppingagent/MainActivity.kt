@@ -407,7 +407,7 @@ private const val USER_AGENT = "Mozilla/5.0 (Linux; Android 16; SM-A256B) AppleW
 
 private fun normalize(s: String): String = s.lowercase(Locale("tr", "TR"))
     .replace("ı", "i").replace("ş", "s").replace("ğ", "g").replace("ü", "u").replace("ö", "o").replace("ç", "c")
-    .replace(Regex("\s+"), " ").trim()
+    .replace(Regex("""\s+"""), " ").trim()
 
 private fun sameHost(url: String, host: String?): Boolean =
     host != null && (Uri.parse(url).host?.lowercase(Locale.US)?.endsWith(host.lowercase(Locale.US)) == true)
