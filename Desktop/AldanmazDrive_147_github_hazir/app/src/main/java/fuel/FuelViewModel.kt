@@ -212,6 +212,106 @@ class FuelViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private suspend fun saveFuelPurchase(
+        addedLiters: Double,
+        totalCost: Double,
+        fillTank: Boolean,
+    ): Double {
+        val effectiveLiters = if (fillTank) {
+            (latestSettings.tankCapacityLiters - latestSettings.currentFuelLiters).coerceAtLeast(0.0)
+        } else {
+            addedLiters
+        }
+
+        val freshLocation = runCatching { findCurrentLocation() }.getOrNull()
+        val lastLocation = freshLocation ?: findBestLastKnownLocation()
+        val storedLatitude = dailyTripPrefs.takeIf { it.contains("lastLatitudeBits") }
+            ?.let { java.lang.Double.longBitsToDouble(it.getLong("lastLatitudeBits", 0L)) }
+        val storedLongitude = dailyTripPrefs.takeIf { it.contains("lastLongitudeBits") }
+            ?.let { java.lang.Double.longBitsToDouble(it.getLong("lastLongitudeBits", 0L)) }
+        val latitude = lastLocation?.latitude ?: storedLatitude
+        val longitude = lastLocation?.longitude ?: storedLongitude
+        val address = if (latitude != null && longitude != null) {
+            runCatching { reverseGeocode(latitude, longitude) }.getOrNull()
+        } else null
+
+        repository.addFuel(
+            addedLiters = addedLiters,
+            totalCost = totalCost,
+            fillTank = fillTank,
+        )
+
+        val driverPrefs = getApplication<Application>()
+            .getSharedPreferences("driver_profiles", Context.MODE_PRIVATE)
+        val driverId = driverPrefs.getString("active_driver_id", null)
+            ?: driverPrefs.getString("default_driver_id", "1")
+            ?: "1"
+        val defaultName = if (driverId == "2") "Nurdan" else "Mehmet"
+        val driverName = driverPrefs.getString("driver_${driverId}_name", defaultName)
+            ?.trim().orEmpty().ifBlank { defaultName }
+        purchaseHistoryRepository.add(
+            driverId = driverId,
+            driverName = driverName,
+            liters = effectiveLiters,
+            costTl = totalCost,
+            latitude = latitude,
+            longitude = longitude,
+            address = address,
+        )
+        return effectiveLiters
+    }
+
+    /** Gemini yakıt komutunu manuel "Yakıt Aldım" kayıt zincirine bağlar. */
+    fun addFuelFromGemini(
+        rawValue: String?,
+        onComplete: (Result<Double>) -> Unit = {},
+    ) {
+        val normalized = rawValue?.trim().orEmpty()
+            .replace(',', '.')
+            .replace(Regex("(?i)\\blitre(s)?\\b"), " ")
+            .replace(Regex("(?i)\\bl(l|lt)\\b"), " ")
+            .trim()
+        val liters = Regex("""(?<![0-9.])(?:[0-9]+(?:\\.[0-9]+)?|\\.[0-9]+)(?![0-9.])""")
+            .find(normalized)?.value?.toDoubleOrNull()
+
+        if (liters == null || liters <= 0.0) {
+            val error = IllegalArgumentException("Gemini için eklenecek yakıt miktarını litre olarak belirtin. Örnek: 10 litre.")
+            showError(error.message ?: "Geçersiz yakıt miktarı.")
+            onComplete(Result.failure(error))
+            return
+        }
+        if (!_uiState.value.isConfigured) {
+            val error = IllegalStateException("Önce yakıt ayarlarını kaydedin.")
+            showError(error.message ?: "Yakıt ayarları yapılmamış.")
+            onComplete(Result.failure(error))
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSaving = true, errorMessage = null, confirmationMessage = null) }
+            runCatching {
+                val location = findCurrentLocation() ?: findBestLastKnownLocation()
+                    ?: throw IllegalStateException("Konum alınamadı. Shell fiyatı için konum izni gerekli.")
+                val city = findProvince(location)
+                    ?: throw IllegalStateException("Bulunduğunuz il belirlenemedi.")
+                val price = withContext(Dispatchers.IO) {
+                    shellFuelPriceRepository.fetchPrice(city, latestSettings.fuelType)
+                }
+                val totalCost = liters * price.pricePerLiter
+                saveFuelPurchase(addedLiters = liters, totalCost = totalCost, fillTank = false)
+                liters to totalCost
+            }.onSuccess { (savedLiters, totalCost) ->
+                _uiState.update { it.copy(
+                    isSaving = false,
+                    confirmationMessage = "Gemini yakıt alımı kaydedildi: ${savedLiters.toInputText()} L • " + "${totalCost.toInputText()} TL.",
+                ) }
+                onComplete(Result.success(savedLiters))
+            }.onFailure { error ->
+                _uiState.update { it.copy(isSaving = false, errorMessage = error.message ?: "Gemini yakıt alımı kaydedilemedi.") }
+                onComplete(Result.failure(error))
+            }
+        }
+    }
     fun saveRefuel() {
         val state = _uiState.value
 
@@ -248,7 +348,11 @@ class FuelViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             runCatching {
-                val effectiveLiters = saveFuelPurchase(\n                    addedLiters = liters,\n                    totalCost = cost,\n                    fillTank = state.fillTank,\n                )
+                val effectiveLiters = saveFuelPurchase(
+                    addedLiters = liters,
+                    totalCost = cost,
+                    fillTank = state.fillTank,
+                )
             }.onSuccess {
                 _uiState.update {
                     it.copy(
