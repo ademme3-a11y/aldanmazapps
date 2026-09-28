@@ -65,8 +65,16 @@ class MainActivity : ComponentActivity() {
     fun search(spec: Spec, done: (String, List<Product>) -> Unit) {
         lifecycleScope.launch {
             done("Mağazalar taranıyor…", emptyList())
-            val result = withContext(Dispatchers.IO) { Engine.search(spec) }
-            done(if (result.isEmpty()) "Doğrulanmış uygun ürün bulunamadı." else result.size.toString() + " doğrulanmış ürün bulundu.", result)
+            try {
+                val result = withContext(Dispatchers.IO) { Engine.search(spec) }
+                done(
+                    if (result.isEmpty()) "Doğrulanmış uygun ürün bulunamadı."
+                    else result.size.toString() + " doğrulanmış ürün bulundu.",
+                    result
+                )
+            } catch (t: Throwable) {
+                done("Arama sırasında hata oluştu: " + (t.message ?: "bilinmeyen hata"), emptyList())
+            }
         }
     }
 }
@@ -240,7 +248,12 @@ private object Engine {
             s.brand?.takeIf { it.isNotBlank() }?.let { append(' ').append(it) }
             s.qty?.raw?.let { append(' ').append(it) }
         }
-        val doc = Jsoup.connect(store.search(q)).userAgent(USER_AGENT).timeout(18000).followRedirects(true).get()
+        val doc = Jsoup.connect(store.search(q))
+            .userAgent(USER_AGENT)
+            .timeout(10000)
+            .maxBodySize(2_000_000)
+            .followRedirects(true)
+            .get()
         val out = mutableListOf<Product>()
         doc.select("script[type=application/ld+json]").forEach { script ->
             runCatching { parseJson(script.data(), store, out) }
