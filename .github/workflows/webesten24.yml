@@ -13,30 +13,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Restore WebestenHeater 24 source
+      - name: Restore complete WebestenHeater 24 project
         run: |
-          echo "Restoring source archive..."
-          base64 -d WebestenHeater_24/source_min/01.b64 > /tmp/WebestenHeater_24_source.zip
-          unzip -q /tmp/WebestenHeater_24_source.zip -d /tmp/restored
+          set -e
+          test -f WebestenHeater_24/WebestenHeater_24.zip
+          rm -rf /tmp/restored
+          mkdir -p /tmp/restored
+          unzip -q WebestenHeater_24/WebestenHeater_24.zip -d /tmp/restored
           test -f /tmp/restored/WebestenHeater_24/app/src/main/AndroidManifest.xml
+          test -f /tmp/restored/WebestenHeater_24/app/src/main/java/com/aldanmaz/webestenheater/MainActivity.kt
           rm -rf WebestenHeater_24
           mv /tmp/restored/WebestenHeater_24 WebestenHeater_24
-          find WebestenHeater_24/app/src/main/java -type f | sort
-
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
-
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.13"
-
       - name: Build debug APK
         working-directory: WebestenHeater_24
         run: gradle --no-daemon :app:assembleDebug
-
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
