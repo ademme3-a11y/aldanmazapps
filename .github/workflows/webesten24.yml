@@ -14,15 +14,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Restore complete WebestenHeater 24 source
+      - name: Restore WebestenHeater 24 source
         run: |
-          echo "Restoring complete source from repository chunks..."
-          base64 -d WebestenHeater_24/source_parts/01.b64 > /tmp/part01.bin
-          base64 -d WebestenHeater_24/source_parts/02.b64 > /tmp/part02.bin
-          cat /tmp/part01.bin /tmp/part02.bin > /tmp/WebestenHeater_24_source.zip
+          echo "Restoring source archive..."
+          base64 -d WebestenHeater_24/source_min/01.b64 > /tmp/WebestenHeater_24_source.zip
+          unzip -q /tmp/WebestenHeater_24_source.zip -d /tmp/restored
+          test -f /tmp/restored/WebestenHeater_24/app/src/main/AndroidManifest.xml
           rm -rf WebestenHeater_24
-          unzip -q /tmp/WebestenHeater_24_source.zip
-          test -f WebestenHeater_24/app/src/main/AndroidManifest.xml
+          mv /tmp/restored/WebestenHeater_24 WebestenHeater_24
           find WebestenHeater_24/app/src/main/java -type f | sort
 
       - uses: actions/setup-java@v4
