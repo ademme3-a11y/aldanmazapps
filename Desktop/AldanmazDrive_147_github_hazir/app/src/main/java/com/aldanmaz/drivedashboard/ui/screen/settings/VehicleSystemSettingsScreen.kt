@@ -220,7 +220,7 @@ fun VehicleSystemSettingsScreen(
                         Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                             DriverAvatar(photo, name, Modifier.fillMaxWidth().height(110.dp))
                             Row {
-                                TextButton(onClick = { if (id == "1") driver1PhotoPicker.launch(arrayOf("image/*")) else driver2PhotoPicker.launch(arrayOf("image/*")) }, enabled = !isDriving) { Text("FOTOĞRAF SEÇ") }
+                                TextButton(onClick = { if (id == "1") driver1PhotoPicker.launch("image/*") else driver2PhotoPicker.launch("image/*") }, enabled = !isDriving) { Text("FOTOĞRAF SEÇ") }
                                 if (photo != null) TextButton(onClick = { persistDriverPhoto(id, null) }, enabled = !isDriving) { Text("KALDIR") }
                             }
                         }
