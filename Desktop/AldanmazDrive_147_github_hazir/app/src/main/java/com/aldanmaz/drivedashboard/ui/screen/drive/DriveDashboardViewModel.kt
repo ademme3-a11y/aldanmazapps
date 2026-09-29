@@ -151,6 +151,13 @@ class DriveDashboardViewModel(
     /** 94: ViewModel configuration change boyunca yaşadığı için ekran döndürmede sürücü seçimini korur. */
     fun currentDriverSessionIdOrNull(): String? = if (hasSelectedDriverSession) activeDriverId else null
 
+    /** 149: Tamamlanan araç/sürüş oturumundan sonra yeni sürücü seçimini zorunlu kılar. */
+    fun clearDriverSession() {
+        hasSelectedDriverSession = false
+        activeDriverId = "1"
+        activeDriverName = "Mehmet"
+    }
+
 
     // 131: Ortak veri-kaynağı kuralı. OBD canlı ve güncelse önceliklidir;
     // veri bayatlar/koparsa mevcut GPS/ALD hesaplarına otomatik geri dönülür.

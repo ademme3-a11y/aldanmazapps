@@ -3,6 +3,7 @@ package com.aldanmaz.drivedashboard.ui.screen.driver
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.net.Uri
+import java.io.File
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Image
@@ -99,11 +100,17 @@ fun DriverAvatar(photoUri: String?, name: String, modifier: Modifier = Modifier)
     val bitmap = remember(photoUri) {
         photoUri?.let { rawUri ->
             runCatching {
-                val uri = Uri.parse(rawUri)
-                // 147: Android 12 araç cihazlarında yüksek çözünürlüklü telefon
-                // fotoğrafını tam boy decode etmek OOM ile uygulamayı kapatabiliyor.
-                // Önce boyutu öğren, sonra en fazla 1024px uzun kenarlı bitmap üret.
-                val bounds = context.contentResolver.openInputStream(uri)?.use { input ->
+                fun openPhotoInput() = runCatching {
+                    when {
+                        rawUri.startsWith("content://") || rawUri.startsWith("file://") || rawUri.startsWith("android.resource://") ->
+                            context.contentResolver.openInputStream(Uri.parse(rawUri))
+                        else -> File(rawUri).inputStream()
+                    }
+                }.getOrNull()
+
+                // 149: Android 12 araç cihazında yüksek çözünürlüklü fotoğrafı tam boy decode etme.
+                // En fazla 1024px uzun kenarlı bitmap oluştur.
+                val bounds = openPhotoInput()?.use { input ->
                     BitmapFactory.Options().apply {
                         inJustDecodeBounds = true
                         BitmapFactory.decodeStream(input, null, this)
@@ -123,7 +130,7 @@ fun DriverAvatar(photoUri: String?, name: String, modifier: Modifier = Modifier)
                     inDither = true
                 }
 
-                context.contentResolver.openInputStream(uri)?.use { input ->
+                openPhotoInput()?.use { input ->
                     BitmapFactory.decodeStream(input, null, options)
                 }
             }.getOrNull()

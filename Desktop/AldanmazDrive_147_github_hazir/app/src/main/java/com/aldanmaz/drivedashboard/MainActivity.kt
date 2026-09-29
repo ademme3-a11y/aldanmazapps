@@ -374,13 +374,9 @@ class MainActivity : ComponentActivity() {
                 // DriveDashboardViewModel configuration change boyunca yaşar; mevcut sürücüyü oradan korur.
                 // Gerçek soğuk başlangıçta ViewModel yeni olduğu için sürücü seçimi yeniden gösterilir.
                 val initialDriverId = remember(driverSelectionEnabled) {
-                    // 147: Seçilen kullanıcıyı kalıcı olarak koru. Uygulama/Activity yeniden
-                    // oluşturulduğunda veya araç multimedya cihazı marştan sonra Activity'yi
-                    // yeniden başlattığında kullanıcı seçimi tekrar sorulmaz.
+                    // 149: Sürücü seçimi yalnız mevcut araç/sürüş oturumu için geçerlidir.
+                    // Uygulama yeniden başladığında SharedPreferences'tan eski sürücü yüklenmez.
                     driveViewModel.currentDriverSessionIdOrNull()
-                        ?: driverPrefs.getString("active_driver_id", null)?.takeIf { savedId ->
-                            drivers.any { it.id == savedId }
-                        }
                         ?: if (!driverSelectionEnabled) configuredDefaultDriver.id else null
                 }
                 var selectedDriverId by remember { mutableStateOf(initialDriverId) }
@@ -410,6 +406,8 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(driverSelectionEnabled) {
                     if (!driverSelectionEnabled && selectedDriverId == null) {
                         selectedDriverId = configuredDefaultDriver.id
+                        driverSelectionCommitted = true
+                        driveViewModel.setDriverSession(configuredDefaultDriver.id, configuredDefaultDriver.name)
                     }
                 }
                 LaunchedEffect(driverSelectionEnabled, selectedDriverId, currentRoute == ROUTE_SPLASH) {
@@ -447,6 +445,22 @@ class MainActivity : ComponentActivity() {
                 val prayerUiState by prayerViewModel.uiState.collectAsStateWithLifecycle()
                 val driveGeminiState by driveViewModel.uiState.collectAsStateWithLifecycle()
                 val weatherGeminiState by weatherViewModel.uiState.collectAsStateWithLifecycle()
+
+                // 149: Yeni araç/sürüş oturumunda sürücü yeniden seçilir.
+                // Ekran döndürmede seçim korunur; tamamlanmış bir yolculuktan sonra eski sürücü taşınmaz.
+                var hadActiveTrip by remember { mutableStateOf(false) }
+                LaunchedEffect(driveGeminiState.isTripActive) {
+                    if (driveGeminiState.isTripActive) {
+                        hadActiveTrip = true
+                    } else if (hadActiveTrip) {
+                        hadActiveTrip = false
+                        selectedDriverId = null
+                        driverSelectionCommitted = false
+                        driverSelectionSeconds = 10
+                        driverPrefs.edit().remove("active_driver_id").remove("active_driver_selected_at").apply()
+                        driveViewModel.clearDriverSession()
+                    }
+                }
 
                 // 131: OBD sağlıklı ve tazeyse araç hız/yakıt için birincil kaynaktır;
                 // OBD bayatlarsa DriveViewModel mevcut GPS/HESAP kaynağına otomatik döner.

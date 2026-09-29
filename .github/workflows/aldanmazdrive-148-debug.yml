@@ -1,5 +1,5 @@
-name: Aldanmaz Drive 148 Debug Build
-# 148: Gemini yakıt ekleme manuel yakıt kayıt zincirine bağlandı
+name: Aldanmaz Drive 149 Debug Build
+# 149: Sürücü oturumu ve Android 12 fotoğraf yükleme düzeltmesi; 148 Gemini yakıt zinciri korunuyor
 on:
   push:
     branches: [main]
@@ -50,18 +50,18 @@ jobs:
       - name: Build Debug APK
         run: ./gradlew assembleDebug --no-daemon
       - name: Create source ZIP
-        run: zip -r ../AldanmazDrive_148.zip . -x '.gradle/*' 'app/build/*' 'local.properties' '**/.DS_Store'
+        run: zip -r ../AldanmazDrive_149.zip . -x '.gradle/*' 'app/build/*' 'local.properties' '**/.DS_Store'
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: AldanmazDrive_148_Debug_APK
+          name: AldanmazDrive_149_Debug_APK
           path: Desktop/AldanmazDrive_147_github_hazir/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 30
       - name: Upload 148 ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: AldanmazDrive_148_ZIP
+          name: AldanmazDrive_149_ZIP
           path: Desktop/AldanmazDrive_148.zip
           if-no-files-found: error
           retention-days: 30

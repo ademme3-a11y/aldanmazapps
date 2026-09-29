@@ -32,6 +32,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.io.File
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -112,14 +113,35 @@ fun VehicleSystemSettingsScreen(
     var defaultDriverId by remember { mutableStateOf(driverPrefs.getString("default_driver_id", "1") ?: "1") }
 
     fun persistDriverPhoto(id: String, uri: Uri?) {
-        if (uri != null) runCatching {
-            context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        val key = "driver_${id}_photo_uri"
+        if (uri == null) {
+            val oldPath = driverPrefs.getString(key, null)
+            if (!oldPath.isNullOrBlank() && !oldPath.startsWith("content://")) {
+                runCatching { File(oldPath.removePrefix("file://")).delete() }
+            }
+            driverPrefs.edit().remove(key).apply()
+            if (id == "1") driver1Photo = null else driver2Photo = null
+            return
         }
-        driverPrefs.edit().putString("driver_${id}_photo_uri", uri?.toString()).apply()
-        if (id == "1") driver1Photo = uri?.toString() else driver2Photo = uri?.toString()
+        runCatching {
+            val input = context.contentResolver.openInputStream(uri) ?: error("Fotoğraf okunamadı.")
+            val directory = File(context.filesDir, "driver_photos").apply { mkdirs() }
+            val target = File(directory, "driver_${id}.jpg")
+            input.use { source -> target.outputStream().use { output -> source.copyTo(output) } }
+            target.absolutePath
+        }.onSuccess { path ->
+            driverPrefs.edit().putString(key, path).apply()
+            if (id == "1") driver1Photo = path else driver2Photo = path
+            Toast.makeText(context, "Sürücü fotoğrafı kaydedildi.", Toast.LENGTH_SHORT).show()
+        }.onFailure { error ->
+            Toast.makeText(context, "Fotoğraf kaydedilemedi: " + (error.message ?: "okuma hatası"), Toast.LENGTH_LONG).show()
+        }
     }
-    val driver1PhotoPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { persistDriverPhoto("1", it) }
-    val driver2PhotoPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { persistDriverPhoto("2", it) }
+
+    // 149: Android 12 klon multimedya cihazlarında GetContent kullanılır; seçilen dosya
+    // uygulamanın özel alanına kopyalandığından kalıcı URI izni gerekmez.
+    val driver1PhotoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { persistDriverPhoto("1", it) }
+    val driver2PhotoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { persistDriverPhoto("2", it) }
 
     val createBackup = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
