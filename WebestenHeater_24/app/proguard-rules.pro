@@ -1,0 +1,1 @@
+# WebestenHeater v01 - no custom ProGuard rules yet.
