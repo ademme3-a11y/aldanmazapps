@@ -17,8 +17,9 @@ jobs:
       - name: Restore complete WebestenHeater 24 source
         run: |
           echo "Restoring complete source from repository chunks..."
-          cat WebestenHeater_24/source_parts/01.b64 WebestenHeater_24/source_parts/02.b64 > /tmp/webesten24.b64
-          base64 -d /tmp/webesten24.b64 > /tmp/WebestenHeater_24_source.zip
+          base64 -d WebestenHeater_24/source_parts/01.b64 > /tmp/part01.bin
+          base64 -d WebestenHeater_24/source_parts/02.b64 > /tmp/part02.bin
+          cat /tmp/part01.bin /tmp/part02.bin > /tmp/WebestenHeater_24_source.zip
           rm -rf WebestenHeater_24
           unzip -q /tmp/WebestenHeater_24_source.zip
           test -f WebestenHeater_24/app/src/main/AndroidManifest.xml
