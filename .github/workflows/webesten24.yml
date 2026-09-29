@@ -33,3 +33,5 @@ jobs:
         with:
           name: WebestenHeater_24_APK
           path: WebestenHeater_24/app/build/outputs/apk/debug/app-debug.apk
+
+# Triggered for WebestenHeater 24 APK build
