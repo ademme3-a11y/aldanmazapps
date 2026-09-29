@@ -264,6 +264,29 @@ object MediaAppController {
         setMusicPlaying(context, false)
     }
 
+    /**
+     * 150: ALD Drive'a geri dönüldüğünde müzik uygulaması dışarıdan durdurulmuşsa
+     * ve kullanıcı müziği açıkça durdurmamışsa kaldığı yerden devam eder.
+     *
+     * Çift tık / Gemini "müziği durdur-kapat" stopMedia() üzerinden
+     * KEY_MUSIC_PAUSED_BY_USER=true bıraktığı için burada yeniden başlamaz.
+     */
+    fun ensureMusicPlayback(context: Context) {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (prefs.getBoolean(KEY_RADIO_ACTIVE, false)) return
+        if (!prefs.getBoolean(KEY_MUSIC_ACTIVE, false)) return
+        if (prefs.getBoolean(KEY_MUSIC_PAUSED_BY_USER, false)) return
+
+        val packageName = selectedMusicPackage(context)
+        if (packageName.isNullOrBlank()) return
+        if (isMusicPlaying(context)) return
+
+        val audio = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+        sendMediaButtonToPackage(context, packageName, KeyEvent.KEYCODE_MEDIA_PLAY)
+        if (audio != null) dispatch(audio, KeyEvent.KEYCODE_MEDIA_PLAY)
+        setMusicPlaying(context, true)
+    }
+
     fun resumeMedia(context: Context) {
         // Müzik yeniden başlarken radyo kesin olarak kesilir.
         stopRadio(context, holdFocus = false)

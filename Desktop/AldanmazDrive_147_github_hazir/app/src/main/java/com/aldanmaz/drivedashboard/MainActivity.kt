@@ -10,6 +10,7 @@ import android.telephony.TelephonyManager
 import android.speech.RecognizerIntent
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.lifecycle.Lifecycle
 import androidx.activity.compose.setContent
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -70,6 +71,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -178,6 +180,14 @@ class MainActivity : ComponentActivity() {
                 }
 
                 val context = LocalContext.current
+
+                // 150: Harici müzik uygulamasından ALD Drive'a dönüldüğünde,
+                // kullanıcı açıkça durdurmadıysa müzik yeniden başlatılır.
+                // Böylece Gemini açık/kapalı olması müzik çalma durumunu değiştirmez.
+                LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+                    MediaAppController.ensureMusicPlayback(context)
+                }
+
                 val geminiLiveManager = remember(context.applicationContext) {
                     GeminiLiveManager.getInstance(context.applicationContext)
                 }
