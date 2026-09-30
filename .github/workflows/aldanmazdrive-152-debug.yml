@@ -27,43 +27,21 @@ jobs:
           java-version: '17'
 
       - name: Restore stable debug signing key
-        run: |
-          mkdir -p ~/.android
-          cp app/aldanmaz-debug.keystore ~/.android/debug.keystore
+        id: debug-signing-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: aldanmazdrive-debug-signing-v1
 
-      - name: Detect stable debug keystore credentials
-        shell: bash
+      - name: Require existing stable debug signing key
+        if: steps.debug-signing-cache.outputs.cache-hit != 'true'
         run: |
-          set -e
-          KEYSTORE="$GITHUB_WORKSPACE/Desktop/AldanmazDrive_147_github_hazir/app/aldanmaz-debug.keystore"
-          ALIAS="androiddebugkey"
-          candidates=(android aldanmaz aldanmazdebug aldanmazdrive AldanmazDrive AldanmazDebug 123456 12345678 admin password)
-          store_pass=""
-          for p in "${candidates[@]}"; do
-            if keytool -list -keystore "$KEYSTORE" -storepass "$p" -alias "$ALIAS" >/dev/null 2>&1; then
-              store_pass="$p"
-              break
-            fi
-          done
-          if [ -z "$store_pass" ]; then
-            echo "Stable keystore password was not found among the known project credentials." >&2
-            exit 1
-          fi
-          key_pass=""
-          for p in "${candidates[@]}"; do
-            cp "$KEYSTORE" "$RUNNER_TEMP/test-debug.keystore"
-            if keytool -keypasswd -alias "$ALIAS" -keystore "$RUNNER_TEMP/test-debug.keystore" -storepass "$store_pass" -keypass "$p" -new "$p" >/dev/null 2>&1; then
-              key_pass="$p"
-              break
-            fi
-          done
-          if [ -z "$key_pass" ]; then
-            echo "Stable private-key password was not found among the known project credentials." >&2
-            exit 1
-          fi
-          echo "ALDANMAZ_KEYSTORE_PASSWORD=$store_pass" >> "$GITHUB_ENV"
-          echo "ALDANMAZ_KEY_PASSWORD=$key_pass" >> "$GITHUB_ENV"
-          echo "ALDANMAZ_KEY_ALIAS=$ALIAS" >> "$GITHUB_ENV"
+          echo "Stable debug signing key cache is missing. Refusing to build a differently signed APK."
+          exit 1
+
+      - name: Verify stable debug signing key
+        run: |
+          keytool -list -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey >/dev/null
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug --no-daemon
