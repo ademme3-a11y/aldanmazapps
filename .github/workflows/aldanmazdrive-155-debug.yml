@@ -61,3 +61,5 @@ jobs:
           path: Desktop/AldanmazDrive_155.apk
           if-no-files-found: error
           retention-days: 30
+
+# Manual 155 build trigger
