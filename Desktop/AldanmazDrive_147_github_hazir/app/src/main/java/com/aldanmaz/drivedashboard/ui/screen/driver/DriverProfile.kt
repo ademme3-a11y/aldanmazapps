@@ -72,21 +72,23 @@ fun DriverSelectionOverlay(
                     )
                     Spacer(Modifier.height(22.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-                        drivers.forEachIndexed { index, driver ->
-                            Card(
-                                modifier = Modifier.weight(1f).height(180.dp).clickable { onSelected(driver) },
-                                colors = CardDefaults.cardColors(containerColor = if (index == 0) Color(0xFF0B3550) else Color(0xFF173248)),
-                                border = BorderStroke(1.5.dp, Color(0xFF26D9FF)),
-                                shape = RoundedCornerShape(16.dp)
+                        drivers.forEach { driver ->
+                            Column(
+                                Modifier.weight(1f),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Column(
-                                    Modifier.fillMaxSize().padding(10.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    DriverAvatar(driver.photoUri, driver.name, Modifier.weight(1f).fillMaxWidth().aspectRatio(1f))
-                                    Text(driver.name.uppercase(Locale("tr", "TR")), color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
-                                }
+                                DriverAvatar(
+                                    driver.photoUri,
+                                    driver.name,
+                                    Modifier.size(189.dp).clickable { onSelected(driver) }
+                                )
+                                Text(
+                                    driver.name.uppercase(Locale("tr", "TR")),
+                                    color = Color.White,
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.ExtraBold
+                                )
                             }
                         }
                     }
