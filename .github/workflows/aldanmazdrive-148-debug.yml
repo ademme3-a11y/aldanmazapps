@@ -1,5 +1,5 @@
-name: Aldanmaz Drive 150 Final Build
-# 150 FINAL: Müzik yaşam döngüsü düzeltildi; 149 sürücü/fotoğraf ve 148 Gemini yakıt zinciri korunuyor
+name: Aldanmaz Drive 151 Final Build
+# 151 FINAL: Müzik yaşam döngüsü düzeltildi; 149 sürücü/fotoğraf ve 148 Gemini yakıt zinciri korunuyor
 on:
   push:
     branches: [main]
@@ -50,18 +50,18 @@ jobs:
       - name: Build Debug APK
         run: ./gradlew assembleDebug --no-daemon
       - name: Create source ZIP
-        run: zip -r ../AldanmazDrive_150.zip . -x '.gradle/*' 'app/build/*' 'local.properties' '**/.DS_Store'
+        run: zip -r ../AldanmazDrive_151.zip . -x '.gradle/*' 'app/build/*' 'local.properties' '**/.DS_Store'
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: AldanmazDrive_150_Debug_APK
+          name: AldanmazDrive_151_Debug_APK
           path: Desktop/AldanmazDrive_147_github_hazir/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 30
       - name: Upload 148 ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: AldanmazDrive_150_ZIP
+          name: AldanmazDrive_151_ZIP
           path: Desktop/AldanmazDrive_148.zip
           if-no-files-found: error
           retention-days: 30
