@@ -8,7 +8,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -82,7 +82,7 @@ fun DriverSelectionOverlay(
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    DriverAvatar(driver.photoUri, driver.name, Modifier.weight(1f).fillMaxWidth())
+                                    DriverAvatar(driver.photoUri, driver.name, Modifier.weight(1f).fillMaxWidth().aspectRatio(1f))
                                     Text(driver.name.uppercase(Locale("tr", "TR")), color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
                                 }
                             }
@@ -136,17 +136,33 @@ fun DriverAvatar(photoUri: String?, name: String, modifier: Modifier = Modifier)
             }.getOrNull()
         }
     }
+    // 151: Profil alanı ekran genişliğine göre kare tutulur ve gerçek daire
+    // şeklinde kırpılır. Fotoğrafın en-boy oranı bozulmaz; yalnızca merkezden
+    // kırpılarak daireyi tamamen doldurur.
     Surface(
-        modifier = modifier,
+        modifier = modifier.aspectRatio(1f),
         color = Color(0xFF06111B),
-        shape = RoundedCornerShape(18.dp),
+        shape = CircleShape,
         border = BorderStroke(1.5.dp, Color(0xFF26D9FF))
     ) {
         if (bitmap != null) {
-            Image(bitmap.asImageBitmap(), contentDescription = "$name profil fotoğrafı", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            Image(
+                bitmap.asImageBitmap(),
+                contentDescription = "$name profil fotoğrafı",
+                modifier = Modifier.fillMaxSize().clip(CircleShape),
+                contentScale = ContentScale.Crop
+            )
         } else {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(name.take(1).uppercase(Locale("tr", "TR")), color = Color(0xFF26D9FF), fontSize = 42.sp, fontWeight = FontWeight.Black)
+            Box(
+                Modifier.fillMaxSize().clip(CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    name.take(1).uppercase(Locale("tr", "TR")),
+                    color = Color(0xFF26D9FF),
+                    fontSize = 42.sp,
+                    fontWeight = FontWeight.Black
+                )
             }
         }
     }
