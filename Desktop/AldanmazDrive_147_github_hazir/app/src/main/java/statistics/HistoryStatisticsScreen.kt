@@ -152,7 +152,7 @@ class HistoryStatisticsViewModel(application: Application) : AndroidViewModel(ap
 
         val tripGroups = trips.groupBy { dateKey(it.startedAtEpochMillis) to it.driverId }
         val fuelGroups = fuel.groupBy { dateKey(it.purchasedAtEpochMillis) to it.driverId }
-        val keys = (tripGroups.keys + fuelGroups.keys).distinct().sortedDescending()
+        val keys = (tripGroups.keys + fuelGroups.keys).distinct().sortedWith(compareByDescending<Pair<String, String>> { it.first }.thenByDescending { it.second })
 
         val rows = keys.map { (date, driverId) ->
             val dayTrips = tripGroups[date to driverId].orEmpty()
