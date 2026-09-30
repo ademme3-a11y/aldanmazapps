@@ -62,7 +62,7 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-// 152 FINAL: 180 günlük sürücü bazlı geçmiş + yedek/geri yükleme
+// 152 FINAL: 180 günlük sürücü bazlı geçmiş + yedek/geri yükleme + doğrulanmış APK imzası
 private const val HISTORY_DAYS = 180L
 private val HBg = Color(0xFF020812)
 private val HCard = Color(0xFF0B1929)
