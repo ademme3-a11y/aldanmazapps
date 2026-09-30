@@ -44,10 +44,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import com.aldanmaz.drivedashboard.data.trip.TripStatisticsPeriod
+import com.aldanmaz.drivedashboard.data.fuel.FuelPurchaseHistoryRepository
 import com.aldanmaz.drivedashboard.ui.screen.driver.DriverAvatar
 import com.aldanmaz.drivedashboard.ui.screen.driver.loadDrivers
 import java.util.Locale
 import java.util.Date
+import java.util.Calendar
 import java.text.SimpleDateFormat
 import kotlin.math.roundToLong
 import org.json.JSONArray
@@ -446,6 +448,19 @@ private fun StatisticsContent(
     val summary = uiState.summary
     var expandedTripId by remember { mutableStateOf<Long?>(null) }
 
+
+    val fuelRecords = remember(uiState.selectedDriverId, uiState.trips) {
+        FuelPurchaseHistoryRepository(context).getAll()
+    }
+    DailyStatisticsTable(
+        period = uiState.selectedPeriod,
+        trips = uiState.trips,
+        fuelRecords = fuelRecords,
+        selectedDriverId = uiState.selectedDriverId
+    )
+
+    Spacer(modifier = Modifier.height(12.dp))
+
     BoxWithConstraints(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -659,6 +674,108 @@ private fun StatisticsContent(
                     }
                 } else {
                     Text("Ayrıntılar için dokunun", color = StatisticsSecondaryText, fontSize = 9.sp)
+                }
+            }
+        }
+    }
+}
+
+
+private data class DailyStatRow154(
+    val date: Calendar,
+    val km: Double?,
+    val duration: Long?,
+    val avgSpeed: Double?,
+    val maxSpeed: Int?,
+    val tripCount: Int?,
+    val fuelLiters: Double?,
+    val fuelTl: Double?,
+    val buyLiters: Double?,
+    val buyTl: Double?
+)
+
+@Composable
+private fun DailyStatisticsTable(
+    period: TripStatisticsPeriod,
+    trips: List<com.aldanmaz.drivedashboard.data.trip.TripEntity>,
+    fuelRecords: List<com.aldanmaz.drivedashboard.data.fuel.FuelPurchaseRecord>,
+    selectedDriverId: String?
+) {
+    val rows = remember(period, trips, fuelRecords, selectedDriverId) {
+        val today = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+        }
+        val count = when (period) {
+            TripStatisticsPeriod.DAY -> 1
+            TripStatisticsPeriod.WEEK -> 7
+            TripStatisticsPeriod.MONTH -> today.getActualMaximum(Calendar.DAY_OF_MONTH)
+            TripStatisticsPeriod.YEAR -> today.getActualMaximum(Calendar.DAY_OF_YEAR)
+        }
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+        fun key(t: Long) = sdf.format(Date(t))
+        val fuels = fuelRecords.filter { selectedDriverId == null || it.driverId == selectedDriverId }
+
+        (count - 1 downTo 0).map { offset ->
+            val day = (today.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, -offset) }
+            val dk = sdf.format(day.time)
+            val dayTrips = trips.filter { key(it.startedAtEpochMillis) == dk }
+            val dayFuel = fuels.filter { key(it.purchasedAtEpochMillis) == dk }
+            val duration = dayTrips.sumOf { it.totalDurationSeconds }
+            val avg = if (duration > 0) dayTrips.sumOf { it.averageSpeedKmh * it.totalDurationSeconds } / duration else null
+            DailyStatRow154(
+                date = day,
+                km = dayTrips.sumOf { it.distanceKm }.takeIf { dayTrips.isNotEmpty() },
+                duration = duration.takeIf { dayTrips.isNotEmpty() },
+                avgSpeed = avg,
+                maxSpeed = dayTrips.maxOfOrNull { it.maxSpeedKmh },
+                tripCount = dayTrips.size.takeIf { it > 0 },
+                fuelLiters = dayTrips.sumOf { it.estimatedFuelConsumedLiters }.takeIf { dayTrips.isNotEmpty() },
+                fuelTl = dayTrips.sumOf { it.estimatedFuelCost }.takeIf { dayTrips.isNotEmpty() },
+                buyLiters = dayFuel.sumOf { it.liters }.takeIf { dayFuel.isNotEmpty() },
+                buyTl = dayFuel.sumOf { it.costTl }.takeIf { dayFuel.isNotEmpty() }
+            )
+        }
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = StatisticsCard),
+        border = BorderStroke(1.dp, StatisticsCardBorder)
+    ) {
+        Column(Modifier.padding(8.dp)) {
+            Text("GÜNLÜK SÜRÜŞ / YAKIT", color = StatisticsPrimaryText, fontSize = 13.sp, fontWeight = FontWeight.Black)
+            Spacer(Modifier.height(6.dp))
+            val headers = listOf(
+                "📅\nTARİH", "🛣\nKM", "⏱\nSÜRÜŞ\nSÜRESİ", "🚗\nORT.\nHIZ", "🏁\nMAX\nHIZ",
+                "↻\nSÜRÜŞ\nSAYISI", "⛽\nGÜN TÜK.\nLT", "₺\nGÜN TL", "⛽\nALIM LT", "₺\nALIM TL"
+            )
+            Row(Modifier.fillMaxWidth()) {
+                headers.forEach {
+                    Box(Modifier.weight(1f).height(48.dp), contentAlignment = Alignment.Center) {
+                        Text(it, color = StatisticsSecondaryText, fontSize = 6.5.sp, lineHeight = 7.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center)
+                    }
+                }
+            }
+            rows.forEach { row ->
+                val values = listOf(
+                    SimpleDateFormat("dd.MM", Locale("tr", "TR")).format(row.date.time),
+                    row.km?.let { String.format(Locale("tr", "TR"), "%.1f", it) } ?: "---",
+                    row.duration?.durationText() ?: "---",
+                    row.avgSpeed?.let { String.format(Locale("tr", "TR"), "%.1f", it) } ?: "---",
+                    row.maxSpeed?.toString() ?: "---",
+                    row.tripCount?.toString() ?: "---",
+                    row.fuelLiters?.let { String.format(Locale("tr", "TR"), "%.2f", it) } ?: "---",
+                    row.fuelTl?.let { String.format(Locale("tr", "TR"), "%.2f", it) } ?: "---",
+                    row.buyLiters?.let { String.format(Locale("tr", "TR"), "%.2f", it) } ?: "---",
+                    row.buyTl?.let { String.format(Locale("tr", "TR"), "%.2f", it) } ?: "---"
+                )
+                Row(Modifier.fillMaxWidth().background(StatisticsBackground.copy(alpha = .55f)).padding(vertical = 6.dp)) {
+                    values.forEachIndexed { index, value ->
+                        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                            Text(value, color = if (value == "---") StatisticsSecondaryText.copy(alpha = .55f) else StatisticsPrimaryText, fontSize = if (index == 0) 7.5.sp else 7.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center, maxLines = 2)
+                        }
+                    }
                 }
             }
         }
