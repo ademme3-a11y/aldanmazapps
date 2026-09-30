@@ -8,6 +8,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -257,6 +258,7 @@ class HistoryStatisticsViewModel(application: Application) : AndroidViewModel(ap
 @Composable
 fun HistoryStatisticsScreen(
     onBack: () -> Unit,
+    onDetailedClick: () -> Unit,
     viewModel: HistoryStatisticsViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -279,6 +281,7 @@ fun HistoryStatisticsScreen(
                     Text("GEÇMİŞ • SON 180 GÜN", color = HMuted, fontSize = 11.sp)
                 }
                 TextButton(onClick = { viewModel.refresh() }) { Text("YENİLE", color = HCyan, fontWeight = FontWeight.Bold) }
+                TextButton(onClick = onDetailedClick) { Text("DETAYLI", color = HMuted, fontWeight = FontWeight.Bold) }
             }
 
             Spacer(Modifier.height(6.dp))
@@ -363,7 +366,7 @@ private fun DriverButton(text: String, selected: Boolean, onClick: () -> Unit, m
 private fun HistoryTable(state: HistoryUiState) {
     val scroll = rememberScrollState()
     val width = 980.dp
-    Column(Modifier.fillMaxSize().horizontalScroll(scroll)) {
+    Column(Modifier.fillMaxSize().horizontalScroll(scroll).verticalScroll(rememberScrollState())) {
         Row(
             Modifier.width(width).background(HCard).padding(vertical = 7.dp),
             verticalAlignment = Alignment.CenterVertically
