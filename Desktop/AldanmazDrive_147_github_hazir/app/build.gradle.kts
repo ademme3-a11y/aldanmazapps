@@ -46,9 +46,9 @@ android {
     signingConfigs {
         create("stableDebug") {
             storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
+            storePassword = System.getenv("ALDANMAZ_KEYSTORE_PASSWORD") ?: "android"
+            keyAlias = System.getenv("ALDANMAZ_KEY_ALIAS") ?: "androiddebugkey"
+            keyPassword = System.getenv("ALDANMAZ_KEY_PASSWORD") ?: "android"
         }
     }
     buildTypes {
