@@ -38,6 +38,9 @@ interface TripDao {
     @Query("SELECT * FROM trips ORDER BY startedAtEpochMillis ASC")
     suspend fun getAllTrips(): List<TripEntity>
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTrips(trips: List<TripEntity>)
+
     @Query(
         """
         SELECT * FROM trips
@@ -78,6 +81,9 @@ interface TripDao {
         ORDER BY startedAtEpochMillis DESC
     """)
     suspend fun getTripsForPeriod(startEpochMillis: Long, endEpochMillis: Long, vehicleMode: String?, driverId: String?): List<TripEntity>
+
+    @Query("DELETE FROM trips WHERE startedAtEpochMillis < :cutoffEpochMillis")
+    suspend fun deleteTripsBefore(cutoffEpochMillis: Long)
 
     @Query("DELETE FROM trips")
     suspend fun deleteAllTrips()
