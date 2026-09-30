@@ -91,8 +91,36 @@ class FuelPurchaseHistoryRepository(context: Context) {
     }
 
     @Synchronized
+    fun replaceAll(records: List<FuelPurchaseRecord>) {
+        write(records.sortedByDescending { it.purchasedAtEpochMillis }.take(MAX_RECORDS))
+    }
+
+    @Synchronized
+    fun deleteBefore(cutoffEpochMillis: Long) {
+        replaceAll(getAll().filter { it.purchasedAtEpochMillis >= cutoffEpochMillis })
+    }
+
+    @Synchronized
     fun clearAll() {
         prefs.edit().remove(KEY_RECORDS).apply()
+    }
+
+    private fun write(records: List<FuelPurchaseRecord>) {
+        val array = JSONArray()
+        records.forEach { item ->
+            array.put(JSONObject().apply {
+                put("id", item.id)
+                put("time", item.purchasedAtEpochMillis)
+                put("driverId", item.driverId)
+                put("driverName", item.driverName)
+                put("liters", item.liters)
+                put("costTl", item.costTl)
+                put("latitude", item.latitude ?: JSONObject.NULL)
+                put("longitude", item.longitude ?: JSONObject.NULL)
+                put("address", item.address ?: JSONObject.NULL)
+            })
+        }
+        prefs.edit().putString(KEY_RECORDS, array.toString()).apply()
     }
 
     private fun JSONObject.optNullableDouble(key: String): Double? =
