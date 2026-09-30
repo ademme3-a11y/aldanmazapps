@@ -285,6 +285,22 @@ object MediaAppController {
         sendMediaButtonToPackage(context, packageName, KeyEvent.KEYCODE_MEDIA_PLAY)
         if (audio != null) dispatch(audio, KeyEvent.KEYCODE_MEDIA_PLAY)
         setMusicPlaying(context, true)
+
+        // 151: Bazı Android 12/OEM müzik çalarları ALD ön plana geldiği anda
+        // PLAY komutunu ilk seferde tüketmiyor. Kullanıcı açıkça durdurmadıysa
+        // birkaç kontrollü tekrar ile müziğin geri dönmesini garanti altına al.
+        val handler = Handler(Looper.getMainLooper())
+        listOf(700L, 1_800L, 3_500L, 6_000L).forEach { delayMs ->
+            handler.postDelayed({
+                val currentPrefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                if (currentPrefs.getBoolean(KEY_RADIO_ACTIVE, false)) return@postDelayed
+                if (currentPrefs.getBoolean(KEY_MUSIC_PAUSED_BY_USER, false)) return@postDelayed
+                if (isMusicPlaying(context)) return@postDelayed
+                sendMediaButtonToPackage(context, packageName, KeyEvent.KEYCODE_MEDIA_PLAY)
+                val currentAudio = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+                if (currentAudio != null) dispatch(currentAudio, KeyEvent.KEYCODE_MEDIA_PLAY)
+            }, delayMs)
+        }
     }
 
     fun resumeMedia(context: Context) {
@@ -324,11 +340,23 @@ object MediaAppController {
 
     fun nextMedia(context: Context) {
         val audio = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
+        val musicPackage = selectedMusicPackage(context)
+
+        // 151: Gemini açıkken aktif medya oturumu bazen global NEXT tuşunu
+        // görmezden gelebiliyor. Önce seçili müzik uygulamasına, ardından
+        // sistem medya oturumuna NEXT gönderiyoruz.
+        if (!musicPackage.isNullOrBlank()) {
+            sendMediaButtonToPackage(context, musicPackage, KeyEvent.KEYCODE_MEDIA_NEXT)
+        }
         dispatch(audio, KeyEvent.KEYCODE_MEDIA_NEXT)
     }
 
     fun previousMedia(context: Context) {
         val audio = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
+        val musicPackage = selectedMusicPackage(context)
+        if (!musicPackage.isNullOrBlank()) {
+            sendMediaButtonToPackage(context, musicPackage, KeyEvent.KEYCODE_MEDIA_PREVIOUS)
+        }
         dispatch(audio, KeyEvent.KEYCODE_MEDIA_PREVIOUS)
     }
 
@@ -465,7 +493,18 @@ object MediaAppController {
             }
             if (backToAld != null) runCatching { appContext.startActivity(backToAld) }
         }, 1_250L)
-        handler.postDelayed({ sendPlay() }, 4_000L)
+
+        // 151: ALD Drive öne geldikten sonra bazı OEM çalarlar medya oturumunu
+        // yeniden etkinleştiriyor. Çalar hâlâ duruyorsa hedefli PLAY tekrar denenir.
+        listOf(1_700L, 3_500L, 6_000L).forEach { delayMs ->
+            handler.postDelayed({
+                if (!appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                        .getBoolean(KEY_MUSIC_PAUSED_BY_USER, false) &&
+                    !isMusicPlaying(appContext)) {
+                    sendPlay()
+                }
+            }, delayMs)
+        }
     }
 
     private fun launchPackage(context: Context, packageName: String): Boolean {
