@@ -501,8 +501,7 @@ fun DriveDashboardScreen(
                                     todayEstimatedFuelCost = todayEstimatedFuelCost,
                                     todayTotalDistanceKm =
                                         todayTotalDistanceKm,
-                                    vehicleGpsTotalDistanceKm =
-                                        vehicleGpsTotalDistanceKm,
+                                    vehicleRealKm = vehicleRealKm,
                                     tripStartedAtEpochMillis =
                                         tripStartedAtEpochMillis,
                                     tripEndedAtEpochMillis =
@@ -2503,7 +2502,7 @@ private fun LandscapeDashboard(
     todayEstimatedFuelConsumedLiters: Double,
     todayEstimatedFuelCost: Double,
     todayTotalDistanceKm: Double,
-    vehicleGpsTotalDistanceKm: Double,
+    vehicleRealKm: Double,
     tripStartedAtEpochMillis: Long?,
     tripEndedAtEpochMillis: Long?,
     vehicleMode: String,
