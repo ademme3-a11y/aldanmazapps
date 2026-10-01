@@ -39,8 +39,8 @@ android {
         applicationId = "com.aldanmaz.drivedashboard"
         minSdk = 29
         targetSdk = 37
-        versionCode = 199
-        versionName = "160"
+        versionCode = 200
+        versionName = "161"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "TOMTOM_API_KEY", "\"$tomTomApiKey\"")
         buildConfigField("String", "HERE_API_KEY", "\"$hereApiKey\"" )
