@@ -100,7 +100,6 @@ class RoadSpeedLimitRepository(context: Context? = null) {
                         connectTimeout = CONNECT_TIMEOUT_MS
                         readTimeout = READ_TIMEOUT_MS
                         setRequestProperty("User-Agent", "AldanmazDrive/1.0")
-                    setRequestProperty("Ocp-Apim-Subscription-Key", apiKey)
                         // TomTom kimlik doğrulamasını hem klasik key parametresiyle
                         // hem de gateway header'ı ile gönderiyoruz.
                         setRequestProperty("Ocp-Apim-Subscription-Key", apiKey)
@@ -181,6 +180,7 @@ class RoadSpeedLimitRepository(context: Context? = null) {
                     connectTimeout = CONNECT_TIMEOUT_MS
                     readTimeout = READ_TIMEOUT_MS
                     setRequestProperty("User-Agent", "AldanmazDrive/1.0")
+                    setRequestProperty("Ocp-Apim-Subscription-Key", apiKey)
                 }
 
                 val code = connection.responseCode
