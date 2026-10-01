@@ -8,7 +8,6 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
-import java.net.URLEncoder
 import kotlin.math.roundToInt
 
 data class RoadSpeedLimitResult(
@@ -82,16 +81,9 @@ class RoadSpeedLimitRepository(context: Context? = null) {
                     "?key=${URLEncoder.encode(apiKey, Charsets.UTF_8.name())}"
                 )
 
+                // TomTom hız sınırı isteği, doğrudan doğruladığımız çalışan REST
+                // çağrısıyla aynı tutulur: yalnızca key + returnSpeedLimit.
                 urlBuilder.append("&returnSpeedLimit=true")
-                urlBuilder.append("&returnRoadUse=true")
-                urlBuilder.append("&radius=25")
-                urlBuilder.append("&language=tr-TR")
-
-                if (headingDegrees != null) {
-                    urlBuilder.append(
-                        "&heading=${headingDegrees.coerceIn(-360f, 360f)}"
-                    )
-                }
 
                 connection =
                     (URL(urlBuilder.toString())
@@ -100,9 +92,6 @@ class RoadSpeedLimitRepository(context: Context? = null) {
                         connectTimeout = CONNECT_TIMEOUT_MS
                         readTimeout = READ_TIMEOUT_MS
                         setRequestProperty("User-Agent", "AldanmazDrive/1.0")
-                        // TomTom kimlik doğrulamasını hem klasik key parametresiyle
-                        // hem de gateway header'ı ile gönderiyoruz.
-                        setRequestProperty("Ocp-Apim-Subscription-Key", apiKey)
                     }
 
                 val responseCode = connection.responseCode
@@ -168,19 +157,12 @@ class RoadSpeedLimitRepository(context: Context? = null) {
                 )
                 urlBuilder.append("?key=${URLEncoder.encode(apiKey, Charsets.UTF_8.name())}")
                 urlBuilder.append("&returnSpeedLimit=true")
-                urlBuilder.append("&returnRoadUse=true")
-                urlBuilder.append("&radius=25")
-                urlBuilder.append("&language=tr-TR")
-                if (headingDegrees != null) {
-                    urlBuilder.append("&heading=${headingDegrees.coerceIn(-360f, 360f)}")
-                }
 
                 connection = (URL(urlBuilder.toString()).openConnection() as HttpURLConnection).apply {
                     requestMethod = "GET"
                     connectTimeout = CONNECT_TIMEOUT_MS
                     readTimeout = READ_TIMEOUT_MS
                     setRequestProperty("User-Agent", "AldanmazDrive/1.0")
-                    setRequestProperty("Ocp-Apim-Subscription-Key", apiKey)
                 }
 
                 val code = connection.responseCode
