@@ -30,7 +30,7 @@ val localProperties = Properties().apply {
     if (localPropertiesFile.exists()) localPropertiesFile.inputStream().use { load(it) }
 }
 val tomTomApiKey = localProperties.getProperty("TOMTOM_API_KEY", "")
-val hereApiKey = localProperties.getProperty("HERE_API_KEY", "")
+val hereApiKey = "XxFmf94n6m2-uI8bkUWv5RFnears4QND0dGMDYu_13M"
 
 android {
     namespace = "com.aldanmaz.drivedashboard"
@@ -39,15 +39,15 @@ android {
         applicationId = "com.aldanmaz.drivedashboard"
         minSdk = 29
         targetSdk = 37
-        versionCode = 198
-        versionName = "159"
+        versionCode = 199
+        versionName = "160"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "TOMTOM_API_KEY", "\"$tomTomApiKey\"")
         buildConfigField("String", "HERE_API_KEY", "\"$hereApiKey\"" )
     }
     signingConfigs {
         create("stableDebug") {
-            storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
+            storeFile = file("${rootProject.projectDir}/app/aldanmaz-debug.keystore")
             storePassword = System.getenv("ALDANMAZ_KEYSTORE_PASSWORD") ?: "android"
             keyAlias = System.getenv("ALDANMAZ_KEY_ALIAS") ?: "androiddebugkey"
             keyPassword = System.getenv("ALDANMAZ_KEY_PASSWORD") ?: "android"
