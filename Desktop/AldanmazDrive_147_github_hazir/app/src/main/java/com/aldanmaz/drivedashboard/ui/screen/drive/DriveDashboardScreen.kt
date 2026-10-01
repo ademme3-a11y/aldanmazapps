@@ -501,7 +501,6 @@ fun DriveDashboardScreen(
                                     todayEstimatedFuelCost = todayEstimatedFuelCost,
                                     todayTotalDistanceKm =
                                         todayTotalDistanceKm,
-                                    vehicleRealKm = vehicleRealKm,
                                     tripStartedAtEpochMillis =
                                         tripStartedAtEpochMillis,
                                     tripEndedAtEpochMillis =
@@ -611,8 +610,6 @@ fun DriveDashboardScreen(
                             todayTotalDistanceKm =
                                 todayTotalDistanceKm,
                             vehicleRealKm = vehicleRealKm,
-                            vehicleGpsTotalDistanceKm =
-                                vehicleGpsTotalDistanceKm,
                             tripStartedAtEpochMillis =
                                 tripStartedAtEpochMillis,
                             tripEndedAtEpochMillis =
