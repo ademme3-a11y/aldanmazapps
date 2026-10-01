@@ -10,6 +10,7 @@ import android.media.AudioManager
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.graphics.Paint as AndroidPaint
+import android.content.Context
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.LinearEasing
@@ -180,6 +181,7 @@ fun DriveDashboardScreen(
     todayEstimatedFuelConsumedLiters: Double = 0.0,
     todayEstimatedFuelCost: Double = 0.0,
     todayTotalDistanceKm: Double = 0.0,
+    vehicleGpsTotalDistanceKm: Double = 0.0,
     tripStartedAtEpochMillis: Long? = null,
     tripEndedAtEpochMillis: Long? = null,
     vehicleMode: String = "Otomobil",
@@ -241,14 +243,23 @@ fun DriveDashboardScreen(
     onTripStart: () -> Unit = {},
     onTripStop: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val odometerPrefs = remember { context.getSharedPreferences("vehicle_odometer", Context.MODE_PRIVATE) }
+    val enteredOdometerKm = java.lang.Double.longBitsToDouble(
+        odometerPrefs.getLong("realKm", java.lang.Double.doubleToRawLongBits(0.0))
+    )
+    val baseGpsKm = java.lang.Double.longBitsToDouble(
+        odometerPrefs.getLong("baseGpsKm", java.lang.Double.doubleToRawLongBits(0.0))
+    )
+    val vehicleRealKm = if (enteredOdometerKm > 0.0) {
+        enteredOdometerKm + (vehicleGpsTotalDistanceKm - baseGpsKm)
+    } else 0.0
+
     val clockFormatter = remember {
         DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
     }
     val dateFormatter = remember {
-        DateTimeFormatter.ofPattern(
-            "d MMM yyyy EEE",
-            Locale("tr", "TR")
-        )
+        DateTimeFormatter.ofPattern("d MMMM yyyy EEEE", Locale("tr", "TR"))
     }
 
     var currentTime by remember {
@@ -490,6 +501,8 @@ fun DriveDashboardScreen(
                                     todayEstimatedFuelCost = todayEstimatedFuelCost,
                                     todayTotalDistanceKm =
                                         todayTotalDistanceKm,
+                                    vehicleGpsTotalDistanceKm =
+                                        vehicleGpsTotalDistanceKm,
                                     tripStartedAtEpochMillis =
                                         tripStartedAtEpochMillis,
                                     tripEndedAtEpochMillis =
@@ -598,6 +611,8 @@ fun DriveDashboardScreen(
                             todayEstimatedFuelCost = todayEstimatedFuelCost,
                             todayTotalDistanceKm =
                                 todayTotalDistanceKm,
+                            vehicleGpsTotalDistanceKm =
+                                vehicleGpsTotalDistanceKm,
                             tripStartedAtEpochMillis =
                                 tripStartedAtEpochMillis,
                             tripEndedAtEpochMillis =
@@ -1548,6 +1563,15 @@ private fun WeatherHeaderCard(
                 }
 
                 Text(
+                    text = currentDate.uppercase(Locale("tr", "TR")),
+                    modifier = Modifier.align(Alignment.BottomStart).padding(start = 10.dp, bottom = 9.dp),
+                    color = CyanAccent.copy(alpha = .95f),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+
+                Text(
                     text = "Tek dokun: küçült • Çift dokun: detay",
                     modifier = Modifier.align(Alignment.BottomEnd),
                     color = SecondaryText.copy(alpha = 0.55f),
@@ -2471,6 +2495,7 @@ private fun LandscapeDashboard(
     todayEstimatedFuelConsumedLiters: Double,
     todayEstimatedFuelCost: Double,
     todayTotalDistanceKm: Double,
+    vehicleGpsTotalDistanceKm: Double,
     tripStartedAtEpochMillis: Long?,
     tripEndedAtEpochMillis: Long?,
     vehicleMode: String,
@@ -2960,15 +2985,17 @@ private fun SpeedPanel(
                                 .padding(bottom = if (compact) 35.dp else 44.dp)
                         )
 
-                        Text(
-                            text = currentDate,
-                            color = CyanAccent.copy(alpha = .95f),
-                            fontSize = if (compact) 12.sp else 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .padding(bottom = 2.dp)
-                        )
+                        if (vehicleRealKm > 0.0) {
+                            Text(
+                                text = String.format(Locale("tr", "TR"), "%,.0f Km", vehicleRealKm).replace(',', '.'),
+                                color = CyanAccent.copy(alpha = .95f),
+                                fontSize = if (compact) 12.sp else 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(bottom = 2.dp)
+                            )
+                        }
 
                         Column(
                             modifier = Modifier
