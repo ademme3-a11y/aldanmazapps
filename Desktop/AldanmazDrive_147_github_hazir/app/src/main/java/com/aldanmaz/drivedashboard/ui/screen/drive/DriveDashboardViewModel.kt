@@ -34,6 +34,7 @@ import com.aldanmaz.drivedashboard.data.traffic.TrafficAgentRepository
 import com.aldanmaz.drivedashboard.data.traffic.TrafficAgentBackgroundService
 import com.aldanmaz.drivedashboard.data.trip.AldanmazDriveDatabase
 import com.aldanmaz.drivedashboard.data.trip.TripEntity
+import com.aldanmaz.drivedashboard.data.trip.VehicleOdometerRepository
 import com.aldanmaz.drivedashboard.data.trip.TripRepository
 import com.aldanmaz.drivedashboard.data.vehicle.VehicleCatalog
 import com.aldanmaz.drivedashboard.data.vehicle.VehicleType
@@ -130,6 +131,7 @@ class DriveDashboardViewModel(
     private val roadSpeedLimitRepository = RoadSpeedLimitRepository(application)
     private val upcomingRoadSignRepository = UpcomingRoadSignRepository()
     private val trafficAgentRepository = TrafficAgentRepository()
+    private val vehicleOdometerRepository = VehicleOdometerRepository(application)
     private val tripRepository = TripRepository(
         AldanmazDriveDatabase.getInstance(application).tripDao()
     )
@@ -348,6 +350,16 @@ class DriveDashboardViewModel(
                 .collect { location ->
                     updateLocation(location)
                 }
+        }
+    }
+
+    fun refreshVehicleGpsTotalDistance() {
+        viewModelScope.launch {
+            val total = tripRepository.getAllTimeTotalDistanceKm() +
+                if (_uiState.value.isTripActive) _uiState.value.tripDistanceKm else 0.0
+            _uiState.value = _uiState.value.copy(
+                vehicleGpsTotalDistanceKm = total.coerceAtLeast(0.0)
+            )
         }
     }
 
@@ -1869,6 +1881,11 @@ class DriveDashboardViewModel(
                         totalDistanceKm
                 )
             updateFuelValues()
+            val allTime = tripRepository.getAllTimeTotalDistanceKm() +
+                if (_uiState.value.isTripActive) _uiState.value.tripDistanceKm else 0.0
+            _uiState.value = _uiState.value.copy(
+                vehicleGpsTotalDistanceKm = allTime.coerceAtLeast(0.0)
+            )
         }
     }
 
