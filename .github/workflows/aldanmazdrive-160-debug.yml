@@ -70,3 +70,5 @@ jobs:
           path: Desktop/AldanmazDrive_160.zip
           if-no-files-found: error
           retention-days: 30
+
+# 160 build trigger
