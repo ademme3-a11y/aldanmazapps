@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -52,6 +53,7 @@ import kotlinx.coroutines.flow.first
 import com.aldanmaz.drivedashboard.data.fuel.FuelPurchaseRecord
 import com.aldanmaz.drivedashboard.data.trip.AldanmazDriveDatabase
 import com.aldanmaz.drivedashboard.data.trip.TripEntity
+import com.aldanmaz.drivedashboard.data.trip.VehicleOdometerRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -97,7 +99,8 @@ data class HistoryMonthTotal(
     val tripCount: Int,
     val estimatedFuelLiters: Double,
     val fuelPurchaseLiters: Double,
-    val fuelPurchaseTl: Double
+    val fuelPurchaseTl: Double,
+    val revisionKm: Double
 )
 
 data class HistoryUiState(
@@ -107,7 +110,8 @@ data class HistoryUiState(
     val months: List<HistoryMonthTotal> = emptyList(),
     val isLoading: Boolean = true,
     val message: String? = null,
-    val error: String? = null
+    val error: String? = null,
+    val vehicleRealKm: Double = 0.0
 )
 
 class HistoryStatisticsViewModel(application: Application) : AndroidViewModel(application) {
@@ -115,6 +119,7 @@ class HistoryStatisticsViewModel(application: Application) : AndroidViewModel(ap
     private val tripDao = db.tripDao()
     private val fuelRepo = FuelPurchaseHistoryRepository(application)
     private val fuelPreferencesRepository = FuelPreferencesRepository(application)
+    private val vehicleOdometerRepository = VehicleOdometerRepository(application)
     private val _state = MutableStateFlow(HistoryUiState())
     val state = _state.asStateFlow()
 
@@ -143,7 +148,7 @@ class HistoryStatisticsViewModel(application: Application) : AndroidViewModel(ap
                 fuelRepo.deleteBefore(cutoff)
                 buildHistory(cutoff)
             }.onSuccess { result ->
-                _state.value = _state.value.copy(rows = result.first, months = result.second, isLoading = false)
+                _state.value = _state.value.copy(rows = result.first, months = result.second, vehicleRealKm = vehicleOdometerRepository.enteredRealKm(), isLoading = false)
             }.onFailure {
                 _state.value = _state.value.copy(isLoading = false, error = it.message ?: "Geçmiş veriler okunamadı.")
             }
@@ -152,6 +157,7 @@ class HistoryStatisticsViewModel(application: Application) : AndroidViewModel(ap
 
     private suspend fun buildHistory(cutoff: Long): Pair<List<HistoryDayRow>, List<HistoryMonthTotal>> = withContext(Dispatchers.Default) {
         val selected = _state.value.selectedDriverId
+        val allGpsTotalKm = tripDao.getAllTrips().sumOf { it.distanceKm }.coerceAtLeast(0.0)
         val trips = tripDao.getAllTrips().filter { it.startedAtEpochMillis >= cutoff && (selected == null || it.driverId == selected) }
         val fuel = fuelRepo.getAll().filter { it.purchasedAtEpochMillis >= cutoff && (selected == null || it.driverId == selected) }
         val currentFuelSettings = fuelPreferencesRepository.settings.first()
@@ -212,10 +218,22 @@ class HistoryStatisticsViewModel(application: Application) : AndroidViewModel(ap
                     tripCount = items.sumOf { it.tripCount },
                     estimatedFuelLiters = items.sumOf { it.estimatedFuelLiters },
                     fuelPurchaseLiters = items.sumOf { it.fuelPurchaseLiters },
-                    fuelPurchaseTl = items.sumOf { it.fuelPurchaseTl }
+                    fuelPurchaseTl = items.sumOf { it.fuelPurchaseTl },
+                    revisionKm = vehicleOdometerRepository.revisionForMonth(month, allGpsTotalKm)
                 )
             }
         rows to months
+    }
+
+    fun setVehicleRealKm(value: Double) {
+        viewModelScope.launch {
+            val gpsTotal = tripDao.getAllTrips().sumOf { it.distanceKm }.coerceAtLeast(0.0)
+            vehicleOdometerRepository.setInitialOrCurrentRealKm(value, gpsTotal)
+            _state.value = _state.value.copy(
+                vehicleRealKm = vehicleOdometerRepository.currentRealKm(gpsTotal),
+                message = "ARAÇ KM kaydedildi."
+            )
+        }
     }
 
     fun exportBackup(uri: Uri) {
@@ -293,6 +311,7 @@ fun HistoryStatisticsScreen(
         if (uri != null) viewModel.importBackup(uri)
     }
     var showRestoreWarning by remember { mutableStateOf(false) }
+    var vehicleKmText by remember(state.vehicleRealKm) { mutableStateOf(if (state.vehicleRealKm > 0) String.format(Locale.US, "%.0f", state.vehicleRealKm) else "") }
 
     LaunchedEffect(Unit) { viewModel.refresh() }
 
@@ -321,6 +340,19 @@ fun HistoryStatisticsScreen(
                     border = BorderStroke(1.dp, HCyan),
                     shape = RoundedCornerShape(9.dp)
                 ) { Text("YEDEKLE", fontSize = 10.sp, fontWeight = FontWeight.Bold) }
+                OutlinedTextField(
+                    value = vehicleKmText,
+                    onValueChange = { vehicleKmText = it.filter(Char::isDigit) },
+                    label = { Text("ARAÇ KM", fontSize = 9.sp) },
+                    singleLine = true,
+                    modifier = Modifier.width(125.dp).height(58.dp),
+                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp, color = HText),
+                    trailingIcon = {
+                        TextButton(onClick = { vehicleKmText.toDoubleOrNull()?.let(viewModel::setVehicleRealKm) }) {
+                            Text("KAYDET", color = HGreen, fontSize = 9.sp)
+                        }
+                    }
+                )
                 Button(
                     onClick = { showRestoreWarning = true },
                     modifier = Modifier.height(42.dp),
@@ -442,6 +474,11 @@ private fun HistoryTable(state: HistoryUiState) {
                     BodyCell("Tük. ${month.estimatedFuelLiters.two()} L", 130.dp)
                     BodyCell("Alım ${month.fuelPurchaseLiters.two()} L", 130.dp)
                     BodyCell("${month.fuelPurchaseTl.two()} TL", 120.dp)
+                }
+                Row(Modifier.width(width).background(HBg).padding(vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+                    BodyCell("REVİZE KM", 188.dp)
+                    BodyCell("Gerçek KM − GPS KM", 185.dp)
+                    BodyCell(if (month.revisionKm == 0.0) "0,0 km" else "${month.revisionKm.one()} km", 150.dp)
                 }
             }
         }
