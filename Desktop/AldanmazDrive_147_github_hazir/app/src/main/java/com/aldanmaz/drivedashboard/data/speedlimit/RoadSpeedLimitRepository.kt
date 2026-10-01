@@ -15,7 +15,8 @@ import kotlin.math.roundToInt
 data class RoadSpeedLimitResult(
     val speedLimitKmh: Int?,
     val roadName: String?,
-    val routeNumbers: List<String> = emptyList()
+    val routeNumbers: List<String> = emptyList(),
+    val source: String? = null
 )
 
 data class TomTomDiagnosticResult(
@@ -28,6 +29,9 @@ data class TomTomDiagnosticResult(
 )
 
 class RoadSpeedLimitRepository(context: Context? = null) {
+
+    private val hereClient = HereSpeedLimitClient()
+    private val osmClient = OsmSpeedLimitClient()
 
     private val cachePrefs = context?.applicationContext?.getSharedPreferences("tomtom_speed_cache_131", Context.MODE_PRIVATE)
 
@@ -52,82 +56,75 @@ class RoadSpeedLimitRepository(context: Context? = null) {
         headingDegrees: Float? = null
     ): RoadSpeedLimitResult? =
         withContext(Dispatchers.IO) {
-
             readCached(latitude, longitude, headingDegrees)?.let { cached ->
                 lastResponseCode = null
                 lastRequestQuotaBlocked = false
                 return@withContext cached
             }
 
-            val apiKey = BuildConfig.TOMTOM_API_KEY.trim()
-
-            if (apiKey.isBlank()) {
-                lastResponseCode = null
-                lastRequestQuotaBlocked = false
-                return@withContext null
+            val tomTom = getTomTomSpeedLimit(latitude, longitude, headingDegrees)
+            if (tomTom != null) {
+                return@withContext tomTom
             }
 
-            var connection: HttpURLConnection? = null
+            val here = hereClient.diagnose(latitude, longitude, headingDegrees)
+            if (here.speedLimitKmh != null) {
+                val result = RoadSpeedLimitResult(
+                    speedLimitKmh = here.speedLimitKmh,
+                    roadName = here.roadName,
+                    source = "HERE"
+                )
+                writeCache(latitude, longitude, headingDegrees, result)
+                return@withContext result
+            }
 
+            val osm = osmClient.diagnose(latitude, longitude)
+            if (osm.speedLimitKmh != null) {
+                val result = RoadSpeedLimitResult(
+                    speedLimitKmh = osm.speedLimitKmh,
+                    roadName = osm.roadName,
+                    source = "OSM"
+                )
+                writeCache(latitude, longitude, headingDegrees, result)
+                return@withContext result
+            }
+
+            null
+        }
+
+    private suspend fun getTomTomSpeedLimit(
+        latitude: Double,
+        longitude: Double,
+        headingDegrees: Float?
+    ): RoadSpeedLimitResult? =
+        withContext(Dispatchers.IO) {
+            val apiKey = BuildConfig.TOMTOM_API_KEY.trim()
+            if (apiKey.isBlank()) return@withContext null
+
+            var connection: HttpURLConnection? = null
             try {
                 val coordinate = "$latitude,$longitude"
+                val url = "https://api.tomtom.com/search/2/reverseGeocode/$coordinate.json" +
+                    "?key=${URLEncoder.encode(apiKey, Charsets.UTF_8.name())}&returnSpeedLimit=true"
 
-                val urlBuilder =
-                    StringBuilder(
-                        "https://api.tomtom.com/search/2/" +
-                                "reverseGeocode/" +
-                                "$coordinate.json"
-                    )
-
-                urlBuilder.append(
-                    "?key=${URLEncoder.encode(apiKey, Charsets.UTF_8.name())}"
-                )
-
-                // TomTom hız sınırı isteği, doğrudan doğruladığımız çalışan REST
-                // çağrısıyla aynı tutulur: yalnızca key + returnSpeedLimit.
-                urlBuilder.append("&returnSpeedLimit=true")
-
-                connection =
-                    (URL(urlBuilder.toString())
-                        .openConnection() as HttpURLConnection).apply {
-                        requestMethod = "GET"
-                        connectTimeout = CONNECT_TIMEOUT_MS
-                        readTimeout = READ_TIMEOUT_MS
-                        setRequestProperty("User-Agent", "AldanmazDrive/1.0")
-                    }
-
+                connection = (URL(url).openConnection() as HttpURLConnection).apply {
+                    requestMethod = "GET"
+                    connectTimeout = CONNECT_TIMEOUT_MS
+                    readTimeout = READ_TIMEOUT_MS
+                    setRequestProperty("User-Agent", "AldanmazDrive/1.0")
+                }
                 val responseCode = connection.responseCode
                 lastResponseCode = responseCode
-
-                if (
-                    responseCode !in
-                    HttpURLConnection.HTTP_OK until
-                    HttpURLConnection.HTTP_MULT_CHOICE
-                ) {
-                    val errorText = runCatching {
-                        connection.errorStream?.bufferedReader()?.use { it.readText() }
-                    }.getOrNull().orEmpty()
+                if (responseCode !in HttpURLConnection.HTTP_OK until HttpURLConnection.HTTP_MULT_CHOICE) {
+                    val errorText = runCatching { connection.errorStream?.bufferedReader()?.use { it.readText() } }.getOrNull().orEmpty()
                     lastRequestQuotaBlocked =
                         responseCode == HttpURLConnection.HTTP_FORBIDDEN &&
                             errorText.contains("InsufficientFunds", ignoreCase = true)
                     return@withContext null
                 }
-
                 lastRequestQuotaBlocked = false
-
-                val responseText =
-                    connection.inputStream
-                        .bufferedReader()
-                        .use { reader ->
-                            reader.readText()
-                        }
-
-                parseResponse(responseText)?.also { result ->
-                    if (result.speedLimitKmh != null) {
-                        writeCache(latitude, longitude, headingDegrees, result)
-                    }
-                }
-
+                val responseText = connection.inputStream.bufferedReader().use { it.readText() }
+                parseResponse(responseText)?.takeIf { it.speedLimitKmh != null }?.copy(source = "TomTom")
             } catch (_: Exception) {
                 lastResponseCode = null
                 lastRequestQuotaBlocked = false
@@ -218,6 +215,31 @@ class RoadSpeedLimitRepository(context: Context? = null) {
             }
         }
 
+
+    suspend fun diagnoseHere(latitude: Double, longitude: Double, headingDegrees: Float? = null): ProviderDiagnosticResult =
+        hereClient.diagnose(latitude, longitude, headingDegrees)
+
+    suspend fun diagnoseOsm(latitude: Double, longitude: Double): ProviderDiagnosticResult =
+        osmClient.diagnose(latitude, longitude)
+
+    suspend fun diagnoseFallback(latitude: Double, longitude: Double, headingDegrees: Float? = null): List<ProviderDiagnosticResult> =
+        withContext(Dispatchers.IO) {
+            buildList {
+                val tomtom = diagnose(latitude, longitude, headingDegrees)
+                add(
+                    ProviderDiagnosticResult(
+                        provider = "TomTom",
+                        apiKeyPresent = tomtom.apiKeyPresent,
+                        responseCode = tomtom.responseCode,
+                        speedLimitKmh = tomtom.speedLimitKmh,
+                        roadName = tomtom.roadName,
+                        message = tomtom.message
+                    )
+                )
+                add(hereClient.diagnose(latitude, longitude, headingDegrees))
+                add(osmClient.diagnose(latitude, longitude))
+            }
+        }
 
     private fun cacheCell(latitude: Double, longitude: Double): Pair<Int, Int> =
         (latitude * 1000.0).roundToInt() to (longitude * 1000.0).roundToInt()
