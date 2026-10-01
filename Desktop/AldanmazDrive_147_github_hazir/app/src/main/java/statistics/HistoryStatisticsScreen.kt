@@ -155,7 +155,13 @@ class HistoryStatisticsViewModel(application: Application) : AndroidViewModel(ap
         val trips = tripDao.getAllTrips().filter { it.startedAtEpochMillis >= cutoff && (selected == null || it.driverId == selected) }
         val fuel = fuelRepo.getAll().filter { it.purchasedAtEpochMillis >= cutoff && (selected == null || it.driverId == selected) }
         val currentFuelSettings = fuelPreferencesRepository.settings.first()
+        val latestRecordedFuelPricePerLiter = fuel.asSequence()
+            .filter { it.liters > 0.0 && it.costTl > 0.0 }
+            .maxByOrNull { it.purchasedAtEpochMillis }
+            ?.let { it.costTl / it.liters }
+            ?.takeIf { it > 0.0 }
         val currentFuelPricePerLiter = currentFuelSettings.lastFuelPricePerLiter.takeIf { it > 0.0 }
+            ?: latestRecordedFuelPricePerLiter
             ?: if (currentFuelSettings.totalPurchasedLiters > 0.0) {
                 (currentFuelSettings.totalFuelCost / currentFuelSettings.totalPurchasedLiters).takeIf { it > 0.0 }
             } else null
