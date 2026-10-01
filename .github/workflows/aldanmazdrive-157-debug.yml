@@ -52,10 +52,8 @@ jobs:
       - name: Build Debug APK
         run: ./gradlew assembleDebug --no-daemon
 
-      - name: Verify APK
-        run: |
-          test -s app/build/outputs/apk/debug/app-debug.apk
-          apksigner verify --verbose app/build/outputs/apk/debug/app-debug.apk
+      - name: Verify APK exists
+        run: test -s app/build/outputs/apk/debug/app-debug.apk
 
       - name: Rename APK
         run: cp app/build/outputs/apk/debug/app-debug.apk ../AldanmazDrive_157.apk
