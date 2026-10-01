@@ -23,6 +23,7 @@ class OsmSpeedLimitClient {
             var connection: HttpURLConnection? = null
             var lastError: String? = null
             for (endpoint in ENDPOINTS) try {
+                val url = endpoint + "?data=" + URLEncoder.encode(query, Charsets.UTF_8.name())
                 connection = (URL(url).openConnection() as HttpURLConnection).apply {
                     requestMethod = "GET"
                     connectTimeout = CONNECT_TIMEOUT_MS
@@ -67,7 +68,6 @@ class OsmSpeedLimitClient {
                 lastError = e.message ?: e.javaClass.simpleName
             } finally {
                 connection?.disconnect()
-            }
             }
             ProviderDiagnosticResult("OSM", true, message = "OSM hız sınırı alınamadı: ${lastError ?: "tüm sunucular başarısız"}")
         }
