@@ -30,6 +30,7 @@ val localProperties = Properties().apply {
     if (localPropertiesFile.exists()) localPropertiesFile.inputStream().use { load(it) }
 }
 val tomTomApiKey = localProperties.getProperty("TOMTOM_API_KEY", "")
+val hereApiKey = localProperties.getProperty("HERE_API_KEY", "")
 
 android {
     namespace = "com.aldanmaz.drivedashboard"
@@ -38,10 +39,11 @@ android {
         applicationId = "com.aldanmaz.drivedashboard"
         minSdk = 29
         targetSdk = 37
-        versionCode = 197
-        versionName = "158"
+        versionCode = 198
+        versionName = "159"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "TOMTOM_API_KEY", "\"$tomTomApiKey\"")
+        buildConfigField("String", "HERE_API_KEY", "\"$hereApiKey\"" )
     }
     signingConfigs {
         create("stableDebug") {
