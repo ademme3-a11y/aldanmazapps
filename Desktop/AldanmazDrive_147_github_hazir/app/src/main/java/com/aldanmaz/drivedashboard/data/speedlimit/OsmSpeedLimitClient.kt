@@ -9,8 +9,8 @@ import kotlin.math.roundToInt
 
 class OsmSpeedLimitClient {
     companion object {
-        private const val CONNECT_TIMEOUT_MS = 6_000
-        private const val READ_TIMEOUT_MS = 7_000
+        private const val CONNECT_TIMEOUT_MS = 3_000
+        private const val READ_TIMEOUT_MS = 4_000
         private val ENDPOINTS = listOf(
             "https://overpass-api.de/api/interpreter",
             "https://overpass.kumi.systems/api/interpreter",
@@ -19,7 +19,7 @@ class OsmSpeedLimitClient {
     }
     suspend fun diagnose(latitude: Double, longitude: Double): ProviderDiagnosticResult =
         withContext(Dispatchers.IO) {
-            val query = "[out:json][timeout:6];way(around:35,$latitude,$longitude)[highway][maxspeed];out tags center;"
+            val query = "[out:json][timeout:3];way(around:20,$latitude,$longitude)[highway][maxspeed];out tags;"
             var connection: HttpURLConnection? = null
             var lastError: String? = null
             for (endpoint in ENDPOINTS) try {
