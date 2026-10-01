@@ -157,6 +157,13 @@ fun DriveDashboardRoute(
     val uiState by
     viewModel.uiState.collectAsStateWithLifecycle()
 
+    LaunchedEffect(Unit) {
+        while (true) {
+            viewModel.refreshVehicleGpsTotalDistance()
+            delay(5000L)
+        }
+    }
+
     val weatherUiState by
     weatherViewModel.uiState.collectAsStateWithLifecycle()
 
@@ -345,6 +352,9 @@ fun DriveDashboardRoute(
 
         todayTotalDistanceKm =
             uiState.todayTotalDistanceKm,
+
+        vehicleGpsTotalDistanceKm =
+            uiState.vehicleGpsTotalDistanceKm,
 
         tripStartedAtEpochMillis =
             uiState.tripStartedAtEpochMillis,
