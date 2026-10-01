@@ -2503,7 +2503,6 @@ private fun LandscapeDashboard(
     todayEstimatedFuelConsumedLiters: Double,
     todayEstimatedFuelCost: Double,
     todayTotalDistanceKm: Double,
-    vehicleRealKm: Double,
     tripStartedAtEpochMillis: Long?,
     tripEndedAtEpochMillis: Long?,
     vehicleMode: String,
