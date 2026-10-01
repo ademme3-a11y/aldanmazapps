@@ -1651,6 +1651,14 @@ private fun WeatherHeaderCard(
                             fontSize = 8.5.sp,
                             maxLines = 1
                         )
+
+                        Text(
+                            text = currentDate.uppercase(Locale("tr", "TR")),
+                            color = CyanAccent.copy(alpha = .95f),
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
+                        )
                     }
                 }
             }
