@@ -48,6 +48,7 @@ import androidx.core.content.ContextCompat
 import com.aldanmaz.drivedashboard.BuildConfig
 import com.aldanmaz.drivedashboard.data.speedlimit.RoadSpeedLimitRepository
 import com.aldanmaz.drivedashboard.data.speedlimit.TomTomDiagnosticResult
+import com.aldanmaz.drivedashboard.data.speedlimit.ProviderDiagnosticResult
 import com.aldanmaz.drivedashboard.ui.theme.DashboardPaletteRuntime
 import com.google.firebase.FirebaseApp
 import com.google.firebase.appcheck.FirebaseAppCheck
@@ -214,6 +215,9 @@ fun ProgramSettingsScreen(
         )
 
         TomTomDiagnosticsCard()
+        HereDiagnosticsCard()
+        OsmDiagnosticsCard()
+        SpeedLimitFallbackDiagnosticsCard()
         SettingsHubCard(
             icon = "?",
             title = "YARDIM & KULLANIM KILAVUZU",
@@ -390,6 +394,159 @@ private fun TomTomDiagnosticsCard() {
             }
         }
     }
+}
+
+@Composable
+private fun HereDiagnosticsCard() = ProviderSingleDiagnosticsCard(
+    title = "HERE HIZ SINIRI TESTİ",
+    provider = "HERE",
+    apiKeyPresent = BuildConfig.HERE_API_KEY.isNotBlank(),
+    missingKeyText = "HERE API anahtarı yok. Anahtar eklenirse TomTom'dan sonra yedek olarak kullanılacak.",
+    runTest = { repository, location ->
+        repository.diagnoseHere(location.latitude, location.longitude, location.bearing.takeIf { location.hasBearing() })
+    }
+)
+
+@Composable
+private fun OsmDiagnosticsCard() = ProviderSingleDiagnosticsCard(
+    title = "OPENSTREETMAP HIZ SINIRI TESTİ",
+    provider = "OSM",
+    apiKeyPresent = true,
+    missingKeyText = "OSM için API anahtarı gerekmez. Yakındaki yolda maxspeed verisi varsa sonuç alınır.",
+    runTest = { repository, location ->
+        repository.diagnoseOsm(location.latitude, location.longitude)
+    }
+)
+
+@Composable
+private fun ProviderSingleDiagnosticsCard(
+    title: String,
+    provider: String,
+    apiKeyPresent: Boolean,
+    missingKeyText: String,
+    runTest: suspend (RoadSpeedLimitRepository, Location) -> ProviderDiagnosticResult
+) {
+    val context = LocalContext.current
+    val accent = DashboardPaletteRuntime.accent
+    val scope = rememberCoroutineScope()
+    val repository = remember { RoadSpeedLimitRepository() }
+    var running by remember { mutableStateOf(false) }
+    var result by remember { mutableStateOf<ProviderDiagnosticResult?>(null) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF07121E)),
+        shape = RoundedCornerShape(17.dp),
+        border = BorderStroke(1.dp, accent.copy(alpha = .45f))
+    ) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+            Text(title, color = accent, fontSize = 13.sp, fontWeight = FontWeight.Black)
+            Text(
+                if (provider == "OSM") "Kaynak: OpenStreetMap" else "API anahtarı: " + if (apiKeyPresent) "VAR" else "YOK",
+                color = if (provider == "OSM" || apiKeyPresent) Color(0xFF77E6A6) else Color(0xFFFF6B6B),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
+            result?.let { diagnostic ->
+                Text(
+                    diagnostic.message,
+                    color = if (diagnostic.speedLimitKmh != null || (diagnostic.responseCode != null && diagnostic.responseCode in 200..299)) Color.White else Color(0xFFFF9A7A),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                diagnostic.responseCode?.let { Text("HTTP: " + it, color = Color(0xFFB7C9D8), fontSize = 11.sp) }
+                diagnostic.roadName?.takeIf { it.isNotBlank() }?.let { Text("Yol: " + it, color = Color.White, fontSize = 11.sp) }
+                Text(
+                    "Hız sınırı: " + (diagnostic.speedLimitKmh?.let { it.toString() + " km/h" } ?: "GELMEDİ"),
+                    color = if (diagnostic.speedLimitKmh != null) Color(0xFF77E6A6) else Color(0xFFFFD982),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Black
+                )
+            } ?: Text(missingKeyText, color = Color(0xFF8FA6BA), fontSize = 10.sp)
+
+            Button(
+                enabled = !running && (apiKeyPresent || provider == "OSM"),
+                onClick = {
+                    val location = lastKnownSpeedTestLocation(context)
+                    if (location == null) {
+                        result = ProviderDiagnosticResult(provider, apiKeyPresent, message = "Konum alınamadı. Konum iznini/GPS'i kontrol edin.")
+                    } else {
+                        running = true
+                        result = ProviderDiagnosticResult(provider, apiKeyPresent, message = provider + " sorgulanıyor…")
+                        scope.launch {
+                            result = runTest(repository, location)
+                            running = false
+                        }
+                    }
+                }
+            ) {
+                Text(if (running) "TEST EDİLİYOR…" else provider + " TEST ET")
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpeedLimitFallbackDiagnosticsCard() {
+    val context = LocalContext.current
+    val accent = DashboardPaletteRuntime.accent
+    val scope = rememberCoroutineScope()
+    val repository = remember { RoadSpeedLimitRepository() }
+    var running by remember { mutableStateOf(false) }
+    var results by remember { mutableStateOf<List<ProviderDiagnosticResult>>(emptyList()) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF081722)),
+        shape = RoundedCornerShape(17.dp),
+        border = BorderStroke(1.dp, accent.copy(alpha = .65f))
+    ) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+            Text("HIZ SINIRI YEDEK SİSTEM TESTİ", color = accent, fontSize = 13.sp, fontWeight = FontWeight.Black)
+            Text("Sıra: TomTom → HERE → OSM. Bu test üç kaynağı aynı konumda raporlar.", color = Color(0xFF8FA6BA), fontSize = 10.sp)
+            results.forEach { item ->
+                val ok = item.speedLimitKmh != null
+                Text(
+                    item.provider + ": " + (item.speedLimitKmh?.let { it.toString() + " km/h" } ?: "sonuç yok") + " — " + item.message,
+                    color = if (ok) Color(0xFF77E6A6) else Color(0xFFFFD982),
+                    fontSize = 11.sp,
+                    fontWeight = if (ok) FontWeight.Bold else FontWeight.Normal
+                )
+            }
+            Button(
+                enabled = !running,
+                onClick = {
+                    val location = lastKnownSpeedTestLocation(context)
+                    if (location == null) {
+                        results = listOf(ProviderDiagnosticResult("Sistem", false, message = "Konum alınamadı."))
+                    } else {
+                        running = true
+                        results = emptyList()
+                        scope.launch {
+                            results = repository.diagnoseFallback(
+                                location.latitude,
+                                location.longitude,
+                                location.bearing.takeIf { location.hasBearing() }
+                            )
+                            running = false
+                        }
+                    }
+                }
+            ) {
+                Text(if (running) "TEST EDİLİYOR…" else "YEDEK SİSTEMİ TEST ET")
+            }
+        }
+    }
+}
+
+private fun lastKnownSpeedTestLocation(context: Context): Location? {
+    val fine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+    val coarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
+    if (fine != PackageManager.PERMISSION_GRANTED && coarse != PackageManager.PERMISSION_GRANTED) return null
+    val manager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+    return listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER, LocationManager.PASSIVE_PROVIDER)
+        .mapNotNull { provider -> runCatching { manager.getLastKnownLocation(provider) }.getOrNull() }
+        .maxByOrNull { it.time }
 }
 
 @Composable
