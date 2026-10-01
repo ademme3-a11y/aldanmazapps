@@ -610,6 +610,7 @@ fun DriveDashboardScreen(
                             todayEstimatedFuelCost = todayEstimatedFuelCost,
                             todayTotalDistanceKm =
                                 todayTotalDistanceKm,
+                            vehicleRealKm = vehicleRealKm,
                             vehicleGpsTotalDistanceKm =
                                 vehicleGpsTotalDistanceKm,
                             tripStartedAtEpochMillis =
@@ -2692,6 +2693,7 @@ private fun PortraitDashboard(
     todayEstimatedFuelConsumedLiters: Double,
     todayEstimatedFuelCost: Double,
     todayTotalDistanceKm: Double,
+    vehicleRealKm: Double,
     tripStartedAtEpochMillis: Long?,
     tripEndedAtEpochMillis: Long?,
     vehicleMode: String,
@@ -2750,7 +2752,8 @@ private fun PortraitDashboard(
             compact = true,
             sunriseTime = sunriseTime,
             sunsetTime = sunsetTime,
-            currentDate = currentDate
+            currentDate = currentDate,
+            vehicleRealKm = vehicleRealKm
         )
 
         Row(
@@ -2849,7 +2852,8 @@ private fun SpeedPanel(
     compact: Boolean,
     sunriseTime: String,
     sunsetTime: String,
-    currentDate: String
+    currentDate: String,
+    vehicleRealKm: Double = 0.0
 ) {
     val strokeScale = LocalDashboardStrokeScale.current
     val fuelCostPerKm = if (dailyDistanceKm > 0.01) dailyFuelCost / dailyDistanceKm else 0.0
