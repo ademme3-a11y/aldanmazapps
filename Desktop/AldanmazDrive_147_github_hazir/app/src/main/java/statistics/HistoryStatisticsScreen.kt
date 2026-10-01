@@ -47,6 +47,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.aldanmaz.drivedashboard.data.fuel.FuelPurchaseHistoryRepository
+import com.aldanmaz.drivedashboard.data.fuel.FuelPreferencesRepository
+import kotlinx.coroutines.flow.first
 import com.aldanmaz.drivedashboard.data.fuel.FuelPurchaseRecord
 import com.aldanmaz.drivedashboard.data.trip.AldanmazDriveDatabase
 import com.aldanmaz.drivedashboard.data.trip.TripEntity
@@ -112,6 +114,7 @@ class HistoryStatisticsViewModel(application: Application) : AndroidViewModel(ap
     private val db = AldanmazDriveDatabase.getInstance(application)
     private val tripDao = db.tripDao()
     private val fuelRepo = FuelPurchaseHistoryRepository(application)
+    private val fuelPreferencesRepository = FuelPreferencesRepository(application)
     private val _state = MutableStateFlow(HistoryUiState())
     val state = _state.asStateFlow()
 
@@ -151,6 +154,11 @@ class HistoryStatisticsViewModel(application: Application) : AndroidViewModel(ap
         val selected = _state.value.selectedDriverId
         val trips = tripDao.getAllTrips().filter { it.startedAtEpochMillis >= cutoff && (selected == null || it.driverId == selected) }
         val fuel = fuelRepo.getAll().filter { it.purchasedAtEpochMillis >= cutoff && (selected == null || it.driverId == selected) }
+        val currentFuelSettings = fuelPreferencesRepository.settings.first()
+        val currentFuelPricePerLiter = currentFuelSettings.lastFuelPricePerLiter.takeIf { it > 0.0 }
+            ?: if (currentFuelSettings.totalPurchasedLiters > 0.0) {
+                (currentFuelSettings.totalFuelCost / currentFuelSettings.totalPurchasedLiters).takeIf { it > 0.0 }
+            } else null
 
         val tripGroups = trips.groupBy { dateKey(it.startedAtEpochMillis) to it.driverId }
         val fuelGroups = fuel.groupBy { dateKey(it.purchasedAtEpochMillis) to it.driverId }
@@ -177,7 +185,14 @@ class HistoryStatisticsViewModel(application: Application) : AndroidViewModel(ap
                 estimatedFuelLiters = dayTrips.sumOf { it.estimatedFuelConsumedLiters },
                 fuelPurchaseLiters = dayFuel.sumOf { it.liters },
                 fuelPurchaseTl = dayFuel.sumOf { it.costTl },
-                estimatedFuelTl = dayTrips.sumOf { it.estimatedFuelCost }
+                estimatedFuelTl = dayTrips.sumOf { trip ->
+                    val storedCost = trip.estimatedFuelCost
+                    if (storedCost > 0.0) {
+                        storedCost
+                    } else {
+                        trip.estimatedFuelConsumedLiters * (currentFuelPricePerLiter ?: 0.0)
+                    }
+                }
             )
         }
 
