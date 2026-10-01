@@ -1,5 +1,7 @@
 package com.aldanmaz.drivedashboard.data.speedlimit
 
+import java.net.URLEncoder
+
 import android.content.Context
 import com.aldanmaz.drivedashboard.BuildConfig
 import kotlinx.coroutines.Dispatchers
