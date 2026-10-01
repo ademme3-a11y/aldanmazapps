@@ -32,6 +32,7 @@ data class DriveDashboardUiState(
     val tripSpeed91To120Seconds: Long = 0L,
     val tripSpeedOver120Seconds: Long = 0L,
     val todayTotalDistanceKm: Double = 0.0,
+    val vehicleGpsTotalDistanceKm: Double = 0.0,
     val todayEstimatedFuelConsumedLiters: Double = 0.0,
     val todayEstimatedFuelCost: Double = 0.0,
     val tripStartedAtEpochMillis: Long? = null,
