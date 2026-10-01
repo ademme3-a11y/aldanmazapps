@@ -99,10 +99,11 @@ class RoadSpeedLimitRepository(context: Context? = null) {
                         requestMethod = "GET"
                         connectTimeout = CONNECT_TIMEOUT_MS
                         readTimeout = READ_TIMEOUT_MS
-                        setRequestProperty(
-                            "User-Agent",
-                            "AldanmazDrive/1.0"
-                        )
+                        setRequestProperty("User-Agent", "AldanmazDrive/1.0")
+                    setRequestProperty("Ocp-Apim-Subscription-Key", apiKey)
+                        // TomTom kimlik doğrulamasını hem klasik key parametresiyle
+                        // hem de gateway header'ı ile gönderiyoruz.
+                        setRequestProperty("Ocp-Apim-Subscription-Key", apiKey)
                     }
 
                 val responseCode = connection.responseCode
