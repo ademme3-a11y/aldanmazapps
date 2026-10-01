@@ -62,6 +62,9 @@ class TripRepository(
     suspend fun getLatestTrip(): TripEntity? =
         tripDao.getLatestTrip()
 
+    suspend fun getAllTimeTotalDistanceKm(): Double =
+        tripDao.getAllTrips().sumOf { it.distanceKm }.coerceAtLeast(0.0)
+
     suspend fun getTodayTotalDistanceKm(
         nowEpochMillis: Long = System.currentTimeMillis()
     ): Double {
