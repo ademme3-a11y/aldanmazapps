@@ -84,7 +84,8 @@ data class HistoryDayRow(
     val maxSpeedKmh: Int,
     val estimatedFuelLiters: Double,
     val fuelPurchaseLiters: Double,
-    val fuelPurchaseTl: Double
+    val fuelPurchaseTl: Double,
+    val estimatedFuelTl: Double
 )
 
 data class HistoryMonthTotal(
@@ -175,7 +176,8 @@ class HistoryStatisticsViewModel(application: Application) : AndroidViewModel(ap
                 maxSpeedKmh = dayTrips.maxOfOrNull { it.maxSpeedKmh } ?: 0,
                 estimatedFuelLiters = dayTrips.sumOf { it.estimatedFuelConsumedLiters },
                 fuelPurchaseLiters = dayFuel.sumOf { it.liters },
-                fuelPurchaseTl = dayFuel.sumOf { it.costTl }
+                fuelPurchaseTl = dayFuel.sumOf { it.costTl },
+                estimatedFuelTl = dayTrips.sumOf { it.estimatedFuelCost }
             )
         }
 
@@ -366,7 +368,7 @@ private fun DriverButton(text: String, selected: Boolean, onClick: () -> Unit, m
 @Composable
 private fun HistoryTable(state: HistoryUiState) {
     val scroll = rememberScrollState()
-    val width = 980.dp
+    val width = 1065.dp
     Column(Modifier.fillMaxSize().horizontalScroll(scroll).verticalScroll(rememberScrollState())) {
         Row(
             Modifier.width(width).background(HCard).padding(vertical = 7.dp),
@@ -379,7 +381,8 @@ private fun HistoryTable(state: HistoryUiState) {
             HeaderCell("SÜRÜŞ", 80.dp)
             HeaderCell("ORT.HIZ", 78.dp)
             HeaderCell("MAX", 65.dp)
-            HeaderCell("TÜK.L", 75.dp)
+            HeaderCell("TÜKETİM LT", 75.dp)
+            HeaderCellRed("TÜKETİM TL", 85.dp)
             HeaderCell("ALIM L", 75.dp)
             HeaderCell("ALIM TL", 92.dp)
             HeaderCell("TL/L", 70.dp)
@@ -401,6 +404,7 @@ private fun HistoryTable(state: HistoryUiState) {
                     BodyCell(row.averageSpeedKmh.one(), 78.dp)
                     BodyCell(row.maxSpeedKmh.toString(), 65.dp)
                     BodyCell(row.estimatedFuelLiters.two(), 75.dp)
+                    BodyCellRed(row.estimatedFuelTl.two(), 85.dp)
                     BodyCell(row.fuelPurchaseLiters.two(), 75.dp)
                     BodyCell(row.fuelPurchaseTl.two(), 92.dp)
                     BodyCell(if (row.fuelPurchaseLiters > 0) (row.fuelPurchaseTl / row.fuelPurchaseLiters).two() else "—", 70.dp)
@@ -426,6 +430,16 @@ private fun HistoryTable(state: HistoryUiState) {
 @Composable
 private fun HeaderCell(text: String, width: androidx.compose.ui.unit.Dp) {
     Text(text, color = HCyan, fontSize = 9.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center, modifier = Modifier.width(width).padding(horizontal = 3.dp))
+}
+
+@Composable
+private fun HeaderCellRed(text: String, width: androidx.compose.ui.unit.Dp) {
+    Text(text, color = Color.Red, fontSize = 9.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center, modifier = Modifier.width(width).padding(horizontal = 3.dp))
+}
+
+@Composable
+private fun BodyCellRed(text: String, width: androidx.compose.ui.unit.Dp) {
+    Text(text, color = Color.Red, fontSize = 10.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center, modifier = Modifier.width(width).padding(horizontal = 3.dp))
 }
 
 @Composable
