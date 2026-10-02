@@ -3,9 +3,6 @@ name: Aldanmaz Drive 165 Debug Build
 on:
   push:
     branches: [main]
-    paths:
-      - 'Desktop/AldanmazDrive_147_github_hazir/**'
-      - '.github/workflows/aldanmazdrive-164-debug.yml'
   workflow_dispatch:
 
 jobs:
