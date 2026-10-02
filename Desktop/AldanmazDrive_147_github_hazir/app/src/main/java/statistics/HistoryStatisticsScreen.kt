@@ -149,7 +149,7 @@ class HistoryStatisticsViewModel(application: Application) : AndroidViewModel(ap
                 fuelRepo.deleteBefore(cutoff)
                 buildHistory(cutoff)
             }.onSuccess { result ->
-                _state.value = _state.value.copy(rows = result.first, months = result.second, vehicleRealKm = vehicleOdometerRepository.enteredRealKm(), vehicleGpsKm = tripDao.getAllTrips().sumOf { it.distanceKm }.coerceAtLeast(0.0), isLoading = false)
+                _state.value = _state.value.copy(rows = result.first, months = result.second, vehicleRealKm = vehicleOdometerRepository.enteredRealKm(), vehicleGpsKm = vehicleOdometerRepository.currentGpsKm(tripDao.getAllTrips().sumOf { it.distanceKm }.coerceAtLeast(0.0)), isLoading = false)
             }.onFailure {
                 _state.value = _state.value.copy(isLoading = false, error = it.message ?: "Geçmiş veriler okunamadı.")
             }
@@ -232,7 +232,7 @@ class HistoryStatisticsViewModel(application: Application) : AndroidViewModel(ap
             vehicleOdometerRepository.setInitialOrCurrentRealKm(value, gpsTotal)
             _state.value = _state.value.copy(
                 vehicleRealKm = vehicleOdometerRepository.currentRealKm(gpsTotal),
-                vehicleGpsKm = gpsTotal,
+                vehicleGpsKm = vehicleOdometerRepository.currentGpsKm(gpsTotal),
                 message = "ARAÇ KM kaydedildi."
             )
         }
