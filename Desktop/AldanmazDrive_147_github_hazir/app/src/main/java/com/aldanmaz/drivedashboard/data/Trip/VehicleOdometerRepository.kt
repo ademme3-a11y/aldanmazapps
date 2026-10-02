@@ -49,6 +49,14 @@ class VehicleOdometerRepository(context: Context) {
         return (real + (gpsTotalKm - prefs.getDouble(KEY_BASE_GPS_KM))).coerceAtLeast(0.0)
     }
 
+    // GPS KM, ilk Araç Gerçek KM değerini başlangıç referansı kabul eder
+    // ve yalnızca uygulamanın GPS ile takip ettiği mesafeyi bunun üzerine ekler.
+    fun currentGpsKm(gpsTotalKm: Double): Double {
+        val real = prefs.getDouble(KEY_REAL_KM)
+        if (real <= 0.0) return 0.0
+        return (real + (gpsTotalKm - prefs.getDouble(KEY_BASE_GPS_KM))).coerceAtLeast(0.0)
+    }
+
     fun enteredRealKm(): Double = prefs.getDouble(KEY_REAL_KM)
 
     fun revisionForMonth(month: String, gpsTotalKm: Double): Double {
