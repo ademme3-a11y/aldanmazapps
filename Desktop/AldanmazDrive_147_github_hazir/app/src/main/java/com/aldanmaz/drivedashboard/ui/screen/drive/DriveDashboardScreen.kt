@@ -1564,7 +1564,7 @@ private fun WeatherHeaderCard(
                     text = currentDate.uppercase(Locale("tr", "TR")),
                     modifier = Modifier.align(Alignment.BottomStart).padding(start = 10.dp, bottom = 9.dp),
                     color = CyanAccent.copy(alpha = .95f),
-                    fontSize = 11.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1
                 )
@@ -1653,7 +1653,7 @@ private fun WeatherHeaderCard(
                         Text(
                             text = currentDate.uppercase(Locale("tr", "TR")),
                             color = CyanAccent.copy(alpha = .95f),
-                            fontSize = 9.sp,
+                            fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1
                         )
