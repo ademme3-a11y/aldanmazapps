@@ -2613,7 +2613,8 @@ private fun LandscapeDashboard(
             compact = halfTrackingActive,
             sunriseTime = sunriseTime,
             sunsetTime = sunsetTime,
-            currentDate = currentDate
+            currentDate = currentDate,
+            vehicleRealKm = vehicleRealKm
         )
 
         if (halfTrackingActive) {
