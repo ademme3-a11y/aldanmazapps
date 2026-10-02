@@ -111,7 +111,8 @@ data class HistoryUiState(
     val isLoading: Boolean = true,
     val message: String? = null,
     val error: String? = null,
-    val vehicleRealKm: Double = 0.0
+    val vehicleRealKm: Double = 0.0,
+    val vehicleGpsKm: Double = 0.0
 )
 
 class HistoryStatisticsViewModel(application: Application) : AndroidViewModel(application) {
@@ -148,7 +149,7 @@ class HistoryStatisticsViewModel(application: Application) : AndroidViewModel(ap
                 fuelRepo.deleteBefore(cutoff)
                 buildHistory(cutoff)
             }.onSuccess { result ->
-                _state.value = _state.value.copy(rows = result.first, months = result.second, vehicleRealKm = vehicleOdometerRepository.enteredRealKm(), isLoading = false)
+                _state.value = _state.value.copy(rows = result.first, months = result.second, vehicleRealKm = vehicleOdometerRepository.enteredRealKm(), vehicleGpsKm = tripDao.getAllTrips().sumOf { it.distanceKm }.coerceAtLeast(0.0), isLoading = false)
             }.onFailure {
                 _state.value = _state.value.copy(isLoading = false, error = it.message ?: "Geçmiş veriler okunamadı.")
             }
@@ -231,6 +232,7 @@ class HistoryStatisticsViewModel(application: Application) : AndroidViewModel(ap
             vehicleOdometerRepository.setInitialOrCurrentRealKm(value, gpsTotal)
             _state.value = _state.value.copy(
                 vehicleRealKm = vehicleOdometerRepository.currentRealKm(gpsTotal),
+                vehicleGpsKm = gpsTotal,
                 message = "ARAÇ KM kaydedildi."
             )
         }
@@ -332,26 +334,35 @@ fun HistoryStatisticsScreen(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                 DriverButton("MEHMET", state.selectedDriverId == "1", { viewModel.selectDriver("1") }, Modifier.weight(1f))
                 DriverButton("NURDAN", state.selectedDriverId == "2", { viewModel.selectDriver("2") }, Modifier.weight(1f))
-                DriverButton("TÜM SÜRÜCÜLER", state.selectedDriverId == null, { viewModel.selectDriver(null) }, Modifier.weight(1.25f))
+                DriverButton("TÜM SÜRÜCÜ", state.selectedDriverId == null, { viewModel.selectDriver(null) }, Modifier.weight(1.25f))
                 Button(
                     onClick = { exportLauncher.launch("AldanmazDrive_180Gun_Yedek.json") },
                     modifier = Modifier.height(42.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = HCyan.copy(alpha = .14f), contentColor = HCyan),
                     border = BorderStroke(1.dp, HCyan),
                     shape = RoundedCornerShape(9.dp)
-                ) { Text("YEDEKLE", fontSize = 10.sp, fontWeight = FontWeight.Bold) }
+                ) { Text("YEDEK", fontSize = 10.sp, fontWeight = FontWeight.Bold) }
                 OutlinedTextField(
                     value = vehicleKmText,
                     onValueChange = { vehicleKmText = it.filter(Char::isDigit) },
                     label = { Text("ARAÇ KM", fontSize = 9.sp) },
                     singleLine = true,
-                    modifier = Modifier.width(125.dp).height(58.dp),
+                    modifier = Modifier.width(112.dp).height(58.dp),
                     textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp, color = HText),
                     trailingIcon = {
                         TextButton(onClick = { vehicleKmText.toDoubleOrNull()?.let(viewModel::setVehicleRealKm) }) {
                             Text("KAYDET", color = HGreen, fontSize = 9.sp)
                         }
                     }
+                )
+                OutlinedTextField(
+                    value = if (state.vehicleGpsKm > 0.0) String.format(Locale.US, "%.1f", state.vehicleGpsKm) else "0,0",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("GPS KM", fontSize = 9.sp) },
+                    singleLine = true,
+                    modifier = Modifier.width(112.dp).height(58.dp),
+                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp, color = HText)
                 )
                 Button(
                     onClick = { showRestoreWarning = true },
@@ -434,8 +445,8 @@ private fun HistoryTable(state: HistoryUiState) {
             HeaderCell("SÜRÜŞ", 80.dp)
             HeaderCell("ORT.HIZ", 78.dp)
             HeaderCell("MAX", 65.dp)
-            HeaderCell("TÜKETİM LT", 75.dp)
-            HeaderCellRed("TÜKETİM TL", 85.dp)
+            HeaderCell("TÜK LT", 65.dp)
+            HeaderCellRed("TÜK TL", 70.dp)
             HeaderCell("ALIM L", 75.dp)
             HeaderCell("ALIM TL", 92.dp)
             HeaderCell("TL/L", 70.dp)
@@ -456,8 +467,8 @@ private fun HistoryTable(state: HistoryUiState) {
                     BodyCell(duration(row.movingSeconds), 80.dp)
                     BodyCell(row.averageSpeedKmh.one(), 78.dp)
                     BodyCell(row.maxSpeedKmh.toString(), 65.dp)
-                    BodyCell(row.estimatedFuelLiters.two(), 75.dp)
-                    BodyCellRed(row.estimatedFuelTl.two(), 85.dp)
+                    BodyCell(row.estimatedFuelLiters.two(), 65.dp)
+                    BodyCellRed(row.estimatedFuelTl.two(), 70.dp)
                     BodyCell(row.fuelPurchaseLiters.two(), 75.dp)
                     BodyCell(row.fuelPurchaseTl.two(), 92.dp)
                     BodyCell(if (row.fuelPurchaseLiters > 0) (row.fuelPurchaseTl / row.fuelPurchaseLiters).two() else "—", 70.dp)
