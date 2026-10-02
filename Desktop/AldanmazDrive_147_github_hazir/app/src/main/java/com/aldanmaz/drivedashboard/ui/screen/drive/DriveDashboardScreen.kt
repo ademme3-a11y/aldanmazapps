@@ -73,6 +73,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.ColorFilter
@@ -115,21 +116,21 @@ import kotlin.math.sin
 import kotlin.math.roundToInt
 
 private val DashboardBackground get() = when {
-    DashboardPaletteRuntime.isSunlight -> Color(0xFF18212A)
+    DashboardPaletteRuntime.isDay -> Color(0xFFD8B77A)
     DashboardPaletteRuntime.isOled -> Color.Black
     else -> Color(0xFF02070D)
 }
 private val HeaderBackground get() = when {
-    DashboardPaletteRuntime.isSunlight -> Color(0xFF202B35)
+    DashboardPaletteRuntime.isDay -> Color(0xFFE7CB99)
     DashboardPaletteRuntime.isOled -> Color.Black
     else -> Color(0xFF07111C)
 }
 private val PanelBackground get() = when {
-    DashboardPaletteRuntime.isSunlight -> Color(0xFF222D36)
+    DashboardPaletteRuntime.isDay -> Color(0xFFD9B879)
     DashboardPaletteRuntime.isOled -> Color.Black
     else -> Color(0xFF07121E)
 }
-private val PanelBorder get() = DashboardPaletteRuntime.accent.copy(alpha = if (DashboardPaletteRuntime.isSunlight) .82f else .35f)
+private val PanelBorder get() = if (DashboardPaletteRuntime.isDay) Color(0xFF765A3A).copy(alpha = .82f) else DashboardPaletteRuntime.accent.copy(alpha = .35f)
 
 private val PrimaryText get() = DashboardPaletteRuntime.primaryText
 private val SecondaryText get() = DashboardPaletteRuntime.secondaryText
@@ -755,7 +756,7 @@ private fun SpeedCorridorMiniBar(isActive: Boolean, onClick: () -> Unit, modifie
     Surface(
         modifier = modifier.fillMaxHeight().clickable(onClick = onClick),
         shape = RoundedCornerShape(9.dp),
-        color = Color(0xFF030507),
+        color = if (DashboardPaletteRuntime.isDay) Color(0xFFF0D8A8) else Color(0xFF030507),
         border = BorderStroke(
             (if (isActive) 1.8.dp else 1.dp) * strokeScale,
             if (isActive) SafeGreen else Color.White.copy(alpha = .72f)
@@ -3443,6 +3444,19 @@ private fun DaciaNightRoadAnimation(
                 // Sahnenin mavi yol sınırları ve hareketli reflektör koordinatları
                 // aynı normalize alanı kullanır; kırpma hizayı bozacağı için tam alana yayılır.
                 contentScale = ContentScale.FillBounds,
+                colorFilter = if (DashboardPaletteRuntime.isDay) {
+                    ColorFilter.colorMatrix(
+                        ColorMatrix(
+                            floatArrayOf(
+                                1.24f, 0f, 0f, 0f, 16f,
+                                0f, 1.12f, 0f, 0f, 10f,
+                                0f, 0f, 0.82f, 0f, 2f,
+                                0f, 0f, 0f, 1f, 0f,
+                                0f, 0f, 0f, 0f, 1f
+                            )
+                        )
+                    )
+                } else null,
                 modifier = Modifier.fillMaxSize()
             )
 
