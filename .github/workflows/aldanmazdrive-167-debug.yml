@@ -31,7 +31,8 @@ jobs:
         run: |
           test -n "$TOMTOM_API_KEY" || { echo "TOMTOM_API_KEY secret is missing."; exit 1; }
           printf 'TOMTOM_API_KEY=%s\n' "$TOMTOM_API_KEY" > local.properties
-          echo "TomTom key is present."      - name: Build Debug APK
+          echo "TomTom key is present."
+      - name: Build Debug APK
         run: ./gradlew assembleDebug --no-daemon
       - name: Verify APK exists
         run: test -s app/build/outputs/apk/debug/app-debug.apk
