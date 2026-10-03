@@ -1,13 +1,8 @@
 package com.aldanmaz.drivedashboard.data.ai
 
 import android.content.Context
-import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
-import android.os.Bundle
-import android.speech.RecognitionListener
-import android.speech.RecognizerIntent
-import android.speech.SpeechRecognizer
 import android.widget.Toast
 import java.util.Locale
 
@@ -27,49 +22,11 @@ object OfflineGeminiCommandController {
     }
 
     fun listenOnce(context: Context) {
-        if (!SpeechRecognizer.isRecognitionAvailable(context)) {
-            Toast.makeText(context, "Çevrimdışı ses tanıma bu cihazda kullanılamıyor.", Toast.LENGTH_LONG).show()
-            return
-        }
-        val recognizer = SpeechRecognizer.createSpeechRecognizer(context)
-        var finished = false
-        fun close() {
-            if (finished) return
-            finished = true
-            runCatching { recognizer.destroy() }
-        }
-        recognizer.setRecognitionListener(object : RecognitionListener {
-            override fun onReadyForSpeech(params: Bundle?) {
-                Toast.makeText(context, "İnternet yok • Yerel komutu söyleyin", Toast.LENGTH_SHORT).show()
-            }
-            override fun onResults(results: Bundle?) {
-                val text = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
-                if (text.isNotBlank()) dispatch(context, text)
-                close()
-            }
-            override fun onError(error: Int) {
-                Toast.makeText(context, "Yerel ses komutu alınamadı.", Toast.LENGTH_SHORT).show()
-                close()
-            }
-            override fun onBeginningOfSpeech() = Unit
-            override fun onRmsChanged(rmsdB: Float) = Unit
-            override fun onBufferReceived(buffer: ByteArray?) = Unit
-            override fun onEndOfSpeech() = Unit
-            override fun onPartialResults(partialResults: Bundle?) = Unit
-            override fun onEvent(eventType: Int, params: Bundle?) = Unit
-        })
-        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "tr-TR")
-            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
-            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
-            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
-        }
-        runCatching { recognizer.startListening(intent) }
-            .onFailure {
-                close()
-                Toast.makeText(context, "Yerel ses tanıma başlatılamadı.", Toast.LENGTH_SHORT).show()
-            }
+        Toast.makeText(
+            context,
+            "İnternet yok • Gemini için manuel giriş kullanın.",
+            Toast.LENGTH_LONG
+        ).show()
     }
 
     private fun dispatch(context: Context, spoken: String) {
