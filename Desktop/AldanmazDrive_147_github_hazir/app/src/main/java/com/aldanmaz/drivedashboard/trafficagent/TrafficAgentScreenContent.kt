@@ -344,11 +344,7 @@ fun TrafikAjaniEkrani(
             System.currentTimeMillis()
         )
     }
-    var sesliMikrofonAcilsin by
-    remember {
-        mutableStateOf(false)
-    }
-    var sesliTakipBaslatilsin by
+var sesliTakipBaslatilsin by
     remember {
         mutableStateOf(false)
     }
@@ -384,7 +380,7 @@ fun TrafikAjaniEkrani(
         hedefAramaAcik =
             false
     }
-    // Google SpeechRecognizer/RecognizerIntent kaldırıldı.
+    // Google SpeechRecognizer kaldırıldı; hedef girişi yalnızca Gemini veya manuel metin alanından yapılır.
     // Trafik Ajanı hedef girişi artık yalnızca Gemini veya manuel metin alanı üzerinden yapılır.
     LaunchedEffect(sesliSoruMetni) {
         val soru = sesliSoruMetni ?: return@LaunchedEffect
