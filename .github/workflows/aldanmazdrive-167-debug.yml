@@ -32,7 +32,7 @@ jobs:
           test -n "$TOMTOM_API_KEY" || { echo "TOMTOM_API_KEY secret is missing."; exit 1; }
           printf 'TOMTOM_API_KEY=%s\n' "$TOMTOM_API_KEY" > local.properties
           echo "TomTom key is present."
-      - name: Set version 170
+      - name: Set version 0310262227-1
         run: |
           sed -i 's/versionCode = 203/versionCode = 209/; s/versionName = "164"/versionName = "170"/' app/build.gradle.kts
       - name: Build Debug APK
