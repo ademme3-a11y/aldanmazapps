@@ -100,6 +100,8 @@ data class HistoryMonthTotal(
     val estimatedFuelLiters: Double,
     val fuelPurchaseLiters: Double,
     val fuelPurchaseTl: Double,
+    val estimatedFuelTl: Double,
+    val movingSeconds: Long,
     val revisionKm: Double
 )
 
@@ -220,7 +222,9 @@ class HistoryStatisticsViewModel(application: Application) : AndroidViewModel(ap
                     estimatedFuelLiters = items.sumOf { it.estimatedFuelLiters },
                     fuelPurchaseLiters = items.sumOf { it.fuelPurchaseLiters },
                     fuelPurchaseTl = items.sumOf { it.fuelPurchaseTl },
-                    revisionKm = vehicleOdometerRepository.revisionForMonth(month, allGpsTotalKm)
+                    estimatedFuelTl = items.sumOf { it.estimatedFuelTl },
+                    movingSeconds = items.sumOf { it.movingSeconds },
+                    revisionKm = if (month == SimpleDateFormat("yyyy-MM", Locale.US).format(Date())) { vehicleOdometerRepository.enteredRealKm() - vehicleOdometerRepository.currentGpsKm(allGpsTotalKm) } else { vehicleOdometerRepository.revisionForMonth(month, allGpsTotalKm) }
                 )
             }
         rows to months
@@ -479,12 +483,18 @@ private fun HistoryTable(state: HistoryUiState) {
             Text("AY TOPLAMLARI", color = HCyan, fontWeight = FontWeight.Black, fontSize = 12.sp, modifier = Modifier.padding(vertical = 5.dp))
             state.months.forEach { month ->
                 Row(Modifier.width(width).background(HCard).padding(vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
-                    BodyCell(month.monthLabel, 188.dp)
-                    BodyCell("${month.tripCount} yol", 80.dp)
-                    BodyCell("${month.distanceKm.one()} km", 105.dp)
-                    BodyCell("Tük. ${month.estimatedFuelLiters.two()} L", 130.dp)
-                    BodyCell("Alım ${month.fuelPurchaseLiters.two()} L", 130.dp)
-                    BodyCell("${month.fuelPurchaseTl.two()} TL", 120.dp)
+                    BodyCell(month.monthLabel, 88.dp)
+                    if (state.selectedDriverId == null) BodyCell("TOPLAM", 100.dp)
+                    BodyCell(month.tripCount.toString(), 55.dp)
+                    BodyCell(month.distanceKm.one(), 72.dp)
+                    BodyCell(duration(month.movingSeconds), 80.dp)
+                    BodyCell("", 78.dp)
+                    BodyCell("", 65.dp)
+                    BodyCell(month.estimatedFuelLiters.two(), 65.dp)
+                    BodyCellRed(month.estimatedFuelTl.two(), 70.dp)
+                    BodyCell(month.fuelPurchaseLiters.two(), 75.dp)
+                    BodyCell(month.fuelPurchaseTl.two(), 92.dp)
+                    BodyCell(if (month.fuelPurchaseLiters > 0) (month.fuelPurchaseTl / month.fuelPurchaseLiters).two() else "—", 70.dp)
                 }
                 Row(Modifier.width(width).background(HBg).padding(vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
                     BodyCell("REVİZE KM", 188.dp)
