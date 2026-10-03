@@ -1,4 +1,4 @@
-name: Aldanmaz Drive 167 Debug Build
+name: Aldanmaz Drive 170 Debug Build
 
 on:
   push:
@@ -32,9 +32,9 @@ jobs:
           test -n "$TOMTOM_API_KEY" || { echo "TOMTOM_API_KEY secret is missing."; exit 1; }
           printf 'TOMTOM_API_KEY=%s\n' "$TOMTOM_API_KEY" > local.properties
           echo "TomTom key is present."
-      - name: Set version 167
+      - name: Set version 170
         run: |
-          sed -i 's/versionCode = 203/versionCode = 206/; s/versionName = "164"/versionName = "167"/' app/build.gradle.kts
+          sed -i 's/versionCode = 203/versionCode = 209/; s/versionName = "164"/versionName = "170"/' app/build.gradle.kts
       - name: Build Debug APK
         run: ./gradlew assembleDebug --no-daemon
       - name: Verify APK exists
@@ -42,20 +42,20 @@ jobs:
       - name: Verify APK signing
         run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/debug/app-debug.apk
       - name: Rename APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk ../AldanmazDrive_167.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk ../AldanmazDrive_170.apk
       - name: Create source ZIP
-        run: zip -r ../AldanmazDrive_167.zip . -x '.gradle/*' 'app/build/*' '**/.DS_Store' 'local.properties'
+        run: zip -r ../AldanmazDrive_170.zip . -x '.gradle/*' 'app/build/*' '**/.DS_Store' 'local.properties'
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: AldanmazDrive_167_APK
-          path: Desktop/AldanmazDrive_167.apk
+          name: AldanmazDrive_170_APK
+          path: Desktop/AldanmazDrive_170.apk
           if-no-files-found: error
           retention-days: 30
       - name: Upload source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: AldanmazDrive_167_ZIP
-          path: Desktop/AldanmazDrive_167.zip
+          name: AldanmazDrive_170_ZIP
+          path: Desktop/AldanmazDrive_170.zip
           if-no-files-found: error
           retention-days: 30
