@@ -254,7 +254,7 @@ fun ProgramSettingsScreen(
                     fontWeight = FontWeight.Black
                 )
                 Text(
-                    text = "Sürüm / Proje Dosyası: AldanmazDrive_${BuildConfig.VERSION_NAME.substringBefore('-')}.zip",
+                    text = "Sürüm / Proje Dosyası: AldanmazDrive_${BuildConfig.VERSION_NAME}.zip",
                     color = Color.White,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
