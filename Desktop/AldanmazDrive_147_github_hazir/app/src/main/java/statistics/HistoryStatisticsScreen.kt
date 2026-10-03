@@ -601,7 +601,7 @@ private fun HistoryTable(state: HistoryUiState) {
                     Modifier.width(width).background(HCard).padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    BodyCell("+ " + year.monthLabel, dateW)
+                    BodyCell(year.monthLabel, dateW)
                     if (hasDriverColumn) BodyCell("—", driverW)
                     BodyCell(year.tripCount.toString(), yolW)
                     BodyCell(year.distanceKm.one(), kmW)
