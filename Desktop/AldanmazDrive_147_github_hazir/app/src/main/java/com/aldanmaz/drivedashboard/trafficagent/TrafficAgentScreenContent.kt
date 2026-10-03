@@ -1,16 +1,12 @@
 package com.aldanmaz.drivedashboard.trafficagent
-import android.app.Activity
-import android.speech.RecognizerIntent
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
-import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -52,7 +48,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
@@ -389,320 +384,22 @@ fun TrafikAjaniEkrani(
         hedefAramaAcik =
             false
     }
-    val sesTanimaLauncher =
-        rememberLauncherForActivityResult(
-            contract =
-                ActivityResultContracts
-                    .StartActivityForResult()
-        ) { sonuc ->
-
-            val soylenenMetin =
-                if (
-                    sonuc.resultCode ==
-                    Activity.RESULT_OK
-                ) {
-                    sonuc.data
-                        ?.getStringArrayListExtra(
-                            RecognizerIntent
-                                .EXTRA_RESULTS
-                        )
-                        ?.firstOrNull()
-                        ?.trim()
-                } else {
-                    null
-                }
-
-            if (soylenenMetin.isNullOrBlank()) {
-
-                hedefAramaDurumu =
-                    "Sesli yanıt alınamadı."
-
-                sesliSoruMetni =
-                    "Sizi anlayamadım. Lütfen tekrar söyleyin."
-
-            } else if (
-                sesliDinlemeAsamasi ==
-                "HEDEF"
-            ) {
-
-                val hedefCevabi =
-                    soylenenMetin.lowercase(
-                        Locale(
-                            "tr",
-                            "TR"
-                        )
-                    )
-
-                val hedefIptalEdildi =
-                    hedefCevabi.contains(
-                        "iptal"
-                    ) ||
-                            hedefCevabi.contains(
-                                "hedef yok"
-                            ) ||
-                            hedefCevabi.contains(
-                                "gitmeyeceğim"
-                            ) ||
-                            hedefCevabi.contains(
-                                "yolculuk yok"
-                            )
-
-                if (hedefIptalEdildi) {
-
-                    HedefDeposu.hedefiSil(
-                        context
-                    )
-
-                    TrafikDurumDeposu
-                        .trafikDurumunuTemizle(
-                            context
-                        )
-
-                    secilenHedef = null
-                    sonRotaSonucu = null
-                    kayitliTrafikDurumu = null
-                    hedefSonuclari = emptyList()
-                    hedefAramaAcik = false
-                    sesliAramaBekliyor = false
-                    sesliOnayBekleyenHedef = null
-
-                    hedefAramaDurumu =
-                        "Yolculuk hedefi iptal edildi."
-
-                    hedefSeslendirici.kayitliKonus(
-                        TrafikKayitliSes.TARGET_CANCELLED
-                    )
-
-                } else {
-
-                    hedefAramaMetni =
-                        soylenenMetin
-
-                    hedefAramaAcik =
-                        true
-
-                    hedefAramaDurumu =
-                        "Sesli hedef aranıyor: $soylenenMetin"
-
-                    sesliAramaBekliyor =
-                        true
-                }
-
-            } else {
-
-                val cevap =
-                    soylenenMetin.lowercase(
-                        Locale(
-                            "tr",
-                            "TR"
-                        )
-                    )
-
-                val onaylandi =
-                    cevap.contains("evet") ||
-                            cevap.contains("doğru") ||
-                            cevap.contains("onay") ||
-                            cevap.contains("tamam")
-
-                val reddedildi =
-                    cevap.contains("hayır") ||
-                            cevap.contains("yanlış") ||
-                            cevap.contains("değil") ||
-                            cevap.contains("iptal")
-
-                val bekleyenHedef =
-                    sesliOnayBekleyenHedef
-
-                when {
-
-                    onaylandi &&
-                            bekleyenHedef != null -> {
-
-                        hedefiSecVeKaydet(
-                            bekleyenHedef
-                        )
-                        hedefSeslendirici.kayitliKonus(
-                            TrafikKayitliSes.TARGET_SAVED,
-                            tamamlaninca = {
-                                sesliTakipBaslatilsin = true
-                            }
-                        )
-
-                        sesliOnayBekleyenHedef =
-                            null
-
-                        sesliDinlemeAsamasi =
-                            "HEDEF"
-                    }
-
-                    reddedildi -> {
-
-                        sesliOnayBekleyenHedef =
-                            null
-
-                        sesliDinlemeAsamasi =
-                            "HEDEF"
-
-                        sesliSoruMetni =
-                            "Hedefi tekrar söyleyin."
-                    }
-
-                    else -> {
-
-                        sesliSoruMetni =
-                            "Lütfen evet veya hayır deyin."
-                    }
-                }
-            }
-        }
-
-    val mikrofonIzniLauncher =
-        rememberLauncherForActivityResult(
-            contract =
-                ActivityResultContracts
-                    .RequestPermission()
-        ) { izinVerildi ->
-
-            if (izinVerildi) {
-                sesliMikrofonAcilsin =
-                    true
-            } else {
-                hedefAramaDurumu =
-                    "Mikrofon izni verilmedi."
-            }
-        }
-    LaunchedEffect(
-        sesliMikrofonAcilsin
-    ) {
-        if (!sesliMikrofonAcilsin) {
-            return@LaunchedEffect
-        }
-
-        sesliMikrofonAcilsin = false
-
-        val sesTanimaIntent =
-            Intent(
-                RecognizerIntent
-                    .ACTION_RECOGNIZE_SPEECH
-            ).apply {
-
-                putExtra(
-                    RecognizerIntent
-                        .EXTRA_LANGUAGE_MODEL,
-                    RecognizerIntent
-                        .LANGUAGE_MODEL_FREE_FORM
-                )
-
-                putExtra(
-                    RecognizerIntent.EXTRA_LANGUAGE,
-                    "tr-TR"
-                )
-
-                putExtra(
-                    RecognizerIntent.EXTRA_MAX_RESULTS,
-                    3
-                )
-
-                putExtra(
-                    RecognizerIntent.EXTRA_PROMPT,
-                    if (
-                        sesliDinlemeAsamasi ==
-                        "ONAY"
-                    ) {
-                        "Evet veya hayır deyin"
-                    } else {
-                        "Gideceğiniz yeri söyleyin"
-                    }
-                )
-            }
-
-        if (
-            sesTanimaIntent.resolveActivity(
-                context.packageManager
-            ) != null
-        ) {
-            sesTanimaLauncher.launch(
-                sesTanimaIntent
-            )
-        } else {
-            hedefAramaDurumu =
-                "Bu cihazda konuşma tanıma hizmeti bulunamadı."
-        }
-    }
-
-    LaunchedEffect(
-        sesliSoruMetni
-    ) {
+    // Google SpeechRecognizer/RecognizerIntent kaldırıldı.
+    // Trafik Ajanı hedef girişi artık yalnızca Gemini veya manuel metin alanı üzerinden yapılır.
+    LaunchedEffect(sesliSoruMetni) {
         val soru = sesliSoruMetni ?: return@LaunchedEffect
         sesliSoruMetni = null
-
-        val mikrofonuAc: () -> Unit = {
-            val mikrofonIzniVar =
-                ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.RECORD_AUDIO
-                ) == PackageManager.PERMISSION_GRANTED
-
-            if (mikrofonIzniVar) {
-                sesliMikrofonAcilsin = true
-            } else {
-                mikrofonIzniLauncher.launch(Manifest.permission.RECORD_AUDIO)
-            }
+        hedefAramaAcik = true
+        hedefAramaDurumu = if (
+            soru == "Nereye gidiyorsunuz?" ||
+            soru == "Hedefi tekrar söyleyin." ||
+            soru.startsWith("Hedef")
+        ) {
+            "Lütfen hedefi aşağıdaki alana yazın."
+        } else {
+            soru
         }
-
-        when {
-            soru == "Nereye gidiyorsunuz?" -> {
-                hedefSeslendirici.kayitliKonus(
-                    TrafikKayitliSes.TARGET_PROMPT,
-                    tamamlaninca = mikrofonuAc
-                )
-            }
-
-            soru == "Hedefi tekrar söyleyin." -> {
-                hedefSeslendirici.kayitliKonus(
-                    TrafikKayitliSes.ACTION_CANCELLED,
-                    tamamlaninca = {
-                        hedefSeslendirici.kayitliKonus(
-                            TrafikKayitliSes.TARGET_PROMPT,
-                            tamamlaninca = mikrofonuAc
-                        )
-                    }
-                )
-            }
-
-            soru.startsWith("Hedef bulunamadı") ||
-                    soru.startsWith("Hedef aranamadı") -> {
-                hedefSeslendirici.kayitliKonus(
-                    TrafikKayitliSes.TARGET_NOT_FOUND,
-                    tamamlaninca = mikrofonuAc
-                )
-            }
-
-            soru.contains("hedefini buldum") && sesliOnayBekleyenHedef != null -> {
-                val hedefAdi = sesliOnayBekleyenHedef?.ad.orEmpty()
-                hedefSeslendirici.kayitliKonus(
-                    TrafikKayitliSes.TARGET_FOUND,
-                    dinamikMetinSonra = hedefAdi,
-                    tamamlaninca = {
-                        hedefSeslendirici.kayitliKonus(
-                            TrafikKayitliSes.TARGET_CONFIRM,
-                            tamamlaninca = mikrofonuAc
-                        )
-                    }
-                )
-            }
-
-            else -> {
-                hedefSeslendirici.konus(
-                    metin = soru,
-                    tamamlaninca = mikrofonuAc
-                )
-            }
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        hedefSeslendirici.kayitliKonus(TrafikKayitliSes.AGENT_READY)
+        hedefSeslendirici.konus(soru)
     }
 
     LaunchedEffect(
@@ -788,7 +485,7 @@ fun TrafikAjaniEkrani(
             false
 
         hedefAramaDurumu =
-            "Sesli hedef TomTom ağında aranıyor..."
+            "Hedef TomTom ağında aranıyor..."
 
         hedefSonuclari =
             emptyList()
@@ -815,7 +512,7 @@ fun TrafikAjaniEkrani(
                     geminiHariciHedefAkisi = false
 
                     hedefAramaDurumu =
-                        "Sesli hedef bulunamadı."
+                        "Hedef bulunamadı."
 
                     sesliDinlemeAsamasi =
                         "HEDEF"
