@@ -346,19 +346,22 @@ fun HistoryStatisticsScreen(
                     border = BorderStroke(1.dp, HCyan),
                     shape = RoundedCornerShape(9.dp)
                 ) { Text("YEDEK", fontSize = 10.sp, fontWeight = FontWeight.Bold) }
-                OutlinedTextField(
-                    value = vehicleKmText,
-                    onValueChange = { vehicleKmText = it.filter(Char::isDigit) },
-                    label = { Text("ARAÇ KM", fontSize = 9.sp) },
-                    singleLine = true,
-                    modifier = Modifier.width(112.dp).height(58.dp),
-                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp, color = HText),
-                    trailingIcon = {
-                        TextButton(onClick = { vehicleKmText.toDoubleOrNull()?.let(viewModel::setVehicleRealKm) }) {
-                            Text("KAYDET", color = HGreen, fontSize = 9.sp)
-                        }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    TextButton(
+                        onClick = { vehicleKmText.toDoubleOrNull()?.let(viewModel::setVehicleRealKm) },
+                        modifier = Modifier.height(28.dp)
+                    ) {
+                        Text("KAYDET", color = HGreen, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                     }
-                )
+                    OutlinedTextField(
+                        value = vehicleKmText,
+                        onValueChange = { vehicleKmText = it.filter(Char::isDigit) },
+                        label = { Text("ARAÇ KM", fontSize = 9.sp) },
+                        singleLine = true,
+                        modifier = Modifier.width(145.dp).height(58.dp),
+                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp, color = HText)
+                    )
+                }
                 OutlinedTextField(
                     value = if (state.vehicleGpsKm > 0.0) String.format(Locale.US, "%.1f", state.vehicleGpsKm) else "0,0",
                     onValueChange = {},
@@ -435,71 +438,184 @@ private fun DriverButton(text: String, selected: Boolean, onClick: () -> Unit, m
 
 @Composable
 private fun HistoryTable(state: HistoryUiState) {
-    val scroll = rememberScrollState()
-    val width = 1065.dp
-    Column(Modifier.fillMaxSize().horizontalScroll(scroll).verticalScroll(rememberScrollState())) {
+    val scrollX = rememberScrollState()
+    val scrollY = rememberScrollState()
+    var expandedMonths by remember { mutableStateOf(emptySet<String>()) }
+
+    val hasDriverColumn = state.selectedDriverId == null
+    val dateW = 88.dp
+    val driverW = if (hasDriverColumn) 100.dp else 0.dp
+    val yolW = 55.dp
+    val kmW = 72.dp
+    val surusW = 80.dp
+    val avgW = 78.dp
+    val maxW = 65.dp
+    val tukLtW = 65.dp
+    val tukTlW = 70.dp
+    val alimLW = 75.dp
+    val alimTlW = 92.dp
+    val tlLw = 70.dp
+    val width = dateW + driverW + yolW + kmW + surusW + avgW + maxW + tukLtW + tukTlW + alimLW + alimTlW + tlLw
+
+    fun monthTitle(month: HistoryMonthTotal): String {
+        val monthName = runCatching {
+            SimpleDateFormat("MMMM", Locale("tr", "TR"))
+                .format(SimpleDateFormat("yyyy-MM", Locale.US).parse(month.monthKey) ?: Date())
+        }.getOrDefault(month.monthLabel.substringBefore(" "))
+        return monthName.replaceFirstChar { it.uppercaseChar() } + " Top"
+    }
+
+    val yearTotals = state.months
+        .groupBy { it.monthKey.substring(0, 4) }
+        .toSortedMap(compareByDescending { it })
+        .map { (year, items) ->
+            HistoryMonthTotal(
+                monthKey = year,
+                monthLabel = year + " Top",
+                distanceKm = items.sumOf { it.distanceKm },
+                tripCount = items.sumOf { it.tripCount },
+                estimatedFuelLiters = items.sumOf { it.estimatedFuelLiters },
+                fuelPurchaseLiters = items.sumOf { it.fuelPurchaseLiters },
+                fuelPurchaseTl = items.sumOf { it.fuelPurchaseTl },
+                estimatedFuelTl = items.sumOf { it.estimatedFuelTl },
+                movingSeconds = items.sumOf { it.movingSeconds },
+                revisionKm = items.sumOf { it.revisionKm }
+            )
+        }
+
+    Column(
+        Modifier.fillMaxSize().horizontalScroll(scrollX).verticalScroll(scrollY)
+    ) {
         Row(
             Modifier.width(width).background(HCard).padding(vertical = 7.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            HeaderCell("TARİH", 88.dp)
-            if (state.selectedDriverId == null) HeaderCell("SÜRÜCÜ", 100.dp)
-            HeaderCell("YOL", 55.dp)
-            HeaderCell("KM", 72.dp)
-            HeaderCell("SÜRÜŞ", 80.dp)
-            HeaderCell("ORT.HIZ", 78.dp)
-            HeaderCell("MAX", 65.dp)
-            HeaderCell("TÜK LT", 65.dp)
-            HeaderCellRed("TÜK TL", 70.dp)
-            HeaderCell("ALIM L", 75.dp)
-            HeaderCell("ALIM TL", 92.dp)
-            HeaderCell("TL/L", 70.dp)
+            HeaderCell("TARİH", dateW)
+            if (hasDriverColumn) HeaderCell("SÜRÜCÜ", driverW)
+            HeaderCell("YOL", yolW)
+            HeaderCell("KM", kmW)
+            HeaderCell("SÜRÜŞ", surusW)
+            HeaderCell("ORT.HIZ", avgW)
+            HeaderCell("MAX", maxW)
+            HeaderCell("TÜK LT", tukLtW)
+            HeaderCellRed("TÜK TL", tukTlW)
+            HeaderCell("ALIM L", alimLW)
+            HeaderCell("ALIM TL", alimTlW)
+            HeaderCell("TL/L", tlLw)
         }
 
-        if (state.rows.isEmpty()) {
+        if (state.rows.isEmpty() && state.months.isEmpty()) {
             Text("Son 180 günde kayıt bulunmuyor.", color = HMuted, modifier = Modifier.padding(18.dp))
         } else {
-            state.rows.forEachIndexed { index, row ->
+            state.months.forEach { month ->
+                val expanded = expandedMonths.contains(month.monthKey)
+
                 Row(
-                    Modifier.width(width).background(if (index % 2 == 0) HBg else HCard.copy(alpha = .72f)).padding(vertical = 6.dp),
+                    Modifier.width(width).background(HCard).padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    BodyCell(row.dateLabel, 88.dp)
-                    if (state.selectedDriverId == null) BodyCell(row.driverName, 100.dp)
-                    BodyCell(row.tripCount.toString(), 55.dp)
-                    BodyCell(row.distanceKm.one(), 72.dp)
-                    BodyCell(duration(row.movingSeconds), 80.dp)
-                    BodyCell(row.averageSpeedKmh.one(), 78.dp)
-                    BodyCell(row.maxSpeedKmh.toString(), 65.dp)
-                    BodyCell(row.estimatedFuelLiters.two(), 65.dp)
-                    BodyCellRed(row.estimatedFuelTl.two(), 70.dp)
-                    BodyCell(row.fuelPurchaseLiters.two(), 75.dp)
-                    BodyCell(row.fuelPurchaseTl.two(), 92.dp)
-                    BodyCell(if (row.fuelPurchaseLiters > 0) (row.fuelPurchaseTl / row.fuelPurchaseLiters).two() else "—", 70.dp)
+                    TextButton(
+                        onClick = {
+                            expandedMonths = if (expanded) expandedMonths - month.monthKey
+                            else expandedMonths + month.monthKey
+                        },
+                        modifier = Modifier.width(dateW).height(40.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
+                    ) {
+                        Text(
+                            if (expanded) "- " + monthTitle(month) else "+ " + monthTitle(month),
+                            color = HCyan,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Black,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                    if (hasDriverColumn) BodyCell("—", driverW)
+                    BodyCell(month.tripCount.toString(), yolW)
+                    BodyCell(month.distanceKm.one(), kmW)
+                    BodyCell(duration(month.movingSeconds), surusW)
+                    BodyCell("—", avgW)
+                    BodyCell("—", maxW)
+                    BodyCell(month.estimatedFuelLiters.two(), tukLtW)
+                    BodyCellRed(month.estimatedFuelTl.two(), tukTlW)
+                    BodyCell(month.fuelPurchaseLiters.two(), alimLW)
+                    BodyCell(month.fuelPurchaseTl.two(), alimTlW)
+                    BodyCell(
+                        if (month.fuelPurchaseLiters > 0.0) (month.fuelPurchaseTl / month.fuelPurchaseLiters).two() else "—",
+                        tlLw
+                    )
+                }
+
+                if (expanded) {
+                    state.rows.filter { it.dateKey.startsWith(month.monthKey) }
+                        .forEachIndexed { index, row ->
+                            Row(
+                                Modifier.width(width)
+                                    .background(if (index % 2 == 0) HBg else HCard.copy(alpha = .72f))
+                                    .padding(vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                BodyCell(row.dateLabel, dateW)
+                                if (hasDriverColumn) BodyCell(row.driverName, driverW)
+                                BodyCell(row.tripCount.toString(), yolW)
+                                BodyCell(row.distanceKm.one(), kmW)
+                                BodyCell(duration(row.movingSeconds), surusW)
+                                BodyCell(row.averageSpeedKmh.one(), avgW)
+                                BodyCell(row.maxSpeedKmh.toString(), maxW)
+                                BodyCell(row.estimatedFuelLiters.two(), tukLtW)
+                                BodyCellRed(row.estimatedFuelTl.two(), tukTlW)
+                                BodyCell(row.fuelPurchaseLiters.two(), alimLW)
+                                BodyCell(row.fuelPurchaseTl.two(), alimTlW)
+                                BodyCell(
+                                    if (row.fuelPurchaseLiters > 0.0) (row.fuelPurchaseTl / row.fuelPurchaseLiters).two() else "—",
+                                    tlLw
+                                )
+                            }
+                        }
+
+                    Row(
+                        Modifier.width(width).background(HBg).padding(vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        BodyCell("DİP TOPLAM", dateW)
+                        if (hasDriverColumn) BodyCell("—", driverW)
+                        BodyCell(month.tripCount.toString(), yolW)
+                        BodyCell(month.distanceKm.one(), kmW)
+                        BodyCell(duration(month.movingSeconds), surusW)
+                        BodyCell("", avgW)
+                        BodyCell("", maxW)
+                        BodyCell(month.estimatedFuelLiters.two(), tukLtW)
+                        BodyCellRed(month.estimatedFuelTl.two(), tukTlW)
+                        BodyCell(month.fuelPurchaseLiters.two(), alimLW)
+                        BodyCell(month.fuelPurchaseTl.two(), alimTlW)
+                        BodyCell(
+                            if (month.fuelPurchaseLiters > 0.0) (month.fuelPurchaseTl / month.fuelPurchaseLiters).two() else "—",
+                            tlLw
+                        )
+                    }
                 }
             }
 
-            Spacer(Modifier.height(10.dp))
-            Text("AY TOPLAMLARI", color = HCyan, fontWeight = FontWeight.Black, fontSize = 12.sp, modifier = Modifier.padding(vertical = 5.dp))
-            state.months.forEach { month ->
-                Row(Modifier.width(width).background(HCard).padding(vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
-                    BodyCell(month.monthLabel, 88.dp)
-                    if (state.selectedDriverId == null) BodyCell("TOPLAM", 100.dp)
-                    BodyCell(month.tripCount.toString(), 55.dp)
-                    BodyCell(month.distanceKm.one(), 72.dp)
-                    BodyCell(duration(month.movingSeconds), 80.dp)
-                    BodyCell("", 78.dp)
-                    BodyCell("", 65.dp)
-                    BodyCell(month.estimatedFuelLiters.two(), 65.dp)
-                    BodyCellRed(month.estimatedFuelTl.two(), 70.dp)
-                    BodyCell(month.fuelPurchaseLiters.two(), 75.dp)
-                    BodyCell(month.fuelPurchaseTl.two(), 92.dp)
-                    BodyCell(if (month.fuelPurchaseLiters > 0) (month.fuelPurchaseTl / month.fuelPurchaseLiters).two() else "—", 70.dp)
-                }
-                Row(Modifier.width(width).background(HBg).padding(vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
-                    BodyCell("REVİZE KM", 188.dp)
-                    BodyCell("Gerçek KM − GPS KM", 185.dp)
-                    BodyCell(if (month.revisionKm == 0.0) "0,0 km" else "${month.revisionKm.one()} km", 150.dp)
+            yearTotals.forEach { year ->
+                Row(
+                    Modifier.width(width).background(HCard).padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    BodyCell("+ " + year.monthLabel, dateW)
+                    if (hasDriverColumn) BodyCell("—", driverW)
+                    BodyCell(year.tripCount.toString(), yolW)
+                    BodyCell(year.distanceKm.one(), kmW)
+                    BodyCell(duration(year.movingSeconds), surusW)
+                    BodyCell("—", avgW)
+                    BodyCell("—", maxW)
+                    BodyCell(year.estimatedFuelLiters.two(), tukLtW)
+                    BodyCellRed(year.estimatedFuelTl.two(), tukTlW)
+                    BodyCell(year.fuelPurchaseLiters.two(), alimLW)
+                    BodyCell(year.fuelPurchaseTl.two(), alimTlW)
+                    BodyCell(
+                        if (year.fuelPurchaseLiters > 0.0) (year.fuelPurchaseTl / year.fuelPurchaseLiters).two() else "—",
+                        tlLw
+                    )
                 }
             }
         }
