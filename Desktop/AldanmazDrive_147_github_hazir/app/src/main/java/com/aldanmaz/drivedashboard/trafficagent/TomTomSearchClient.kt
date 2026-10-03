@@ -92,6 +92,8 @@ object TomTomSearchClient {
                             "&limit=5" +
                             "&language=tr-TR" +
                             "&view=TR" +
+                            "&typeahead=false" +
+                            "&countrySet=TR" +
                             "&lat=$enlemMetni" +
                             "&lon=$boylamMetni"
 
@@ -113,7 +115,20 @@ object TomTomSearchClient {
                     HttpURLConnection.HTTP_OK
                 ) {
 
+                    val sunucuMesaji = runCatching {
+                        baglanti.errorStream
+                            ?.bufferedReader()
+                            ?.use { it.readText() }
+                            ?.trim()
+                            ?.take(300)
+                    }.getOrNull()
+
                     val mesaj = when (cevapKodu) {
+                        401 ->
+                            "TomTom hedef araması yetkilendirilmedi (401). " +
+                                    "Bu anahtarın Search API yetkisi kontrol edilmeli." +
+                                    if (!sunucuMesaji.isNullOrBlank()) " Sunucu: $sunucuMesaji" else ""
+
                         400 ->
                             "Hedef arama isteği geçersiz. Hata kodu: 400"
 
