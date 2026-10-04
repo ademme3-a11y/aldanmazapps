@@ -3442,15 +3442,23 @@ private fun SpeedometerGauge(
         modifier = modifier,
         contentAlignment = Alignment.Center
     ) {
-        DaciaNightRoadAnimation(
-            speedKmh = speedKmh,
-            compassHeadingDegrees = compassHeadingDegrees,
-            compact = compact,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .fillMaxHeight(.70f)
-        )
+        if (DayTheme) {
+            DaciaDayRoadAnimation(
+                speedKmh = speedKmh,
+                speedColor = speedColor,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            DaciaNightRoadAnimation(
+                speedKmh = speedKmh,
+                compassHeadingDegrees = compassHeadingDegrees,
+                compact = compact,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .fillMaxHeight(.70f)
+            )
+        }
 
         Canvas(
             modifier = Modifier.fillMaxSize()
@@ -3887,6 +3895,109 @@ private fun DaciaNightRoadAnimation(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+// Gündüz yol sahnesi: kaynak gündüz sürümündeki kayan yol çizgileri korunur.
+private const val DayRoadImageWidth = 978f
+private const val DayRoadImageHeight = 790f
+
+@Composable
+private fun DaciaDayRoadAnimation(
+    speedKmh: Int,
+    speedColor: Color,
+    modifier: Modifier = Modifier
+) {
+    var phase by remember { mutableFloatStateOf(.16f) }
+    val smoothedRate = remember { Animatable(daciaNightRoadAnimationRate(speedKmh)) }
+
+    LaunchedEffect(speedKmh) {
+        smoothedRate.animateTo(
+            targetValue = daciaNightRoadAnimationRate(speedKmh),
+            animationSpec = tween(durationMillis = 1_800, easing = LinearEasing)
+        )
+    }
+
+    LaunchedEffect(Unit) {
+        var previousFrame = withFrameNanos { it }
+        while (true) {
+            val frame = withFrameNanos { it }
+            val elapsedSeconds =
+                ((frame - previousFrame) / 1_000_000_000f).coerceIn(0f, .05f)
+            previousFrame = frame
+            phase = (phase + elapsedSeconds * smoothedRate.value) % 1f
+        }
+    }
+
+    Box(modifier = modifier) {
+        Image(
+            painter = painterResource(R.drawable.day_road_scene),
+            contentDescription = "Gündüz çöl yolu animasyonu",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val scale = kotlin.math.max(
+                size.width / DayRoadImageWidth,
+                size.height / DayRoadImageHeight
+            )
+            val offsetX = (size.width - DayRoadImageWidth * scale) / 2f
+            val offsetY = (size.height - DayRoadImageHeight * scale) / 2f
+
+            fun at(nx: Float, ny: Float): Offset =
+                Offset(
+                    offsetX + nx * DayRoadImageWidth * scale,
+                    offsetY + ny * DayRoadImageHeight * scale
+                )
+
+            val horizon = at(.538f, .623f)
+            val bottom = at(.317f, 1f)
+
+            fun roadPoint(value: Float): Offset {
+                val q = value.coerceIn(0f, 1f).pow(1.72f)
+                return Offset(
+                    horizon.x + (bottom.x - horizon.x) * q,
+                    horizon.y + (bottom.y - horizon.y) * q
+                )
+            }
+
+            repeat(5) { index ->
+                val value = (index / 5f + phase) % 1f
+                if (value > .04f) {
+                    val q = value.pow(1.72f)
+                    val end = (value + .05f + value * .03f).coerceAtMost(1f)
+                    drawLine(
+                        color = Color(0xFFF7EBCB).copy(
+                            alpha = (.35f + q * .6f).coerceIn(0f, .95f)
+                        ),
+                        start = roadPoint(value),
+                        end = roadPoint(end),
+                        strokeWidth = (1.4f + q * 18f) * scale,
+                        cap = StrokeCap.Round
+                    )
+                }
+            }
+
+            // Hız yayı kaynak gündüz sürümündeki konum ve davranışta korunur.
+            val progress = (speedKmh / 160f).coerceIn(0f, 1f)
+            if (progress > .005f) {
+                val center = at(.503f, .408f)
+                val radius = .312f * DayRoadImageWidth * scale
+                drawArc(
+                    color = speedColor,
+                    startAngle = 140f,
+                    sweepAngle = 260f * progress,
+                    useCenter = false,
+                    topLeft = Offset(center.x - radius, center.y - radius),
+                    size = Size(radius * 2f, radius * 2f),
+                    style = Stroke(
+                        width = .050f * DayRoadImageWidth * scale,
+                        cap = StrokeCap.Round
+                    )
+                )
             }
         }
     }
