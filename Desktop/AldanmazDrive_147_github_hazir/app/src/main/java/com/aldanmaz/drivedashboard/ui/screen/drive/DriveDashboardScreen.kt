@@ -4490,43 +4490,18 @@ private fun DashboardClockPanel(
             val widthDriven = maxWidth.value / 2.48f
             val largeClockValue = kotlin.math.min(heightDriven, widthDriven).coerceIn(54f, 158f)
             val largeClockSize = largeClockValue.sp
-            val corridorAlpha by animateFloatAsState(
-                targetValue = if (isSpeedCorridorActive) 1f else 0f,
-                animationSpec = tween(durationMillis = 280),
-                label = "corridorAverageAlpha"
+            Text(
+                text = currentTime,
+                color = PrimaryText,
+                fontSize = if (isLargeClock) largeClockSize else 30.sp,
+                letterSpacing = if (isLargeClock) (largeClockValue * 0.018f).sp else 1.sp,
+                fontWeight = FontWeight.Black,
+                maxLines = 1,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .fillMaxWidth()
             )
-            if (isSpeedCorridorActive) {
-                Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = currentTime, color = PrimaryText,
-                        fontSize = if (isLargeClock) (largeClockValue * .58f).sp else 20.sp,
-                        letterSpacing = 1.sp, fontWeight = FontWeight.Black, maxLines = 1,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                        modifier = Modifier.weight(1.32f)
-                    )
-                    Text(
-                        text = String.format(Locale.getDefault(), "%.0f", speedCorridorAverageSpeedKmh),
-                        color = Color(0xFFFF8A00),
-                        fontSize = if (isLargeClock) (largeClockValue * .58f).sp else 20.sp,
-                        letterSpacing = 1.sp, fontWeight = FontWeight.Black, maxLines = 1,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                        modifier = Modifier.weight(.68f).graphicsLayer { alpha = corridorAlpha }
-                    )
-                }
-            } else {
-                Text(
-                    text = currentTime,
-                    color = PrimaryText,
-                    fontSize = if (isLargeClock) largeClockSize else 30.sp,
-                    letterSpacing = if (isLargeClock) (largeClockValue * 0.018f).sp else 1.sp,
-                    fontWeight = FontWeight.Black,
-                    maxLines = 1,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .fillMaxWidth()
-                )
-            }
         }
     }
 }
