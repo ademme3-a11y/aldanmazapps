@@ -83,6 +83,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.paint
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
@@ -115,32 +116,53 @@ import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.roundToInt
 
+private val DayTheme get() = DashboardPaletteRuntime.isDayTheme
+
 private val DashboardBackground get() = when {
+    DayTheme -> Color(0xFFB98A55)
     DashboardPaletteRuntime.isSunlight -> Color(0xFF18212A)
     DashboardPaletteRuntime.isOled -> Color.Black
     else -> Color(0xFF02070D)
 }
 private val HeaderBackground get() = when {
+    DayTheme -> Color(0xF2DCA862)
     DashboardPaletteRuntime.isSunlight -> Color(0xFF202B35)
     DashboardPaletteRuntime.isOled -> Color.Black
     else -> Color(0xFF07111C)
 }
 private val PanelBackground get() = when {
+    DayTheme -> Color(0xF0DEAB62)
     DashboardPaletteRuntime.isSunlight -> Color(0xFF222D36)
     DashboardPaletteRuntime.isOled -> Color.Black
     else -> Color(0xFF07121E)
 }
-private val PanelBorder get() = DashboardPaletteRuntime.accent.copy(alpha = if (DashboardPaletteRuntime.isSunlight) .82f else .35f)
+private val PanelBorder get() =
+    if (DayTheme) DashboardPaletteRuntime.dayFrame
+    else DashboardPaletteRuntime.accent.copy(alpha = if (DashboardPaletteRuntime.isSunlight) .82f else .35f)
 
-private val PrimaryText get() = DashboardPaletteRuntime.primaryText
-private val SecondaryText get() = DashboardPaletteRuntime.secondaryText
+private val PrimaryText get() = if (DayTheme) DashboardPaletteRuntime.dayInk else DashboardPaletteRuntime.primaryText
+private val SecondaryText get() = if (DayTheme) DashboardPaletteRuntime.dayInkSoft else DashboardPaletteRuntime.secondaryText
+private val CyanAccent get() = if (DayTheme) DashboardPaletteRuntime.dayFrame else DashboardPaletteRuntime.accent
+private val CyanBright get() = if (DayTheme) DashboardPaletteRuntime.dayFrame else DashboardPaletteRuntime.accent
+private val FrameWidth get() = if (DayTheme) 2.5.dp else 1.dp
+private val FrameAccent get() =
+    if (DayTheme) DashboardPaletteRuntime.dayFrame else DashboardPaletteRuntime.accent.copy(alpha = .55f)
+private val TileInk get() = if (DayTheme) Color(0xFF3A2514) else DashboardPaletteRuntime.accent
+private val LightText get() = if (DayTheme) Color(0xFFF3DDB0) else DashboardPaletteRuntime.primaryText
+private val LightSecondaryText get() = if (DayTheme) Color(0xFFD9B98A) else DashboardPaletteRuntime.secondaryText
+private val LegacyAccent get() = if (DayTheme) Color(0xFFEFB86A) else DashboardPaletteRuntime.accent
+private val LegacyPanelBorder get() =
+    DashboardPaletteRuntime.accent.copy(alpha = if (DashboardPaletteRuntime.isSunlight) .82f else .35f)
+private val DarkPanelBackground get() = when {
+    DayTheme -> Color(0xFF241F1B)
+    DashboardPaletteRuntime.isSunlight -> Color(0xFF222D36)
+    DashboardPaletteRuntime.isOled -> Color.Black
+    else -> Color(0xFF07121E)
+}
 
-private val CyanAccent get() = DashboardPaletteRuntime.accent
-private val CyanBright get() = DashboardPaletteRuntime.accent
-
-private val SafeGreen = Color(0xFF31E39A)
-private val WarningYellow = Color(0xFFFFC84A)
-private val DangerRed = Color(0xFFFF4F5E)
+private val SafeGreen get() = if (DayTheme) Color(0xFF2F8F4E) else Color(0xFF31E39A)
+private val WarningYellow get() = if (DayTheme) Color(0xFFB36A00) else Color(0xFFFFC84A)
+private val DangerRed get() = if (DayTheme) Color(0xFFC8372D) else Color(0xFFFF4F5E)
 
 private val LocalDashboardStrokeScale = staticCompositionLocalOf { 1f }
 
@@ -297,7 +319,7 @@ fun DriveDashboardScreen(
 
     val speedColor =
         when (speedWarningState) {
-            SpeedWarningState.NORMAL -> SafeGreen
+            SpeedWarningState.NORMAL -> if (DayTheme) DashboardPaletteRuntime.dayInk else SafeGreen
             SpeedWarningState.APPROACHING -> WarningYellow
             SpeedWarningState.OVER_LIMIT -> DangerRed
         }
@@ -306,10 +328,20 @@ fun DriveDashboardScreen(
         modifier = Modifier.fillMaxSize(),
         color = DashboardBackground
     ) {
+        val sandPainter = if (DayTheme) painterResource(R.drawable.day_sand_background) else null
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .background(DashboardBackground)
+                .then(
+                    if (sandPainter != null) {
+                        Modifier.paint(
+                            painter = sandPainter,
+                            sizeToIntrinsics = false,
+                            contentScale = ContentScale.Crop
+                        )
+                    } else Modifier
+                )
                 .safeDrawingPadding()
                 .padding(12.dp)
         ) {
@@ -681,7 +713,7 @@ private fun ConnectionStatusStrip(
         modifier = Modifier.fillMaxWidth().height(45.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = HeaderBackground.copy(alpha = .92f)),
-        border = BorderStroke(1.dp * strokeScale, CyanAccent.copy(alpha = .55f))
+        border = BorderStroke(FrameWidth * strokeScale, FrameAccent)
     ) {
         Row(
             modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp, vertical = 4.dp),
@@ -815,7 +847,7 @@ private fun SpeedCorridorMiniBar(
                         append(" ORT HIZ KORİDORU ")
                     }
                 },
-                color = PrimaryText,
+                color = LightText,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Black,
                 maxLines = 1,
@@ -1124,7 +1156,7 @@ private fun DashboardHeader(
                             "WIFI" -> WifiHeaderButton(isWifiConnected, wifiShortName, if (isEditing) ({ hideItem(id) }) else onWifiClick, Modifier.fillMaxSize())
                             "BLUETOOTH" -> BluetoothHeaderButton(isBluetoothConnected || isObdConnected, bluetoothShortName, if (isEditing) ({ hideItem(id) }) else onBluetoothClick, Modifier.fillMaxSize())
                             "MUSIC" -> MediaHeaderButton(
-                                R.drawable.icon_music,
+                                dayIcon(R.drawable.icon_music, R.drawable.icon_music_day),
                                 "Müzik",
                                 musicPlaying,
                                 if (isEditing) ({ hideItem(id) }) else ::toggleMusic,
@@ -1133,7 +1165,7 @@ private fun DashboardHeader(
                                 Modifier.fillMaxSize()
                             )
                             "RADIO" -> MediaHeaderButton(
-                                R.drawable.icon_radio,
+                                dayIcon(R.drawable.icon_radio, R.drawable.icon_radio_day),
                                 "Radyo",
                                 radioActive,
                                 if (isEditing) ({ hideItem(id) }) else ::toggleRadio,
@@ -1171,7 +1203,7 @@ private fun DashboardHeader(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text("DÜZENLE", color = CyanBright, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                    Text("Basılı tut + sürükle • Dokun = gizle", color = SecondaryText, fontSize = 9.sp, modifier = Modifier.weight(1f))
+                    Text("Basılı tut + sürükle • Dokun = gizle", color = LightSecondaryText, fontSize = 9.sp, modifier = Modifier.weight(1f))
                     hiddenItems.forEach { id ->
                         Text(
                             text = "+${headerShortName(id)}",
@@ -1245,7 +1277,7 @@ private fun MountainSlopePanel(
     val slopeColor = when {
         kotlin.math.abs(slopePercent) >= 10.0 -> DangerRed
         kotlin.math.abs(slopePercent) >= 5.0 -> WarningYellow
-        else -> SafeGreen
+        else -> if (DayTheme) Color(0xFFD38433) else SafeGreen
     }
 
     Card(
@@ -1418,10 +1450,10 @@ private fun WeatherHeaderCard(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = PanelBackground
+            containerColor = DarkPanelBackground
         ),
         border = BorderStroke(
-            width = 1.dp * strokeScale,
+            width = FrameWidth * strokeScale,
             color = when {
                 weatherUiState.errorMessage != null && !weatherUiState.hasData ->
                     DangerRed.copy(alpha = 0.75f)
@@ -1500,7 +1532,7 @@ private fun WeatherHeaderCard(
                             text = weatherConditionText(
                                 weatherUiState.condition
                             ),
-                            color = CyanAccent,
+                            color = LegacyAccent,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 1
@@ -1903,6 +1935,8 @@ private fun StatisticsHeaderButton(
 }
 
 @Composable
+private fun dayIcon(normal: Int, day: Int): Int = if (DayTheme) day else normal
+
 private fun rememberHeaderSpinRotation(isActive: Boolean, durationMillis: Int): Float {
     if (!isActive) return 0f
     val infiniteTransition = rememberInfiniteTransition(label = "headerSpin")
@@ -2199,19 +2233,33 @@ private fun HeaderStandardCard(
         modifier = clickableModifier,
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isActive) Color(0xFF082A25) else Color(0xFF06111B)
+            containerColor = if (DayTheme) DashboardPaletteRuntime.dayTileTop else if (isActive) Color(0xFF082A25) else Color(0xFF06111B)
         ),
         border = BorderStroke(
-            width = (if (isActive) 1.7.dp else 1.dp) * strokeScale,
+            width = (if (isActive) 1.7.dp else 1.dp) * strokeScale * (if (DayTheme) 1.6f else 1f),
             color = when {
-                !enabled -> PanelBorder.copy(alpha = .45f)
+                !enabled -> if (DayTheme) DashboardPaletteRuntime.dayTileBorder.copy(alpha = .45f) else PanelBorder.copy(alpha = .45f)
                 isActive -> SafeGreen
+                DayTheme -> DashboardPaletteRuntime.dayTileBorder
                 else -> CyanAccent.copy(alpha = .78f)
             }
         )
     ) {
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .then(
+                    if (DayTheme) {
+                        Modifier.background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    DashboardPaletteRuntime.dayTileTop,
+                                    DashboardPaletteRuntime.dayTileBottom
+                                )
+                            )
+                        )
+                    } else Modifier
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
             content = { content() }
@@ -2279,7 +2327,7 @@ private fun WifiHeaderButton(
 ) {
     HeaderStandardCard(modifier = modifier, isActive = isConnected, onClick = onClick) {
         HeaderPngIcon(
-            drawableRes = R.drawable.icon_wifi,
+            drawableRes = dayIcon(R.drawable.icon_wifi, R.drawable.icon_wifi_day),
             contentDescription = "Wi-Fi",
             modifier = Modifier,
             alpha = if (isConnected) 1f else .84f,
@@ -2297,7 +2345,7 @@ private fun BluetoothHeaderButton(
 ) {
     HeaderStandardCard(modifier = modifier, isActive = isConnected, onClick = onClick) {
         HeaderPngIcon(
-            drawableRes = R.drawable.icon_bluetooth,
+            drawableRes = dayIcon(R.drawable.icon_bluetooth, R.drawable.icon_bluetooth_day),
             contentDescription = "Bluetooth",
             modifier = Modifier,
             alpha = if (isConnected) 1f else .84f,
@@ -2347,7 +2395,7 @@ private fun SatelliteHeaderButton(
     HeaderStandardCard(modifier = modifier, isActive = isPanelActive, enabled = isEnabled, onClick = onClick) {
         Box(Modifier.fillMaxSize()) {
             HeaderPngIcon(
-                drawableRes = R.drawable.icon_live,
+                drawableRes = dayIcon(R.drawable.icon_live, R.drawable.icon_live_day),
                 contentDescription = "Canlı Yükseklik",
                 modifier = Modifier,
                 alpha = if (isEnabled) 1f else .42f,
@@ -2390,7 +2438,7 @@ private fun SettingsHeaderButton(
 ) {
     HeaderStandardCard(modifier = modifier, onClick = onClick) {
         HeaderPngIcon(
-            drawableRes = R.drawable.icon_settings,
+            drawableRes = dayIcon(R.drawable.icon_settings, R.drawable.icon_settings_day),
             contentDescription = "Ayarlar",
             modifier = Modifier,
             scale = 1.08f
@@ -4894,7 +4942,7 @@ private fun ModernFuelBar(
             .coerceIn(0, segmentCount)
 
         drawRoundRect(
-            color = Color(0xFF02080E),
+            color = if (DayTheme) Color(0xFF6B4527) else Color(0xFF02080E),
             topLeft = Offset(0f, trackTop - 3.dp.toPx()),
             size = Size(size.width, trackHeight + 6.dp.toPx()),
             cornerRadius = androidx.compose.ui.geometry.CornerRadius(8.dp.toPx(), 8.dp.toPx()),
@@ -4907,12 +4955,12 @@ private fun ModernFuelBar(
             val baseColor = when {
                 ratio <= .18f -> DangerRed
                 ratio <= .36f -> WarningYellow
-                ratio <= .70f -> CyanBright
+                ratio <= .70f -> if (DayTheme) Color(0xFFD38433) else CyanBright
                 else -> SafeGreen
             }
             val lit = i < litSegments
             val color = when {
-                !lit -> Color(0xFF1A2A35)
+                !lit -> if (DayTheme) Color(0xFFAA8054) else Color(0xFF1A2A35)
                 isLowFuel -> DangerRed
                 else -> baseColor
             }
@@ -5246,7 +5294,7 @@ private fun UpcomingRoadSignBadge(
                         Surface(
                             modifier = Modifier.size(56.dp),
                             shape = CircleShape,
-                            color = DashboardPaletteRuntime.primaryText,
+                            color = LightText,
                             border = BorderStroke(5.dp, Color(0xFFE53935))
                         ) {
                             Box(contentAlignment = Alignment.Center) {
@@ -5347,7 +5395,7 @@ private fun MetricCard(
             containerColor = PanelBackground
         ),
         border = BorderStroke(
-            1.dp * strokeScale,
+            FrameWidth * strokeScale,
             PanelBorder
         )
     ) {
