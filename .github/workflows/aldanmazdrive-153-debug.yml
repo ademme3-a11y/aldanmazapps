@@ -1,4 +1,4 @@
-name: Aldanmaz Drive 153 Debug Build
+name: Aldanmaz Drive 0410262155-2 Debug Build
 
 on:
   push:
@@ -47,12 +47,12 @@ jobs:
         run: ./gradlew assembleDebug --no-daemon
 
       - name: Create source ZIP
-        run: zip -r ../AldanmazDrive_153.zip . -x '.gradle/*' 'app/build/*' '**/.DS_Store'
+        run: zip -r ../AldanmazDrive_0410262155-2.zip . -x '.gradle/*' 'app/build/*' '**/.DS_Store'
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: AldanmazDrive_153_Debug_APK
+          name: AldanmazDrive_0410262155-2_Debug_APK
           path: Desktop/AldanmazDrive_147_github_hazir/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 30
@@ -60,7 +60,7 @@ jobs:
       - name: Upload source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: AldanmazDrive_153_ZIP
-          path: Desktop/AldanmazDrive_153.zip
+          name: AldanmazDrive_0410262155-2_ZIP
+          path: Desktop/AldanmazDrive_0410262155-2.zip
           if-no-files-found: error
           retention-days: 30
