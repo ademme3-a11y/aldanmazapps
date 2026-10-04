@@ -366,8 +366,21 @@ fun HistoryStatisticsScreen(
                     onValueChange = { vehicleKmText = it.filter(Char::isDigit) },
                     label = { Text("ARAÇ KM", fontSize = 9.sp) },
                     singleLine = true,
-                    modifier = Modifier.width(112.dp).height(42.dp),
-                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp, color = HText)
+                    modifier = Modifier.width(132.dp).height(50.dp),
+                    textStyle = androidx.compose.ui.text.TextStyle(
+                        fontSize = 15.sp,
+                        color = HText,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = HText,
+                        unfocusedTextColor = HText,
+                        cursorColor = HText,
+                        focusedBorderColor = HCyan,
+                        unfocusedBorderColor = HBorder,
+                        focusedLabelColor = HCyan,
+                        unfocusedLabelColor = HMuted
+                    )
                 )
                 TextButton(
                     onClick = { vehicleKmText.toDoubleOrNull()?.let(viewModel::setVehicleRealKm) },
