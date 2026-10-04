@@ -3070,7 +3070,7 @@ private fun SpeedPanel(
 
                         Text(
                             text = formatParkDuration(parkDurationSeconds),
-                            color = PrimaryText,
+                            color = Color(0xFFFFFFFF),
                             fontSize = if (compact) 25.sp else 34.sp,
                             fontWeight = FontWeight.ExtraBold,
                             modifier = Modifier
@@ -3268,10 +3268,14 @@ private fun SunOrbitMarker(
     val sunsetHour = hourOf(sunsetTime, 18)
     val hour = now.hour + now.minute / 60.0
 
-    val sunColor = when {
-        now.hour == sunriseHour || now.hour == sunsetHour -> Color(0xFFFF8A24)
-        now.hour in sunriseHour..sunsetHour -> Color(0xFFFFD43B)
-        else -> Color(0xFFE34234)
+    val sunColor = if (DayTheme) {
+        Color(0xFFE34234)
+    } else {
+        when {
+            now.hour == sunriseHour || now.hour == sunsetHour -> Color(0xFFFF8A24)
+            now.hour in sunriseHour..sunsetHour -> Color(0xFFFFD43B)
+            else -> Color(0xFFE34234)
+        }
     }
 
     val jd = julianDay(now)
