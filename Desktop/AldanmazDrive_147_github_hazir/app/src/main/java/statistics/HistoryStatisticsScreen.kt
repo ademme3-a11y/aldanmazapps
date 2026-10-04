@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Button
@@ -42,6 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.AndroidViewModel
@@ -366,7 +368,8 @@ fun HistoryStatisticsScreen(
                     onValueChange = { vehicleKmText = it.filter(Char::isDigit) },
                     label = { Text("ARAÇ KM", fontSize = 9.sp) },
                     singleLine = true,
-                    modifier = Modifier.width(132.dp).height(50.dp),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.width(180.dp).height(58.dp),
                     textStyle = androidx.compose.ui.text.TextStyle(
                         fontSize = 15.sp,
                         color = HText,
