@@ -3368,15 +3368,18 @@ private fun SunOrbitMarker(
             val altitudeRad = Math.toRadians(altitude.coerceIn(-90.0, 90.0))
                 // Doğu mevcut güneş gösterimindeki sol tarafla, batı sağ tarafla
                 // eşleştirilir; Ay'ın gerçek azimut ve yüksekliği bu ortak yörüngeye taşınır.
-                val moonAngle = Math.toRadians(180.0 + (azimuth - 90.0))
+                val azimuthRad = Math.toRadians(azimuth)
                 val horizontalScale = kotlin.math.cos(altitudeRad).toFloat()
+                // Gerçek azimut: kuzey=0°, doğu=90°, güney=180°, batı=270°.
+                // Bu değer ekrandaki ortak gökyüzü yörüngesine aynalanmadan taşınır.
                 val moonCenter = Offset(
-                    x = centerX + cos(moonAngle).toFloat() * orbitX * horizontalScale,
+                    x = centerX + kotlin.math.sin(azimuthRad).toFloat() * orbitX * horizontalScale,
                     y = centerY - kotlin.math.sin(altitudeRad).toFloat() * orbitY
                 )
                 val moonRadius = symbolRadius * 0.92f
-                val moonLight = Color(0xFFE8EDF2)
-                val moonDark = Color(0xFF18222C)
+                // Gece zemininden net ayrılan Ay rengi.
+                val moonLight = Color(0xFFF2F5F7)
+                val moonDark = Color(0xFF303A43)
 
                 drawCircle(
                     color = moonDark,
