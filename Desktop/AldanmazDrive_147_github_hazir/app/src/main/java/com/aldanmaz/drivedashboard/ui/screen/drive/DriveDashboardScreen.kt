@@ -417,6 +417,7 @@ fun DriveDashboardScreen(
                             isAppAudioPlaying = isAppAudioPlaying,
                             onAppSoundToggle = onAppSoundToggle,
                             isSpeedCorridorActive = isSpeedCorridorActive,
+                            speedCorridorAverageSpeedKmh = speedCorridorAverageSpeedKmh,
                             onSpeedCorridorClick = onSpeedCorridorClick
                         )
 
@@ -666,6 +667,7 @@ private fun ConnectionStatusStrip(
     isAppAudioPlaying: Boolean,
     onAppSoundToggle: () -> Unit,
     isSpeedCorridorActive: Boolean,
+    speedCorridorAverageSpeedKmh: Double,
     onSpeedCorridorClick: () -> Unit
 ) {
     val strokeScale = LocalDashboardStrokeScale.current
@@ -684,7 +686,12 @@ private fun ConnectionStatusStrip(
             ConnectionStatusItem("GPS", isGpsActive, Modifier.weight(1f))
             MasterSoundButton(isAppSoundEnabled, isAppAudioPlaying, onAppSoundToggle, Modifier.weight(.72f))
             ConnectionStatusItem(if (isInternetAvailable) networkLabel else "NET", isInternetAvailable, Modifier.weight(1f))
-            SpeedCorridorMiniBar(isSpeedCorridorActive, onSpeedCorridorClick, Modifier.weight(3.23f))
+            SpeedCorridorMiniBar(
+                isActive = isSpeedCorridorActive,
+                averageSpeedKmh = speedCorridorAverageSpeedKmh,
+                onClick = onSpeedCorridorClick,
+                modifier = Modifier.weight(3.23f)
+            )
             ConnectionStatusItem(if (isBluetoothConnected) bluetoothLabel else "BT", isBluetoothConnected, Modifier.weight(1f))
             ConnectionStatusItem(
                 selectedDriverName.filter { it.isLetterOrDigit() }.take(3).uppercase(Locale("tr", "TR")).ifBlank { "---" },
