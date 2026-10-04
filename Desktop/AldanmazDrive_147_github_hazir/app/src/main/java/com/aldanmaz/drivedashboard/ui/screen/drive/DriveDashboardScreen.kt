@@ -3362,8 +3362,10 @@ private fun SunOrbitMarker(
         drawCircle(color = sunColor, radius = symbolRadius, center = sunCenter)
 
         moonHorizontal?.let { (azimuth, altitude) ->
-            if (altitude > -6.0) {
-                val altitudeRad = Math.toRadians(altitude.coerceIn(0.0, 90.0))
+            // Ay, Güneş gibi aynı yörünge üzerinde her zaman görünür.
+            // Ufkun altındaysa yörüngenin alt yarısına taşınır; böylece
+            // gerçek azimut/yükseklik hesabı korunurken Ay görseli kaybolmaz.
+            val altitudeRad = Math.toRadians(altitude.coerceIn(-90.0, 90.0))
                 // Doğu mevcut güneş gösterimindeki sol tarafla, batı sağ tarafla
                 // eşleştirilir; Ay'ın gerçek azimut ve yüksekliği bu ortak yörüngeye taşınır.
                 val moonAngle = Math.toRadians(180.0 + (azimuth - 90.0))
