@@ -2582,8 +2582,6 @@ private fun LandscapeDashboard(
                 DashboardClockPanel(
                     currentTime = currentTime,
                     currentDate = currentDate,
-                    isSpeedCorridorActive = isSpeedCorridorActive,
-                    speedCorridorAverageSpeedKmh = speedCorridorAverageSpeedKmh,
                     onClick = onClockClick,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -2796,8 +2794,6 @@ private fun PortraitDashboard(
                 DashboardClockPanel(
                     currentTime = currentTime,
                     currentDate = currentDate,
-                    isSpeedCorridorActive = isSpeedCorridorActive,
-                    speedCorridorAverageSpeedKmh = speedCorridorAverageSpeedKmh,
                     onClick = onClockClick,
                     modifier = Modifier
                         .fillMaxWidth()
