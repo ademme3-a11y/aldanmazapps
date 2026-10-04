@@ -763,8 +763,8 @@ private fun SpeedCorridorMiniBar(
     modifier: Modifier = Modifier
 ) {
     val strokeScale = LocalDashboardStrokeScale.current
-    val revealScale by animateFloatAsState(
-        targetValue = if (isActive) 1f else 0.72f,
+    val revealProgress by animateFloatAsState(
+        targetValue = if (isActive) 1f else 0f,
         animationSpec = tween(durationMillis = 280),
         label = "speedCorridorTextReveal"
     )
@@ -779,27 +779,45 @@ private fun SpeedCorridorMiniBar(
         )
     ) {
         Row(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 5.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 5.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
             RoadDashes(7)
             Text(
                 text = if (isActive) {
-                    String.format(
-                        Locale.getDefault(),
-                        " ORT HIZ ( A %d ) KORİDORU ",
-                        averageSpeedKmh.roundToInt().coerceAtLeast(0)
-                    )
+                    androidx.compose.ui.text.buildAnnotatedString {
+                        append(" ORT HIZ ( ")
+                        withStyle(
+                            androidx.compose.ui.text.SpanStyle(
+                                color = Color(0xFFFF8A00)
+                            )
+                        ) {
+                            append(
+                                String.format(
+                                    Locale.getDefault(),
+                                    "A %d",
+                                    averageSpeedKmh.roundToInt().coerceAtLeast(0)
+                                )
+                            )
+                        }
+                        append(" ) KORİDORU ")
+                    }
                 } else {
-                    " ORT HIZ KORİDORU "
+                    androidx.compose.ui.text.buildAnnotatedString {
+                        append(" ORT HIZ KORİDORU ")
+                    }
                 },
-                color = if (isActive) Color(0xFFFF8A00) else PrimaryText,
+                color = PrimaryText,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Black,
                 maxLines = 1,
                 modifier = Modifier.graphicsLayer {
-                    scaleX = if (isActive) revealScale else 1f
+                    val scale = if (isActive) revealProgress else 1f
+                    scaleX = scale
+                    transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
                 }
             )
             RoadDashes(7)
