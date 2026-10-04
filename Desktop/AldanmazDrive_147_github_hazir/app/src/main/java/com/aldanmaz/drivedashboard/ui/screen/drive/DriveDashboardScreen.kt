@@ -1934,9 +1934,9 @@ private fun StatisticsHeaderButton(
     }
 }
 
-@Composable
 private fun dayIcon(normal: Int, day: Int): Int = if (DayTheme) day else normal
 
+@Composable
 private fun rememberHeaderSpinRotation(isActive: Boolean, durationMillis: Int): Float {
     if (!isActive) return 0f
     val infiniteTransition = rememberInfiniteTransition(label = "headerSpin")
