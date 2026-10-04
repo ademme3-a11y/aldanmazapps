@@ -10,6 +10,16 @@ object DashboardPaletteRuntime {
     var isDay: Boolean by mutableStateOf(true)
     var isOled: Boolean by mutableStateOf(false)
     var isSunlight: Boolean by mutableStateOf(false)
+
+    // Gündüz teması (kum / çöl). OLED seçiliyse siyah tema korunur.
+    val isDayTheme: Boolean get() = isDay && !isOled
+
+    val dayInk = Color(0xFF2E2620)
+    val dayInkSoft = Color(0xFF6A4A2C)
+    val dayFrame = Color(0xFF456252)
+    val dayTileTop = Color(0xFFB07B49)
+    val dayTileBottom = Color(0xFF9A6637)
+    val dayTileBorder = Color(0xFF6B4527)
     // Gece metni, ana ekrandaki bağlantısız BT etiketinin görünen gri tonuyla aynıdır.
     val primaryText: Color get() = when {
         isSunlight -> Color.White
