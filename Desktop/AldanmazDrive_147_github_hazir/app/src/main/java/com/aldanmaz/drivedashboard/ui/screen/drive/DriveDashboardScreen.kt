@@ -4467,8 +4467,6 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawVehicleWheel(
 private fun DashboardClockPanel(
     currentTime: String,
     currentDate: String,
-    isSpeedCorridorActive: Boolean,
-    speedCorridorAverageSpeedKmh: Double,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
