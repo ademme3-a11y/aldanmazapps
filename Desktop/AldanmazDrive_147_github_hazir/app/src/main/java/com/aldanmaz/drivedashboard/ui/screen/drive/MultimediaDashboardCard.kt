@@ -217,11 +217,18 @@ internal fun EnhancedMultimediaCard(
         modifier = modifier,
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (DashboardPaletteRuntime.isSunlight) Color(0xFF222D36) else MultimediaBlack
+            containerColor = when {
+                // Gündüz teması yalnız kısayol ızgarasında kum rengidir; uygulama açıkken koyu kalır.
+                DashboardPaletteRuntime.isDayTheme && selected == null -> Color(0xF0DEAB62)
+                DashboardPaletteRuntime.isSunlight -> Color(0xFF222D36)
+                else -> MultimediaBlack
+            }
         ),
         border = BorderStroke(
-            if (DashboardPaletteRuntime.isSunlight) 1.8.dp else 1.dp,
-            if (DashboardPaletteRuntime.isSunlight) DashboardPaletteRuntime.accent.copy(alpha = .82f)
+            if (DashboardPaletteRuntime.isDayTheme && selected == null) 2.5.dp
+            else if (DashboardPaletteRuntime.isSunlight) 1.8.dp else 1.dp,
+            if (DashboardPaletteRuntime.isDayTheme && selected == null) DashboardPaletteRuntime.dayFrame
+            else if (DashboardPaletteRuntime.isSunlight) DashboardPaletteRuntime.accent.copy(alpha = .82f)
             else MultimediaCyan.copy(alpha = .45f)
         )
     ) {
@@ -397,8 +404,13 @@ private fun MediaShortcutTile(
             detectTapGestures(onTap = { onSingleTap() }, onDoubleTap = { onDoubleTap() })
         },
         shape = RoundedCornerShape(11.dp),
-        color = if (locked) Color(0xFF161A1F) else item.color.copy(alpha = .15f),
-        border = null
+        color = when {
+            DashboardPaletteRuntime.isDayTheme && locked -> Color(0xFF8C7B66)
+            DashboardPaletteRuntime.isDayTheme -> lerp(Color(0xFFA9794A), item.color, .16f)
+            locked -> Color(0xFF161A1F)
+            else -> item.color.copy(alpha = .15f)
+        },
+        border = if (DashboardPaletteRuntime.isDayTheme) BorderStroke(1.5.dp, DashboardPaletteRuntime.dayTileBorder) else null
     ) {
         Column(
             Modifier.fillMaxSize().padding(2.dp),
@@ -422,7 +434,7 @@ private fun MediaShortcutTile(
                 // ikonların görünür alanını yaklaşık %23 büyüt.
                 MediaItemIcon(item, Modifier.size(54.dp), isPlaying = isMusicPlaying)
             }
-            Text(item.label, color = if (locked) Color.Gray else DashboardPaletteRuntime.primaryText, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+            Text(item.label, color = if (locked) Color.Gray else if (DashboardPaletteRuntime.isDayTheme) DashboardPaletteRuntime.dayInk else DashboardPaletteRuntime.primaryText, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1)
         }
     }
 }
@@ -443,7 +455,7 @@ private fun RadioGentleSpinIcon(isActive: Boolean, modifier: Modifier = Modifier
         label = "radioGentleSpinAngle"
     ).value
     Image(
-        painter = painterResource(R.drawable.icon_radio),
+        painter = painterResource(if (DashboardPaletteRuntime.isDayTheme) R.drawable.icon_radio_day else R.drawable.icon_radio),
         contentDescription = "Radyo",
         modifier = modifier.graphicsLayer { rotationZ = if (isActive) angle else 0f },
         contentScale = ContentScale.Fit
@@ -745,8 +757,8 @@ private fun GeminiAnimatedLiveIcon(
 private fun MediaItemIcon(item: DashboardMediaItem, modifier: Modifier, isPlaying: Boolean = false) {
     when {
         item.id == "music" && isPlaying -> MusicEqualizerIcon(modifier)
-        item.id == "music" -> Image(painterResource(R.drawable.icon_music), "Müzik", modifier, contentScale = ContentScale.Fit)
-        item.id == "radio" -> Image(painterResource(R.drawable.icon_radio), "Radyo", modifier, contentScale = ContentScale.Fit)
+        item.id == "music" -> Image(painterResource(if (DashboardPaletteRuntime.isDayTheme) R.drawable.icon_music_day else R.drawable.icon_music), "Müzik", modifier, contentScale = ContentScale.Fit)
+        item.id == "radio" -> Image(painterResource(if (DashboardPaletteRuntime.isDayTheme) R.drawable.icon_radio_day else R.drawable.icon_radio), "Radyo", modifier, contentScale = ContentScale.Fit)
         else -> {
             val context = LocalContext.current
             val useNightSurfaceGray =

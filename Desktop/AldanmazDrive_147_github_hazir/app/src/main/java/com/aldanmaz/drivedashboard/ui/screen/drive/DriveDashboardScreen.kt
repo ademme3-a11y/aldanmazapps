@@ -83,6 +83,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.paint
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
@@ -114,32 +115,63 @@ import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.roundToInt
 
+// Gündüz teması (kum / çöl): gündüz açıkken ve OLED seçili değilken devrede.
+// Gece görünümü bu temadan etkilenmez; DayTheme false iken her değer eskisiyle aynıdır.
+private val DayTheme get() = DashboardPaletteRuntime.isDayTheme
+
 private val DashboardBackground get() = when {
+    DayTheme -> Color(0xFFB98A55)
     DashboardPaletteRuntime.isSunlight -> Color(0xFF18212A)
     DashboardPaletteRuntime.isOled -> Color.Black
     else -> Color(0xFF02070D)
 }
 private val HeaderBackground get() = when {
+    DayTheme -> Color(0xF2DCA862)
     DashboardPaletteRuntime.isSunlight -> Color(0xFF202B35)
     DashboardPaletteRuntime.isOled -> Color.Black
     else -> Color(0xFF07111C)
 }
 private val PanelBackground get() = when {
+    DayTheme -> Color(0xF0DEAB62)
     DashboardPaletteRuntime.isSunlight -> Color(0xFF222D36)
     DashboardPaletteRuntime.isOled -> Color.Black
     else -> Color(0xFF07121E)
 }
-private val PanelBorder get() = DashboardPaletteRuntime.accent.copy(alpha = if (DashboardPaletteRuntime.isSunlight) .82f else .35f)
+private val PanelBorder get() =
+    if (DayTheme) DashboardPaletteRuntime.dayFrame
+    else DashboardPaletteRuntime.accent.copy(alpha = if (DashboardPaletteRuntime.isSunlight) .82f else .35f)
 
-private val PrimaryText get() = DashboardPaletteRuntime.primaryText
-private val SecondaryText get() = DashboardPaletteRuntime.secondaryText
+private val PrimaryText get() = if (DayTheme) DashboardPaletteRuntime.dayInk else DashboardPaletteRuntime.primaryText
+private val SecondaryText get() = if (DayTheme) DashboardPaletteRuntime.dayInkSoft else DashboardPaletteRuntime.secondaryText
 
-private val CyanAccent get() = DashboardPaletteRuntime.accent
-private val CyanBright get() = DashboardPaletteRuntime.accent
+private val CyanAccent get() = if (DayTheme) DashboardPaletteRuntime.dayFrame else DashboardPaletteRuntime.accent
+private val CyanBright get() = if (DayTheme) DashboardPaletteRuntime.dayFrame else DashboardPaletteRuntime.accent
 
-private val SafeGreen = Color(0xFF31E39A)
-private val WarningYellow = Color(0xFFFFC84A)
-private val DangerRed = Color(0xFFFF4F5E)
+// Kart çerçeveleri: gündüzde tasarımdaki gibi kalın ve opak yeşil-zeytin.
+private val FrameWidth get() = if (DayTheme) 2.5.dp else 1.dp
+private val FrameAccent get() =
+    if (DayTheme) DashboardPaletteRuntime.dayFrame else DashboardPaletteRuntime.accent.copy(alpha = .55f)
+
+// Üst düğme kutularının (kahverengi) içindeki çizgi ve yazı rengi.
+private val TileInk get() = if (DayTheme) Color(0xFF3A2514) else DashboardPaletteRuntime.accent
+
+// Koyu yüzeyli bileşenler (hava durumu, pusula, eğim paneli) gündüz temasında da koyu kalır;
+// yazıları gündüzde sıcak kum tonunda, gecede eskisi gibidir.
+private val LightText get() = if (DayTheme) Color(0xFFF3DDB0) else DashboardPaletteRuntime.primaryText
+private val LightSecondaryText get() = if (DayTheme) Color(0xFFD9B98A) else DashboardPaletteRuntime.secondaryText
+private val LegacyAccent get() = if (DayTheme) Color(0xFFEFB86A) else DashboardPaletteRuntime.accent
+private val LegacyPanelBorder get() =
+    DashboardPaletteRuntime.accent.copy(alpha = if (DashboardPaletteRuntime.isSunlight) .82f else .35f)
+private val DarkPanelBackground get() = when {
+    DayTheme -> Color(0xFF241F1B)
+    DashboardPaletteRuntime.isSunlight -> Color(0xFF222D36)
+    DashboardPaletteRuntime.isOled -> Color.Black
+    else -> Color(0xFF07121E)
+}
+
+private val SafeGreen get() = if (DayTheme) Color(0xFF2F8F4E) else Color(0xFF31E39A)
+private val WarningYellow get() = if (DayTheme) Color(0xFFB36A00) else Color(0xFFFFC84A)
+private val DangerRed get() = if (DayTheme) Color(0xFFC8372D) else Color(0xFFFF4F5E)
 
 private val LocalDashboardStrokeScale = staticCompositionLocalOf { 1f }
 
@@ -296,7 +328,8 @@ fun DriveDashboardScreen(
 
     val speedColor =
         when (speedWarningState) {
-            SpeedWarningState.NORMAL -> SafeGreen
+            // Gündüz temasında normal hız rakamı tasarımdaki gibi koyu mürekkep rengindedir.
+            SpeedWarningState.NORMAL -> if (DayTheme) DashboardPaletteRuntime.dayInk else SafeGreen
             SpeedWarningState.APPROACHING -> WarningYellow
             SpeedWarningState.OVER_LIMIT -> DangerRed
         }
@@ -305,10 +338,23 @@ fun DriveDashboardScreen(
         modifier = Modifier.fillMaxSize(),
         color = DashboardBackground
     ) {
+        // Gündüz temasında tüm ekranın arkasına çatlak kum dokusu serilir.
+        val sandPainter = if (DayTheme) painterResource(R.drawable.day_sand_background) else null
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .background(DashboardBackground)
+                .then(
+                    if (sandPainter != null) {
+                        Modifier.paint(
+                            painter = sandPainter,
+                            sizeToIntrinsics = false,
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Modifier
+                    }
+                )
                 .safeDrawingPadding()
                 .padding(12.dp)
         ) {
@@ -674,7 +720,7 @@ private fun ConnectionStatusStrip(
         modifier = Modifier.fillMaxWidth().height(45.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = HeaderBackground.copy(alpha = .92f)),
-        border = BorderStroke(1.dp * strokeScale, CyanAccent.copy(alpha = .55f))
+        border = BorderStroke(FrameWidth * strokeScale, FrameAccent)
     ) {
         Row(
             modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp, vertical = 4.dp),
@@ -755,10 +801,10 @@ private fun SpeedCorridorMiniBar(isActive: Boolean, onClick: () -> Unit, modifie
     Surface(
         modifier = modifier.fillMaxHeight().clickable(onClick = onClick),
         shape = RoundedCornerShape(9.dp),
-        color = Color(0xFF030507),
+        color = if (DayTheme) Color(0x55FFF1CF) else Color(0xFF030507),
         border = BorderStroke(
-            (if (isActive) 1.8.dp else 1.dp) * strokeScale,
-            if (isActive) SafeGreen else Color.White.copy(alpha = .72f)
+            (if (isActive) 1.8.dp else FrameWidth) * strokeScale,
+            if (isActive) SafeGreen else if (DayTheme) DashboardPaletteRuntime.dayInk else Color.White.copy(alpha = .72f)
         )
     ) {
         Row(
@@ -1037,7 +1083,10 @@ private fun DashboardHeader(
             },
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = HeaderBackground),
-        border = BorderStroke(1.dp * strokeScale, if (isEditing) CyanAccent else CyanAccent.copy(alpha = .35f))
+        border = BorderStroke(
+            FrameWidth * strokeScale,
+            if (isEditing) CyanAccent else if (DayTheme) PanelBorder else CyanAccent.copy(alpha = .35f)
+        )
     ) {
         Column {
             Row(
@@ -1073,7 +1122,7 @@ private fun DashboardHeader(
                             "WIFI" -> WifiHeaderButton(isWifiConnected, wifiShortName, if (isEditing) ({ hideItem(id) }) else onWifiClick, Modifier.fillMaxSize())
                             "BLUETOOTH" -> BluetoothHeaderButton(isBluetoothConnected || isObdConnected, bluetoothShortName, if (isEditing) ({ hideItem(id) }) else onBluetoothClick, Modifier.fillMaxSize())
                             "MUSIC" -> MediaHeaderButton(
-                                R.drawable.icon_music,
+                                dayIcon(R.drawable.icon_music, R.drawable.icon_music_day),
                                 "Müzik",
                                 musicPlaying,
                                 if (isEditing) ({ hideItem(id) }) else ::toggleMusic,
@@ -1082,7 +1131,7 @@ private fun DashboardHeader(
                                 Modifier.fillMaxSize()
                             )
                             "RADIO" -> MediaHeaderButton(
-                                R.drawable.icon_radio,
+                                dayIcon(R.drawable.icon_radio, R.drawable.icon_radio_day),
                                 "Radyo",
                                 radioActive,
                                 if (isEditing) ({ hideItem(id) }) else ::toggleRadio,
@@ -1243,7 +1292,7 @@ private fun MountainSlopePanel(
             }
 
             Column(Modifier.align(Alignment.TopStart)) {
-                Text(if (isRouteMode) "← GERİ   ROTA / YOL EĞİMİ" else "← GERİ   CANLI / YOL EĞİMİ", color=CyanBright, fontSize=14.sp, fontWeight=FontWeight.Black, modifier=Modifier.clickable(onClick=onBack).padding(4.dp))
+                Text(if (isRouteMode) "← GERİ   ROTA / YOL EĞİMİ" else "← GERİ   CANLI / YOL EĞİMİ", color=LegacyAccent, fontSize=14.sp, fontWeight=FontWeight.Black, modifier=Modifier.clickable(onClick=onBack).padding(4.dp))
                 Text("Şimdi ${altitudeMeters ?: 0} m    ${String.format(Locale.getDefault(), "%+.1f%%", slopePercent)}", color=slopeColor, fontSize=13.sp, fontWeight=FontWeight.Bold)
             }
             Column(Modifier.align(Alignment.CenterStart), verticalArrangement=Arrangement.SpaceBetween) {
@@ -1258,7 +1307,7 @@ private fun MountainSlopePanel(
                 Text("${(tripDistanceLabel(displayProfile.size, .5f))}km", color=WarningYellow, fontSize=9.sp, fontWeight=FontWeight.Bold)
                 Text("${tripDistanceLabel(displayProfile.size, 1f)}km", color=WarningYellow, fontSize=9.sp, fontWeight=FontWeight.Bold)
             }
-            Text("▲ ${totalClimbMeters.roundToInt()}m   ▼ ${totalDescentMeters.roundToInt()}m", color=PrimaryText, fontSize=9.sp, fontWeight=FontWeight.Bold, modifier=Modifier.align(Alignment.TopEnd))
+            Text("▲ ${totalClimbMeters.roundToInt()}m   ▼ ${totalDescentMeters.roundToInt()}m", color=LightText, fontSize=9.sp, fontWeight=FontWeight.Bold, modifier=Modifier.align(Alignment.TopEnd))
         }
     }
 }
@@ -1367,10 +1416,10 @@ private fun WeatherHeaderCard(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = PanelBackground
+            containerColor = DarkPanelBackground
         ),
         border = BorderStroke(
-            width = 1.dp * strokeScale,
+            width = FrameWidth * strokeScale,
             color = when {
                 weatherUiState.errorMessage != null && !weatherUiState.hasData ->
                     DangerRed.copy(alpha = 0.75f)
@@ -1439,7 +1488,7 @@ private fun WeatherHeaderCard(
                                     it
                                 )
                             } ?: if (weatherUiState.isLoading) "…" else "--°",
-                            color = PrimaryText,
+                            color = LightText,
                             fontSize = 34.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1
@@ -1449,7 +1498,7 @@ private fun WeatherHeaderCard(
                             text = weatherConditionText(
                                 weatherUiState.condition
                             ),
-                            color = CyanAccent,
+                            color = LegacyAccent,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 1
@@ -1495,7 +1544,7 @@ private fun WeatherHeaderCard(
 
                             Text(
                                 text = weatherUiState.cityName ?: "Konum",
-                                color = PrimaryText,
+                                color = LightText,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1
@@ -1521,7 +1570,7 @@ private fun WeatherHeaderCard(
 
                             Text(
                                 text = "Hiss. $feels  •  Nem $humidity",
-                                color = SecondaryText,
+                                color = LightSecondaryText,
                                 fontSize = 14.sp,
                                 maxLines = 1
                             )
@@ -1529,14 +1578,14 @@ private fun WeatherHeaderCard(
                             Text(
                                 text =
                                     "Rüzgâr ${weatherUiState.windDirectionText} $wind km/h",
-                                color = SecondaryText,
+                                color = LightSecondaryText,
                                 fontSize = 10.sp,
                                 maxLines = 1
                             )
 
                             Text(
                                 text = "Hamle $gust km/h",
-                                color = SecondaryText,
+                                color = LightSecondaryText,
                                 fontSize = 10.sp,
                                 maxLines = 1
                             )
@@ -1552,7 +1601,7 @@ private fun WeatherHeaderCard(
                                     else ->
                                         "Konum bekleniyor"
                                 },
-                                color = SecondaryText,
+                                color = LightSecondaryText,
                                 fontSize = 11.sp,
                                 maxLines = 1
                             )
@@ -1563,7 +1612,7 @@ private fun WeatherHeaderCard(
                 Text(
                     text = currentDate.uppercase(Locale("tr", "TR")),
                     modifier = Modifier.align(Alignment.BottomStart).padding(start = 10.dp, bottom = 9.dp),
-                    color = CyanAccent.copy(alpha = .95f),
+                    color = LegacyAccent.copy(alpha = .95f),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1
@@ -1572,7 +1621,7 @@ private fun WeatherHeaderCard(
                 Text(
                     text = "Tek dokun: küçült • Çift dokun: detay",
                     modifier = Modifier.align(Alignment.BottomEnd),
-                    color = SecondaryText.copy(alpha = 0.55f),
+                    color = LightSecondaryText.copy(alpha = 0.55f),
                     fontSize = 7.sp,
                     maxLines = 1
                 )
@@ -1604,7 +1653,7 @@ private fun WeatherHeaderCard(
                                         it
                                     )
                                 } ?: if (weatherUiState.isLoading) "…" else "--°",
-                                color = PrimaryText,
+                                color = LightText,
                                 fontSize = 23.sp,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1
@@ -1614,7 +1663,7 @@ private fun WeatherHeaderCard(
                                 text = weatherConditionText(
                                     weatherUiState.condition
                                 ),
-                                color = CyanAccent,
+                                color = LegacyAccent,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 maxLines = 1
@@ -1645,14 +1694,14 @@ private fun WeatherHeaderCard(
                                 else ->
                                     "Konum bekleniyor"
                             },
-                            color = SecondaryText,
+                            color = LightSecondaryText,
                             fontSize = 8.5.sp,
                             maxLines = 1
                         )
 
                         Text(
                             text = currentDate.uppercase(Locale("tr", "TR")),
-                            color = CyanAccent.copy(alpha = .95f),
+                            color = LegacyAccent.copy(alpha = .95f),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1
@@ -1677,7 +1726,7 @@ private fun WeatherVectorIcon(
         val sunCenter = Offset(w * 0.40f, h * 0.38f)
         val sunRadius = min(w, h) * 0.17f
         val cloud = Color(0xFFD8E6F0)
-        val rain = CyanAccent
+        val rain = LegacyAccent
 
         fun drawSun() {
             drawCircle(
@@ -1717,12 +1766,12 @@ private fun WeatherVectorIcon(
                     drawSun()
                 } else {
                     drawCircle(
-                        color = CyanBright,
+                        color = LegacyAccent,
                         radius = h * 0.22f,
                         center = Offset(w * 0.50f, h * 0.45f)
                     )
                     drawCircle(
-                        color = PanelBackground,
+                        color = DarkPanelBackground,
                         radius = h * 0.21f,
                         center = Offset(w * 0.59f, h * 0.37f)
                     )
@@ -1737,7 +1786,7 @@ private fun WeatherVectorIcon(
                 if (condition == WeatherCondition.FOG) {
                     repeat(2) { index ->
                         drawLine(
-                            color = SecondaryText,
+                            color = LightSecondaryText,
                             start = Offset(w * 0.28f, h * (0.79f + index * 0.10f)),
                             end = Offset(w * 0.82f, h * (0.79f + index * 0.10f)),
                             strokeWidth = 1.4.dp.toPx(),
@@ -1765,7 +1814,7 @@ private fun WeatherVectorIcon(
                 drawCloud()
                 listOf(0.40f, 0.58f, 0.75f).forEach { x ->
                     drawCircle(
-                        color = CyanBright,
+                        color = LegacyAccent,
                         radius = 1.6.dp.toPx(),
                         center = Offset(w * x, h * 0.84f)
                     )
@@ -1786,7 +1835,7 @@ private fun WeatherVectorIcon(
             }
             WeatherCondition.UNKNOWN -> {
                 drawCircle(
-                    color = PanelBorder,
+                    color = LegacyPanelBorder,
                     radius = h * 0.29f,
                     center = Offset(w * 0.50f, h * 0.50f),
                     style = Stroke(width = 1.5.dp.toPx())
@@ -1827,7 +1876,7 @@ private fun StatisticsHeaderButton(
         ),
         border = BorderStroke(
             1.5.dp,
-            CyanAccent
+            TileInk
         )
     ) {
         Column(
@@ -1837,13 +1886,13 @@ private fun StatisticsHeaderButton(
         ) {
             Text(
                 text = "▥",
-                color = CyanBright,
+                color = TileInk,
                 fontSize = 21.sp,
                 fontWeight = FontWeight.Bold
             )
             Text(
                 text = "İST",
-                color = CyanAccent,
+                color = TileInk,
                 fontSize = 9.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -1865,6 +1914,9 @@ private fun rememberHeaderSpinRotation(isActive: Boolean, durationMillis: Int): 
         label = "headerSpinValue"
     ).value
 }
+
+// Gündüz temasında kum zeminine uyan kahverengi ikon varyantını seçer.
+private fun dayIcon(normal: Int, day: Int): Int = if (DayTheme) day else normal
 
 @Composable
 private fun HeaderPngIcon(
@@ -2002,13 +2054,13 @@ private fun SpeedCorridorHeaderButton(
     HeaderStandardCard(modifier = modifier, isActive = isActive, onClick = onClick) {
         Text(
             text = "Kdor",
-            color = if (isActive) SafeGreen else CyanBright,
+            color = if (isActive) SafeGreen else TileInk,
             fontSize = 11.sp,
             fontWeight = FontWeight.Black
         )
         Text(
             text = if (isActive) "AKTİF" else "A",
-            color = if (isActive) SafeGreen else CyanAccent,
+            color = if (isActive) SafeGreen else TileInk,
             fontSize = 7.sp,
             fontWeight = FontWeight.Bold
         )
@@ -2018,8 +2070,8 @@ private fun SpeedCorridorHeaderButton(
 @Composable
 private fun PrayerHeaderButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
     HeaderStandardCard(modifier = modifier, onClick = onClick) {
-        Text("NAM", color = CyanBright, fontSize = 11.sp, fontWeight = FontWeight.Black)
-        Text("☾", color = CyanAccent, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+        Text("NAM", color = TileInk, fontSize = 11.sp, fontWeight = FontWeight.Black)
+        Text("☾", color = TileInk, fontSize = 8.sp, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -2062,8 +2114,8 @@ private fun TrafficAgentHeaderButton(
     )
     val score = status.substringAfter("PUAN:", "").substringBefore(' ').toIntOrNull()?.coerceIn(0, 10)
     val radarColor = when {
-        !isActive -> SecondaryText.copy(alpha = .86f)
-        score == null -> CyanAccent
+        !isActive -> if (DayTheme) TileInk.copy(alpha = .65f) else SecondaryText.copy(alpha = .86f)
+        score == null -> if (DayTheme) TileInk else CyanAccent
         score <= 2 -> SafeGreen
         score <= 4 -> WarningYellow
         score <= 6 -> Color(0xFFFF8A3D)
@@ -2075,7 +2127,7 @@ private fun TrafficAgentHeaderButton(
             Canvas(modifier = Modifier.size(56.dp).padding(2.dp)) {
                 val center = Offset(size.width / 2f, size.height / 2f)
                 val radius = size.minDimension * .46f
-                drawCircle(Color(0xFF07151D), radius, center)
+                drawCircle(if (DayTheme) Color(0x33FFE8C0) else Color(0xFF07151D), radius, center)
                 for (ring in 1..3) {
                     drawCircle(
                         radarColor.copy(alpha = if (isActive) .55f else .34f),
@@ -2114,7 +2166,7 @@ private fun TrafficAgentHeaderButton(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(bottom = 1.dp)
-                        .background(Color(0xD906111B), RoundedCornerShape(4.dp))
+                        .background(if (DayTheme) Color(0xE6F2DDB0) else Color(0xD906111B), RoundedCornerShape(4.dp))
                         .padding(horizontal = 3.dp)
                 )
             }
@@ -2148,11 +2200,18 @@ private fun HeaderStandardCard(
         modifier = clickableModifier,
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isActive) Color(0xFF082A25) else Color(0xFF06111B)
+            containerColor = when {
+                DayTheme -> DashboardPaletteRuntime.dayTileTop
+                isActive -> Color(0xFF082A25)
+                else -> Color(0xFF06111B)
+            }
         ),
         border = BorderStroke(
-            width = (if (isActive) 1.7.dp else 1.dp) * strokeScale,
+            width = (if (isActive) 1.7.dp else 1.dp) * strokeScale * (if (DayTheme) 1.6f else 1f),
             color = when {
+                DayTheme && !enabled -> DashboardPaletteRuntime.dayTileBorder.copy(alpha = .45f)
+                DayTheme && isActive -> SafeGreen
+                DayTheme -> DashboardPaletteRuntime.dayTileBorder
                 !enabled -> PanelBorder.copy(alpha = .45f)
                 isActive -> SafeGreen
                 else -> CyanAccent.copy(alpha = .78f)
@@ -2160,7 +2219,23 @@ private fun HeaderStandardCard(
         )
     ) {
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .then(
+                    if (DayTheme) {
+                        // Kutu yüzeyi: üstte açık, altta koyu turuncu-kahverengi geçiş.
+                        Modifier.background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    DashboardPaletteRuntime.dayTileTop,
+                                    DashboardPaletteRuntime.dayTileBottom
+                                )
+                            )
+                        )
+                    } else {
+                        Modifier
+                    }
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
             content = { content() }
@@ -2192,25 +2267,25 @@ private fun WorkHeaderButton(
         Canvas(Modifier.size(48.dp)) {
             val stroke = 3.2.dp.toPx()
             drawRoundRect(
-                color = CyanAccent,
+                color = TileInk,
                 topLeft = Offset(size.width * .08f, size.height * .27f),
                 size = Size(size.width * .84f, size.height * .62f),
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(5.dp.toPx()),
                 style = Stroke(width = stroke)
             )
-            drawLine(CyanAccent, Offset(size.width * .34f, size.height * .27f), Offset(size.width * .34f, size.height * .10f), stroke)
-            drawLine(CyanAccent, Offset(size.width * .34f, size.height * .10f), Offset(size.width * .66f, size.height * .10f), stroke)
-            drawLine(CyanAccent, Offset(size.width * .66f, size.height * .10f), Offset(size.width * .66f, size.height * .27f), stroke)
-            drawLine(CyanAccent, Offset(size.width * .08f, size.height * .55f), Offset(size.width * .92f, size.height * .55f), stroke)
+            drawLine(TileInk, Offset(size.width * .34f, size.height * .27f), Offset(size.width * .34f, size.height * .10f), stroke)
+            drawLine(TileInk, Offset(size.width * .34f, size.height * .10f), Offset(size.width * .66f, size.height * .10f), stroke)
+            drawLine(TileInk, Offset(size.width * .66f, size.height * .10f), Offset(size.width * .66f, size.height * .27f), stroke)
+            drawLine(TileInk, Offset(size.width * .08f, size.height * .55f), Offset(size.width * .92f, size.height * .55f), stroke)
             // Minik çanta kilitleme dili / toka.
             drawRoundRect(
-                color = CyanAccent,
+                color = TileInk,
                 topLeft = Offset(size.width * .43f, size.height * .49f),
                 size = Size(size.width * .14f, size.height * .18f),
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx())
             )
             drawRoundRect(
-                color = Color(0xFF06111B),
+                color = if (DayTheme) DashboardPaletteRuntime.dayTileTop else Color(0xFF06111B),
                 topLeft = Offset(size.width * .47f, size.height * .53f),
                 size = Size(size.width * .06f, size.height * .08f),
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(1.dp.toPx())
@@ -2228,7 +2303,7 @@ private fun WifiHeaderButton(
 ) {
     HeaderStandardCard(modifier = modifier, isActive = isConnected, onClick = onClick) {
         HeaderPngIcon(
-            drawableRes = R.drawable.icon_wifi,
+            drawableRes = dayIcon(R.drawable.icon_wifi, R.drawable.icon_wifi_day),
             contentDescription = "Wi-Fi",
             modifier = Modifier,
             alpha = if (isConnected) 1f else .84f,
@@ -2246,7 +2321,7 @@ private fun BluetoothHeaderButton(
 ) {
     HeaderStandardCard(modifier = modifier, isActive = isConnected, onClick = onClick) {
         HeaderPngIcon(
-            drawableRes = R.drawable.icon_bluetooth,
+            drawableRes = dayIcon(R.drawable.icon_bluetooth, R.drawable.icon_bluetooth_day),
             contentDescription = "Bluetooth",
             modifier = Modifier,
             alpha = if (isConnected) 1f else .84f,
@@ -2296,7 +2371,7 @@ private fun SatelliteHeaderButton(
     HeaderStandardCard(modifier = modifier, isActive = isPanelActive, enabled = isEnabled, onClick = onClick) {
         Box(Modifier.fillMaxSize()) {
             HeaderPngIcon(
-                drawableRes = R.drawable.icon_live,
+                drawableRes = dayIcon(R.drawable.icon_live, R.drawable.icon_live_day),
                 contentDescription = "Canlı Yükseklik",
                 modifier = Modifier,
                 alpha = if (isEnabled) 1f else .42f,
@@ -2339,7 +2414,7 @@ private fun SettingsHeaderButton(
 ) {
     HeaderStandardCard(modifier = modifier, onClick = onClick) {
         HeaderPngIcon(
-            drawableRes = R.drawable.icon_settings,
+            drawableRes = dayIcon(R.drawable.icon_settings, R.drawable.icon_settings_day),
             contentDescription = "Ayarlar",
             modifier = Modifier,
             scale = 1.08f
@@ -2417,7 +2492,7 @@ private fun MiniCompassDial(
                 )
 
             drawLine(
-                color = PrimaryText,
+                color = LightText,
                 start = inner,
                 end = outer,
                 strokeWidth = 1.5.dp.toPx()
@@ -2449,14 +2524,14 @@ private fun MiniCompassDial(
         )
 
         drawLine(
-            color = PrimaryText,
+            color = LightText,
             start = center,
             end = southPoint,
             strokeWidth = 2.dp.toPx()
         )
 
         drawCircle(
-            color = PrimaryText,
+            color = LightText,
             radius = 3.dp.toPx(),
             center = center
         )
@@ -2864,7 +2939,7 @@ private fun SpeedPanel(
             containerColor = PanelBackground
         ),
         border = BorderStroke(
-            1.dp * strokeScale,
+            FrameWidth * strokeScale,
             if (DashboardPaletteRuntime.isSunlight) PanelBorder else Color(0xFF294B63)
         )
     ) {
@@ -2889,7 +2964,9 @@ private fun SpeedPanel(
                         direction = direction,
                         accuracy = compassAccuracy,
                         compact = compact,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .then(if (DayTheme) Modifier.background(DarkPanelBackground) else Modifier)
                     )
                 }
 
@@ -3118,19 +3195,31 @@ private fun SpeedometerGauge(
         modifier = modifier,
         contentAlignment = Alignment.Center
     ) {
-        DaciaNightRoadAnimation(
-            speedKmh = speedKmh,
-            compassHeadingDegrees = compassHeadingDegrees,
-            compact = compact,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .fillMaxHeight(.70f)
-        )
+        if (DayTheme) {
+            DaciaDayRoadAnimation(
+                speedKmh = speedKmh,
+                speedColor = speedColor,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            DaciaNightRoadAnimation(
+                speedKmh = speedKmh,
+                compassHeadingDegrees = compassHeadingDegrees,
+                compact = compact,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .fillMaxHeight(.70f)
+            )
+        }
 
         Canvas(
             modifier = Modifier.fillMaxSize()
         ) {
+            // Gündüz temasında halka ve ibreler yol görselinin içindedir;
+            // hız yayı DaciaDayRoadAnimation içinde çizilir.
+            if (DayTheme) return@Canvas
+
             val center =
                 Offset(
                     size.width / 2f,
@@ -3309,10 +3398,10 @@ private fun SpeedometerGauge(
                 .zIndex(8f),
             shape = RoundedCornerShape(10.dp),
             colors = CardDefaults.cardColors(
-                containerColor = Color(0xD907131B)
+                containerColor = if (DayTheme) Color(0xCCF1DDB0) else Color(0xD907131B)
             ),
             border = BorderStroke(
-                width = 1.dp * strokeScale,
+                width = FrameWidth * strokeScale,
                 color = PanelBorder
             )
         ) {
@@ -3568,6 +3657,110 @@ private fun DaciaNightRoadAnimation(
     }
 }
 
+// Gündüz yol sahnesi ------------------------------------------------------------
+// Görsel (day_road_scene) tasarımdaki çöl yolunu, hız halkasını ve ibreleri içerir.
+// Rakamlar, yazılar ve sabit yol çizgileri görselden silinmiştir; bunlar canlı çizilir.
+// Konumlar görselin 0..1 aralığındaki oranlarıyla verilir; ContentScale.Crop ile aynı
+// dönüşüm kullanıldığı için panel oranı değişse de halka yuvarlak ve hizalı kalır.
+private const val DayRoadImageWidth = 978f
+private const val DayRoadImageHeight = 790f
+
+@Composable
+private fun DaciaDayRoadAnimation(
+    speedKmh: Int,
+    speedColor: Color,
+    modifier: Modifier = Modifier
+) {
+    var phase by remember { mutableFloatStateOf(.16f) }
+    val smoothedRate = remember { Animatable(daciaNightRoadAnimationRate(speedKmh)) }
+
+    LaunchedEffect(speedKmh) {
+        smoothedRate.animateTo(
+            targetValue = daciaNightRoadAnimationRate(speedKmh),
+            animationSpec = tween(durationMillis = 1_800, easing = LinearEasing)
+        )
+    }
+
+    LaunchedEffect(Unit) {
+        var previousFrame = withFrameNanos { it }
+        while (true) {
+            val frame = withFrameNanos { it }
+            val elapsedSeconds =
+                ((frame - previousFrame) / 1_000_000_000f).coerceIn(0f, .05f)
+            previousFrame = frame
+            phase = (phase + elapsedSeconds * smoothedRate.value) % 1f
+        }
+    }
+
+    Box(modifier = modifier) {
+        Image(
+            painter = painterResource(R.drawable.day_road_scene),
+            contentDescription = "Gündüz çöl yolu animasyonu",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val scale = kotlin.math.max(
+                size.width / DayRoadImageWidth,
+                size.height / DayRoadImageHeight
+            )
+            val offsetX = (size.width - DayRoadImageWidth * scale) / 2f
+            val offsetY = (size.height - DayRoadImageHeight * scale) / 2f
+            fun at(nx: Float, ny: Float): Offset =
+                Offset(
+                    offsetX + nx * DayRoadImageWidth * scale,
+                    offsetY + ny * DayRoadImageHeight * scale
+                )
+
+            // Orta şerit çizgileri: ufuktan (0.538, 0.623) alt kenara (0.317, 1.0) akar.
+            val horizon = at(.538f, .623f)
+            val bottom = at(.317f, 1f)
+            fun roadPoint(value: Float): Offset {
+                val q = value.coerceIn(0f, 1f).pow(1.72f)
+                return Offset(
+                    horizon.x + (bottom.x - horizon.x) * q,
+                    horizon.y + (bottom.y - horizon.y) * q
+                )
+            }
+
+            repeat(5) { index ->
+                val value = (index / 5f + phase) % 1f
+                if (value > .04f) {
+                    val q = value.pow(1.72f)
+                    val end = (value + .05f + value * .03f).coerceAtMost(1f)
+                    drawLine(
+                        color = Color(0xFFF7EBCB).copy(alpha = (.35f + q * .6f).coerceIn(0f, .95f)),
+                        start = roadPoint(value),
+                        end = roadPoint(end),
+                        strokeWidth = (1.4f + q * 18f) * scale,
+                        cap = StrokeCap.Round
+                    )
+                }
+            }
+
+            // Hız yayı: görseldeki halkanın ortasında, 140° den 260° süpürür.
+            val progress = (speedKmh / 160f).coerceIn(0f, 1f)
+            if (progress > .005f) {
+                val center = at(.503f, .408f)
+                val radius = .312f * DayRoadImageWidth * scale
+                drawArc(
+                    color = speedColor,
+                    startAngle = 140f,
+                    sweepAngle = 260f * progress,
+                    useCenter = false,
+                    topLeft = Offset(center.x - radius, center.y - radius),
+                    size = Size(radius * 2f, radius * 2f),
+                    style = Stroke(
+                        width = .050f * DayRoadImageWidth * scale,
+                        cap = StrokeCap.Round
+                    )
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun SpeedAltitudeBadge(
     altitudeMeters: Int?,
@@ -3607,8 +3800,11 @@ private fun SunriseBlock(
     isSunrise: Boolean,
     modifier: Modifier = Modifier
 ) {
+    // Gündüz temasında bu blok koyu yolun üzerinde durur; açık kum tonları kullanılır.
     val iconColor =
-        if (isSunrise) {
+        if (DayTheme) {
+            if (isSunrise) Color(0xFFF1C27A) else Color(0xFFE88A5A)
+        } else if (isSunrise) {
             WarningYellow
         } else {
             Color(0xFFFF6238)
@@ -3724,7 +3920,7 @@ private fun SunriseBlock(
 
         Text(
             text = title,
-            color = PrimaryText,
+            color = if (DayTheme) LightText else PrimaryText,
             fontSize = 15.sp,
             fontWeight = FontWeight.Medium
         )
@@ -3914,7 +4110,7 @@ private fun VehicleModeCard(
             containerColor = PanelBackground
         ),
         border = BorderStroke(
-            width = 1.dp * strokeScale,
+            width = FrameWidth * strokeScale,
             color = PanelBorder
         )
     ) {
@@ -3926,7 +4122,7 @@ private fun VehicleModeCard(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color(0xE607131B))
+                        .background(if (DayTheme) Color(0xE8F1DDB0) else Color(0xE607131B))
                         .padding(horizontal = 12.dp, vertical = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -3948,7 +4144,7 @@ private fun VehicleModeCard(
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color(0xE607131B)),
+                        .background(if (DayTheme) Color(0xE8F1DDB0) else Color(0xE607131B)),
                     horizontalArrangement = Arrangement.spacedBy(1.dp)
                 ) {
                     activeVehicleAlerts.take(2).forEach { alert ->
@@ -3957,7 +4153,7 @@ private fun VehicleModeCard(
                                 .weight(1f)
                                 .fillMaxHeight()
                                 .border(
-                                    width = 1.dp * strokeScale,
+                                    width = FrameWidth * strokeScale,
                                     color = alert.color.copy(alpha = .75f),
                                     shape = RoundedCornerShape(8.dp)
                                 )
@@ -3982,9 +4178,22 @@ private fun VehicleModeCard(
                 }
             }
         } else {
+            val desertPainter =
+                if (DayTheme) painterResource(R.drawable.day_desert_scene) else null
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .then(
+                        if (desertPainter != null) {
+                            Modifier.paint(
+                                painter = desertPainter,
+                                sizeToIntrinsics = false,
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Modifier
+                        }
+                    )
                     .padding(8.dp),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -4454,7 +4663,7 @@ private fun DashboardClockPanel(
         modifier = modifier.clickable(onClick = onClick),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = PanelBackground),
-        border = BorderStroke(1.dp * strokeScale, CyanAccent.copy(alpha = .55f))
+        border = BorderStroke(FrameWidth * strokeScale, FrameAccent)
     ) {
         BoxWithConstraints(
             modifier = Modifier
@@ -4536,11 +4745,11 @@ private fun FuelGaugeCard(
         modifier = modifier.clickable(onClick = onClick),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isCriticalFuel) Color(0xFF17080B).copy(alpha = 0.88f + 0.12f * criticalAlpha) else PanelBackground
+            containerColor = if (isCriticalFuel) (if (DayTheme) Color(0xFFE9B9A8) else Color(0xFF17080B)).copy(alpha = 0.88f + 0.12f * criticalAlpha) else PanelBackground
         ),
         border = BorderStroke(
             (if (isCriticalFuel) 3.2.dp else 1.dp) * strokeScale,
-            if (isCriticalFuel) DangerRed.copy(alpha = criticalAlpha) else CyanAccent.copy(alpha = .55f)
+            if (isCriticalFuel) DangerRed.copy(alpha = criticalAlpha) else FrameAccent
         )
     ) {
         Column(
@@ -4645,7 +4854,7 @@ private fun ModernFuelBar(
             .coerceIn(0, segmentCount)
 
         drawRoundRect(
-            color = Color(0xFF02080E),
+            color = if (DayTheme) Color(0xFF6B4527) else Color(0xFF02080E),
             topLeft = Offset(0f, trackTop - 3.dp.toPx()),
             size = Size(size.width, trackHeight + 6.dp.toPx()),
             cornerRadius = androidx.compose.ui.geometry.CornerRadius(8.dp.toPx(), 8.dp.toPx()),
@@ -4658,12 +4867,12 @@ private fun ModernFuelBar(
             val baseColor = when {
                 ratio <= .18f -> DangerRed
                 ratio <= .36f -> WarningYellow
-                ratio <= .70f -> CyanBright
-                else -> SafeGreen
+                ratio <= .70f -> if (DayTheme) Color(0xFFD38433) else CyanBright
+                else -> if (DayTheme) Color(0xFFD38433) else SafeGreen
             }
             val lit = i < litSegments
             val color = when {
-                !lit -> Color(0xFF1A2A35)
+                !lit -> if (DayTheme) Color(0xFFAA8054) else Color(0xFF1A2A35)
                 isLowFuel -> DangerRed
                 else -> baseColor
             }
@@ -4682,7 +4891,7 @@ private fun ModernFuelBar(
                     )
                 } else {
                     Brush.verticalGradient(
-                        listOf(Color(0xFF263B48), Color(0xFF111B22))
+                        if (DayTheme) listOf(Color(0xFFB88C5E), Color(0xFF96704A)) else listOf(Color(0xFF263B48), Color(0xFF111B22))
                     )
                 },
                 topLeft = Offset(x, trackTop),
@@ -5073,9 +5282,9 @@ private fun UpcomingRoadSignBadge(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Text(sign.label, color = PrimaryText, fontSize = 10.sp, fontWeight = FontWeight.Black, maxLines = 2)
+                    Text(sign.label, color = LightText, fontSize = 10.sp, fontWeight = FontWeight.Black, maxLines = 2)
                     Text("${sign.distanceMeters} m ileride", color = WarningYellow, fontSize = 11.sp, fontWeight = FontWeight.Black, maxLines = 1)
-                    Text(sign.roadName ?: "Yol bilgisi yok", color = CyanBright, fontSize = 8.sp, fontWeight = FontWeight.SemiBold, maxLines = 2)
+                    Text(sign.roadName ?: "Yol bilgisi yok", color = LegacyAccent, fontSize = 8.sp, fontWeight = FontWeight.SemiBold, maxLines = 2)
                 }
             }
         }
@@ -5098,7 +5307,7 @@ private fun MetricCard(
             containerColor = PanelBackground
         ),
         border = BorderStroke(
-            1.dp * strokeScale,
+            FrameWidth * strokeScale,
             PanelBorder
         )
     ) {
@@ -5155,14 +5364,14 @@ private fun LargeCompassPanel(
         ) {
             Text(
                 text = "GPS PUSULASI HAZIRLANIYOR",
-                color = CyanAccent,
+                color = LegacyAccent,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Black
             )
             Spacer(Modifier.height(8.dp))
             Text(
                 text = "Yön bilgisi için araçla kısa süre hareket edin",
-                color = SecondaryText,
+                color = LightSecondaryText,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -5173,7 +5382,7 @@ private fun LargeCompassPanel(
     Box(modifier = modifier) {
         Text(
             text = "PUSULA / GPS YÖNÜ",
-            color = CyanAccent,
+            color = LegacyAccent,
             fontSize =
                 if (compact)
                     11.sp
@@ -5236,7 +5445,7 @@ private fun LargeCompassPanel(
                     }
                 )
             },
-            color = SecondaryText,
+            color = LightSecondaryText,
             fontSize =
                 if (compact)
                     9.sp
@@ -5338,7 +5547,7 @@ private fun CompassDial(
                     if (worldDegree == 0)
                         DangerRed
                     else
-                        SecondaryText,
+                        LightSecondaryText,
                 start = inner,
                 end = outer,
                 strokeWidth =
@@ -5384,7 +5593,7 @@ private fun CompassDial(
                 if (label == "K")
                     DangerRed.toArgb()
                 else
-                    PrimaryText.toArgb()
+                    LightText.toArgb()
 
             drawContext.canvas.nativeCanvas.drawText(
                 label,
@@ -5436,13 +5645,13 @@ private fun CompassDial(
         }
 
         drawCircle(
-            color = PanelBackground,
+            color = DarkPanelBackground,
             radius = radius * 0.29f,
             center = center
         )
 
         drawCircle(
-            color = CyanAccent,
+            color = LegacyAccent,
             radius = radius * 0.29f,
             center = center,
             style = Stroke(
@@ -5456,7 +5665,7 @@ private fun CompassDial(
                     AndroidPaint.Align.CENTER
 
                 color =
-                    PrimaryText.toArgb()
+                    LightText.toArgb()
 
                 textSize =
                     if (compact)
@@ -5473,7 +5682,7 @@ private fun CompassDial(
                 centerPaint
             ).apply {
                 color =
-                    CyanAccent.toArgb()
+                    LegacyAccent.toArgb()
 
                 textSize =
                     if (compact)
@@ -5515,7 +5724,7 @@ private fun CompassDial(
             )
 
         drawLine(
-            color = CyanAccent,
+            color = LegacyAccent,
             start = topStart,
             end = topEnd,
             strokeWidth = 3.dp.toPx()
