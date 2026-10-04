@@ -756,8 +756,18 @@ private fun MasterSoundButton(
 }
 
 @Composable
-private fun SpeedCorridorMiniBar(isActive: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun SpeedCorridorMiniBar(
+    isActive: Boolean,
+    averageSpeedKmh: Double,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     val strokeScale = LocalDashboardStrokeScale.current
+    val revealScale by animateFloatAsState(
+        targetValue = if (isActive) 1f else 0.72f,
+        animationSpec = tween(durationMillis = 280),
+        label = "speedCorridorTextReveal"
+    )
 
     Surface(
         modifier = modifier.fillMaxHeight().clickable(onClick = onClick),
@@ -775,11 +785,22 @@ private fun SpeedCorridorMiniBar(isActive: Boolean, onClick: () -> Unit, modifie
         ) {
             RoadDashes(7)
             Text(
-                text = " ORT HIZ KORİDORU ",
-                color = PrimaryText,
+                text = if (isActive) {
+                    String.format(
+                        Locale.getDefault(),
+                        " ORT HIZ ( A %d ) KORİDORU ",
+                        averageSpeedKmh.roundToInt().coerceAtLeast(0)
+                    )
+                } else {
+                    " ORT HIZ KORİDORU "
+                },
+                color = if (isActive) Color(0xFFFF8A00) else PrimaryText,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Black,
-                maxLines = 1
+                maxLines = 1,
+                modifier = Modifier.graphicsLayer {
+                    scaleX = if (isActive) revealScale else 1f
+                }
             )
             RoadDashes(7)
         }
