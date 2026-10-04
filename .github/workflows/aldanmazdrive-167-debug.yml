@@ -1,4 +1,4 @@
-name: Aldanmaz Drive 0310262252-2 Debug Build
+name: Aldanmaz Drive 0410261234-1 Debug Build
 
 on:
   push:
@@ -27,7 +27,7 @@ jobs:
           keytool -list -keystore app/aldanmaz-debug.keystore -storepass android -alias androiddebugkey >/dev/null
       - name: Configure TomTom API key
         env:
-          TOMTOM_API_KEY: ${{ secrets.TOMTOM_API_KEY }}
+          TOMTOM_API_KEY: ${{ secrets.TOMTOM2 }}
         run: |
           test -n "$TOMTOM_API_KEY" || { echo "TOMTOM_API_KEY secret is missing."; exit 1; }
           printf 'TOMTOM_API_KEY=%s\n' "$TOMTOM_API_KEY" > local.properties
@@ -39,7 +39,7 @@ jobs:
       - name: Verify APK signing
         run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/debug/app-debug.apk
       - name: Rename APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk ../AldanmazDrive_0310262252-2.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk ../AldanmazDrive_0410261234-1.apk
       - name: Create source ZIP
         run: zip -r ../AldanmazDrive_0310262252-2.zip . -x '.gradle/*' 'app/build/*' '**/.DS_Store' 'local.properties'
       - name: Upload Debug APK
