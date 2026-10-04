@@ -8,6 +8,7 @@ import android.graphics.BitmapFactory
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -33,6 +34,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -100,10 +102,31 @@ internal fun MoonPhaseHeaderButton(
             )
         },
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = if (isDay) Color(0xFF082A4A) else Color.Black),
-        border = BorderStroke(1.2.dp, MoonCyan.copy(alpha = .78f))
+        colors = CardDefaults.cardColors(
+            containerColor = when {
+                DashboardPaletteRuntime.isDayTheme -> DashboardPaletteRuntime.dayTileTop
+                isDay -> Color(0xFF082A4A)
+                else -> Color.Black
+            }
+        ),
+        border = if (DashboardPaletteRuntime.isDayTheme) {
+            BorderStroke(2.dp, DashboardPaletteRuntime.dayTileBorder)
+        } else {
+            BorderStroke(1.2.dp, MoonCyan.copy(alpha = .78f))
+        }
     ) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Box(
+            Modifier.fillMaxSize().then(
+                if (DashboardPaletteRuntime.isDayTheme) {
+                    Modifier.background(
+                        Brush.verticalGradient(
+                            listOf(DashboardPaletteRuntime.dayTileTop, DashboardPaletteRuntime.dayTileBottom)
+                        )
+                    )
+                } else Modifier
+            ),
+            contentAlignment = Alignment.Center
+        ) {
             MoonArtwork(bitmap, state, Modifier.size(52.dp))
         }
     }
