@@ -356,7 +356,7 @@ fun HistoryStatisticsScreen(
                     trailingIcon = {
                         TextButton(
                             onClick = { vehicleKmText.toDoubleOrNull()?.let(viewModel::setVehicleRealKm) },
-                            modifier = Modifier.offset(y = (-2).dp)
+                            modifier = Modifier.padding(bottom = 2.dp)
                         ) {
                             Text("KAYDET", color = HGreen, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                         }
