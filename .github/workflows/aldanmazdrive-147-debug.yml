@@ -2,7 +2,7 @@ name: Aldanmaz Drive 147 Debug Build
 # 147 stable-signing retry
 on:
   push:
-    branches: [main]
+    branches: [main, gunduz-temasi]
     paths:
       - 'Desktop/AldanmazDrive_147_github_hazir/**'
       - '.github/workflows/aldanmazdrive-147-debug.yml'
