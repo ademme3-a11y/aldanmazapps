@@ -3050,7 +3050,7 @@ private fun SpeedPanel(
                                     height = if (compact) 132.dp else 170.dp
                                 )
                                 .background(
-                                    color = if (DayTheme) DashboardPaletteRuntime.dayTileBottom else Color(0xFF263238),
+                                    color = Color(0xFF3A3A3A),
                                     shape = RoundedCornerShape(if (compact) 16.dp else 22.dp)
                                 )
                                 .border(
@@ -3078,18 +3078,19 @@ private fun SpeedPanel(
                                 .padding(bottom = if (compact) 35.dp else 44.dp)
                         )
 
-                        if (vehicleRealKm > 0.0) {
-                            Text(
-                                text = String.format(Locale("tr", "TR"), "ARAÇ KM  %,.0f", vehicleRealKm).replace(',', '.'),
-                                color = if (DayTheme) DashboardPaletteRuntime.dayFrame else Color.White,
-                                fontSize = if (compact) 12.sp else 15.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                maxLines = 1,
-                                modifier = Modifier
-                                    .align(Alignment.BottomCenter)
-                                    .padding(bottom = if (compact) 7.dp else 9.dp)
-                            )
-                        }
+                        Text(
+                            text = if (vehicleRealKm > 0.0)
+                                String.format(Locale("tr", "TR"), "ARAÇ KM  %,.0f", vehicleRealKm).replace(',', '.')
+                            else
+                                "ARAÇ KM  --",
+                            color = Color.White,
+                            fontSize = if (compact) 12.sp else 15.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            maxLines = 1,
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = if (compact) 7.dp else 9.dp)
+                        )
 
                         Column(
                             modifier = Modifier
@@ -3437,12 +3438,14 @@ private fun SpeedometerGauge(
             )
         }
 
-        DayModeSpeedArc(
-            speedKmh = speedKmh,
-            speedColor = speedColor,
-            compact = compact,
-            modifier = Modifier.fillMaxSize()
-        )
+        if (DayTheme) {
+            DayModeSpeedArc(
+                speedKmh = speedKmh,
+                speedColor = speedColor,
+                compact = compact,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
 
         Canvas(
             modifier = Modifier.fillMaxSize()
