@@ -335,40 +335,54 @@ fun HistoryStatisticsScreen(
 
             Spacer(Modifier.height(6.dp))
 
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+            // Sürücü/yedek seçimleri tek ve sabit satırda kalır.
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(7.dp)
+            ) {
                 DriverButton("MEHMET", state.selectedDriverId == "1", { viewModel.selectDriver("1") }, Modifier.weight(1f))
                 DriverButton("NURDAN", state.selectedDriverId == "2", { viewModel.selectDriver("2") }, Modifier.weight(1f))
-                DriverButton("TÜM SÜRÜCÜ", state.selectedDriverId == null, { viewModel.selectDriver(null) }, Modifier.weight(1.25f))
+                DriverButton("TÜM SÜRÜCÜ", state.selectedDriverId == null, { viewModel.selectDriver(null) }, Modifier.weight(1f))
                 Button(
                     onClick = { exportLauncher.launch("AldanmazDrive_180Gun_Yedek.json") },
-                    modifier = Modifier.height(42.dp),
+                    modifier = Modifier.weight(1f).height(42.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = HCyan.copy(alpha = .14f), contentColor = HCyan),
                     border = BorderStroke(1.dp, HCyan),
                     shape = RoundedCornerShape(9.dp)
                 ) { Text("YEDEK", fontSize = 10.sp, fontWeight = FontWeight.Bold) }
+            }
+
+            Spacer(Modifier.height(7.dp))
+
+            // Araç KM ve ilgili kontroller ikinci satırda; KAYDET artık alanın içinde değil,
+            // aynı satırda üst hizalı ayrı bir düğmedir.
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(7.dp),
+                verticalAlignment = Alignment.Top
+            ) {
                 OutlinedTextField(
                     value = vehicleKmText,
                     onValueChange = { vehicleKmText = it.filter(Char::isDigit) },
                     label = { Text("ARAÇ KM", fontSize = 9.sp) },
                     singleLine = true,
                     modifier = Modifier.width(112.dp).height(42.dp),
-                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp, color = HText),
-                    trailingIcon = {
-                        TextButton(
-                            onClick = { vehicleKmText.toDoubleOrNull()?.let(viewModel::setVehicleRealKm) },
-                            modifier = Modifier.padding(bottom = 6.dp)
-                        ) {
-                            Text("KAYDET", color = HGreen, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
+                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp, color = HText)
                 )
+                TextButton(
+                    onClick = { vehicleKmText.toDoubleOrNull()?.let(viewModel::setVehicleRealKm) },
+                    modifier = Modifier.height(42.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                ) {
+                    Text("KAYDET", color = HGreen, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                }
                 OutlinedTextField(
                     value = if (state.vehicleGpsKm > 0.0) String.format(Locale.US, "%.1f", state.vehicleGpsKm) else "0,0",
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("GPS KM", fontSize = 9.sp) },
                     singleLine = true,
-                    modifier = Modifier.width(112.dp).height(58.dp),
+                    modifier = Modifier.width(112.dp).height(42.dp),
                     textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp, color = HText)
                 )
                 OutlinedTextField(
