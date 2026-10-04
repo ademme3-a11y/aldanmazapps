@@ -89,6 +89,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -463,6 +464,7 @@ fun DriveDashboardScreen(
                             isAppAudioPlaying = isAppAudioPlaying,
                             onAppSoundToggle = onAppSoundToggle,
                             isSpeedCorridorActive = isSpeedCorridorActive,
+                            speedCorridorAverageSpeedKmh = speedCorridorAverageSpeedKmh,
                             onSpeedCorridorClick = onSpeedCorridorClick
                         )
 
@@ -548,6 +550,8 @@ fun DriveDashboardScreen(
                                     todayTotalDistanceKm =
                                         todayTotalDistanceKm,
                                     vehicleRealKm = vehicleRealKm,
+                                    currentLatitude = currentLatitude,
+                                    currentLongitude = currentLongitude,
                                     tripStartedAtEpochMillis =
                                         tripStartedAtEpochMillis,
                                     tripEndedAtEpochMillis =
@@ -657,6 +661,8 @@ fun DriveDashboardScreen(
                             todayTotalDistanceKm =
                                 todayTotalDistanceKm,
                             vehicleRealKm = vehicleRealKm,
+                            currentLatitude = currentLatitude,
+                            currentLongitude = currentLongitude,
                             tripStartedAtEpochMillis =
                                 tripStartedAtEpochMillis,
                             tripEndedAtEpochMillis =
@@ -712,6 +718,7 @@ private fun ConnectionStatusStrip(
     isAppAudioPlaying: Boolean,
     onAppSoundToggle: () -> Unit,
     isSpeedCorridorActive: Boolean,
+    speedCorridorAverageSpeedKmh: Double,
     onSpeedCorridorClick: () -> Unit
 ) {
     val strokeScale = LocalDashboardStrokeScale.current
@@ -730,7 +737,12 @@ private fun ConnectionStatusStrip(
             ConnectionStatusItem("GPS", isGpsActive, Modifier.weight(1f))
             MasterSoundButton(isAppSoundEnabled, isAppAudioPlaying, onAppSoundToggle, Modifier.weight(.72f))
             ConnectionStatusItem(if (isInternetAvailable) networkLabel else "NET", isInternetAvailable, Modifier.weight(1f))
-            SpeedCorridorMiniBar(isSpeedCorridorActive, onSpeedCorridorClick, Modifier.weight(3.23f))
+            SpeedCorridorMiniBar(
+                isActive = isSpeedCorridorActive,
+                averageSpeedKmh = speedCorridorAverageSpeedKmh,
+                onClick = onSpeedCorridorClick,
+                modifier = Modifier.weight(3.23f)
+            )
             ConnectionStatusItem(if (isBluetoothConnected) bluetoothLabel else "BT", isBluetoothConnected, Modifier.weight(1f))
             ConnectionStatusItem(
                 selectedDriverName.filter { it.isLetterOrDigit() }.take(3).uppercase(Locale("tr", "TR")).ifBlank { "---" },
@@ -795,8 +807,18 @@ private fun MasterSoundButton(
 }
 
 @Composable
-private fun SpeedCorridorMiniBar(isActive: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun SpeedCorridorMiniBar(
+    isActive: Boolean,
+    averageSpeedKmh: Double,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     val strokeScale = LocalDashboardStrokeScale.current
+    val revealProgress by animateFloatAsState(
+        targetValue = if (isActive) 1f else 0f,
+        animationSpec = tween(durationMillis = 280),
+        label = "speedCorridorTextReveal"
+    )
 
     Surface(
         modifier = modifier.fillMaxHeight().clickable(onClick = onClick),
@@ -808,17 +830,46 @@ private fun SpeedCorridorMiniBar(isActive: Boolean, onClick: () -> Unit, modifie
         )
     ) {
         Row(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 5.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 5.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
             RoadDashes(7)
             Text(
-                text = " ORT HIZ KORİDORU ",
+                text = if (isActive) {
+                    androidx.compose.ui.text.buildAnnotatedString {
+                        append(" ORT HIZ (")
+                        withStyle(
+                            androidx.compose.ui.text.SpanStyle(
+                                color = Color(0xFFFF8A00)
+                            )
+                        ) {
+                            append(
+                                String.format(
+                                    Locale.getDefault(),
+                                    "A%d",
+                                    averageSpeedKmh.roundToInt().coerceAtLeast(0)
+                                )
+                            )
+                        }
+                        append(" ) KORİDORU ")
+                    }
+                } else {
+                    androidx.compose.ui.text.buildAnnotatedString {
+                        append(" ORT HIZ KORİDORU ")
+                    }
+                },
                 color = PrimaryText,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Black,
-                maxLines = 1
+                maxLines = 1,
+                modifier = Modifier.graphicsLayer {
+                    val scale = if (isActive) revealProgress else 1f
+                    scaleX = scale
+                    transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
+                }
             )
             RoadDashes(7)
         }
@@ -2577,6 +2628,8 @@ private fun LandscapeDashboard(
     todayEstimatedFuelCost: Double,
     todayTotalDistanceKm: Double,
     vehicleRealKm: Double,
+    currentLatitude: Double?,
+    currentLongitude: Double?,
     tripStartedAtEpochMillis: Long?,
     tripEndedAtEpochMillis: Long?,
     vehicleMode: String,
@@ -2629,8 +2682,6 @@ private fun LandscapeDashboard(
                 DashboardClockPanel(
                     currentTime = currentTime,
                     currentDate = currentDate,
-                    isSpeedCorridorActive = isSpeedCorridorActive,
-                    speedCorridorAverageSpeedKmh = speedCorridorAverageSpeedKmh,
                     onClick = onClockClick,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -2691,7 +2742,9 @@ private fun LandscapeDashboard(
             sunriseTime = sunriseTime,
             sunsetTime = sunsetTime,
             currentDate = currentDate,
-            vehicleRealKm = vehicleRealKm
+            vehicleRealKm = vehicleRealKm,
+            currentLatitude = currentLatitude,
+            currentLongitude = currentLongitude
         )
 
         if (halfTrackingActive) {
@@ -2768,6 +2821,8 @@ private fun PortraitDashboard(
     todayEstimatedFuelCost: Double,
     todayTotalDistanceKm: Double,
     vehicleRealKm: Double,
+    currentLatitude: Double?,
+    currentLongitude: Double?,
     tripStartedAtEpochMillis: Long?,
     tripEndedAtEpochMillis: Long?,
     vehicleMode: String,
@@ -2827,7 +2882,9 @@ private fun PortraitDashboard(
             sunriseTime = sunriseTime,
             sunsetTime = sunsetTime,
             currentDate = currentDate,
-            vehicleRealKm = vehicleRealKm
+            vehicleRealKm = vehicleRealKm,
+            currentLatitude = currentLatitude,
+            currentLongitude = currentLongitude
         )
 
         Row(
@@ -2843,8 +2900,6 @@ private fun PortraitDashboard(
                 DashboardClockPanel(
                     currentTime = currentTime,
                     currentDate = currentDate,
-                    isSpeedCorridorActive = isSpeedCorridorActive,
-                    speedCorridorAverageSpeedKmh = speedCorridorAverageSpeedKmh,
                     onClick = onClockClick,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -2927,7 +2982,9 @@ private fun SpeedPanel(
     sunriseTime: String,
     sunsetTime: String,
     currentDate: String,
-    vehicleRealKm: Double = 0.0
+    vehicleRealKm: Double = 0.0,
+    currentLatitude: Double? = null,
+    currentLongitude: Double? = null
 ) {
     val strokeScale = LocalDashboardStrokeScale.current
     val fuelCostPerKm = if (dailyDistanceKm > 0.01) dailyFuelCost / dailyDistanceKm else 0.0
@@ -2976,6 +3033,8 @@ private fun SpeedPanel(
                             sunriseTime = sunriseTime,
                             sunsetTime = sunsetTime,
                             compact = compact,
+                            currentLatitude = currentLatitude,
+                            currentLongitude = currentLongitude,
                             modifier = Modifier.fillMaxSize()
                         )
                         Column(
@@ -3128,51 +3187,268 @@ private fun SunOrbitMarker(
     sunriseTime: String,
     sunsetTime: String,
     compact: Boolean,
+    currentLatitude: Double?,
+    currentLongitude: Double?,
     modifier: Modifier = Modifier
 ) {
-    val hour by produceState(initialValue = LocalDateTime.now().hour) {
+    val now by produceState(initialValue = LocalDateTime.now()) {
         while (true) {
-            value = LocalDateTime.now().hour
-            delay(60_000L)
+            value = LocalDateTime.now()
+            delay(30_000L)
         }
     }
+
     fun hourOf(value: String, fallback: Int): Int =
-        runCatching { LocalTime.parse(value, DateTimeFormatter.ofPattern("H:mm")).hour }.getOrDefault(fallback)
+        runCatching {
+            LocalTime.parse(value, DateTimeFormatter.ofPattern("H:mm")).hour
+        }.getOrDefault(fallback)
+
+    fun normalizeDegrees(value: Double): Double =
+        ((value % 360.0) + 360.0) % 360.0
+
+    fun sinD(value: Double) = kotlin.math.sin(Math.toRadians(value))
+    fun cosD(value: Double) = kotlin.math.cos(Math.toRadians(value))
+    fun asinD(value: Double) = Math.toDegrees(kotlin.math.asin(value.coerceIn(-1.0, 1.0)))
+    fun atan2D(y: Double, x: Double) = Math.toDegrees(kotlin.math.atan2(y, x))
+
+    fun julianDay(dateTime: LocalDateTime): Double {
+        val zone = ZoneId.systemDefault()
+        val instant = dateTime.atZone(zone).toInstant()
+        return instant.toEpochMilli() / 86_400_000.0 + 2_440_587.5
+    }
+
+    fun eclipticToEquatorial(longitude: Double, latitude: Double, obliquity: Double): Pair<Double, Double> {
+        val lon = Math.toRadians(longitude)
+        val lat = Math.toRadians(latitude)
+        val eps = Math.toRadians(obliquity)
+        val ra = atan2D(
+            kotlin.math.sin(lon) * kotlin.math.cos(eps) - kotlin.math.tan(lat) * kotlin.math.sin(eps),
+            kotlin.math.cos(lon)
+        )
+        val dec = asinD(
+            kotlin.math.sin(lat) * kotlin.math.cos(eps) +
+                kotlin.math.cos(lat) * kotlin.math.sin(eps) * kotlin.math.sin(lon)
+        )
+        return normalizeDegrees(ra) to dec
+    }
+
+    fun solarEquatorial(jd: Double): Pair<Double, Double> {
+        val d = jd - 2_451_545.0
+        val meanLongitude = normalizeDegrees(280.460 + 0.9856474 * d)
+        val meanAnomaly = normalizeDegrees(357.528 + 0.9856003 * d)
+        val eclipticLongitude =
+            meanLongitude +
+                1.915 * sinD(meanAnomaly) +
+                0.020 * sinD(2.0 * meanAnomaly)
+        val obliquity = 23.4393 - 3.563e-7 * d
+        return eclipticToEquatorial(normalizeDegrees(eclipticLongitude), 0.0, obliquity)
+    }
+
+    fun lunarEquatorial(jd: Double): Triple<Double, Double, Double> {
+        val d = jd - 2_451_543.5
+        val n = normalizeDegrees(125.1228 - 0.0529538083 * d)
+        val inclination = 5.1454
+        val argumentPerigee = normalizeDegrees(318.0634 + 0.1643573223 * d)
+        val semiMajorAxis = 60.2666
+        val eccentricity = 0.0549
+        val meanAnomaly = normalizeDegrees(115.3654 + 13.0649929509 * d)
+
+        val mRad = Math.toRadians(meanAnomaly)
+        val eRad = mRad + eccentricity * (180.0 / Math.PI) *
+            kotlin.math.sin(mRad) * (1.0 + eccentricity * kotlin.math.cos(mRad))
+        val xv = semiMajorAxis * (kotlin.math.cos(eRad) - eccentricity)
+        val yv = semiMajorAxis * kotlin.math.sqrt(1.0 - eccentricity * eccentricity) * kotlin.math.sin(eRad)
+        val trueAnomaly = atan2D(yv, xv)
+        val distance = kotlin.math.sqrt(xv * xv + yv * yv)
+        val vPlusW = Math.toRadians(trueAnomaly + argumentPerigee)
+        val node = Math.toRadians(n)
+        val inc = Math.toRadians(inclination)
+
+        val xh = distance * (
+            kotlin.math.cos(node) * kotlin.math.cos(vPlusW) -
+                kotlin.math.sin(node) * kotlin.math.sin(vPlusW) * kotlin.math.cos(inc)
+            )
+        val yh = distance * (
+            kotlin.math.sin(node) * kotlin.math.cos(vPlusW) +
+                kotlin.math.cos(node) * kotlin.math.sin(vPlusW) * kotlin.math.cos(inc)
+            )
+        val zh = distance * kotlin.math.sin(vPlusW) * kotlin.math.sin(inc)
+
+        val moonLongitude = normalizeDegrees(Math.toDegrees(kotlin.math.atan2(yh, xh)))
+        val moonLatitude = Math.toDegrees(
+            kotlin.math.atan2(zh, kotlin.math.sqrt(xh * xh + yh * yh))
+        )
+        val obliquity = 23.4393 - 3.563e-7 * d
+        val equatorial = eclipticToEquatorial(moonLongitude, moonLatitude, obliquity)
+        return Triple(equatorial.first, equatorial.second, moonLongitude)
+    }
+
+    fun localHorizontal(
+        rightAscension: Double,
+        declination: Double,
+        latitude: Double,
+        longitude: Double,
+        jd: Double
+    ): Pair<Double, Double> {
+        val t = (jd - 2_451_545.0) / 36_525.0
+        val gmst = normalizeDegrees(
+            280.46061837 +
+                360.98564736629 * (jd - 2_451_545.0) +
+                0.000387933 * t * t -
+                t * t * t / 38_710_000.0
+        )
+        val hourAngle = Math.toRadians(normalizeDegrees(gmst + longitude - rightAscension))
+        val lat = Math.toRadians(latitude)
+        val dec = Math.toRadians(declination)
+
+        val altitude = asinD(
+            kotlin.math.sin(lat) * kotlin.math.sin(dec) +
+                kotlin.math.cos(lat) * kotlin.math.cos(dec) * kotlin.math.cos(hourAngle)
+        )
+        val azimuth = normalizeDegrees(
+            atan2D(
+                -kotlin.math.sin(hourAngle),
+                kotlin.math.tan(dec) * kotlin.math.cos(lat) -
+                    kotlin.math.sin(lat) * kotlin.math.cos(hourAngle)
+            ) + 180.0
+        )
+        return azimuth to altitude
+    }
 
     val sunriseHour = hourOf(sunriseTime, 6)
     val sunsetHour = hourOf(sunsetTime, 18)
+    val hour = now.hour + now.minute / 60.0
+
     val sunColor = when {
-        hour == sunriseHour || hour == sunsetHour -> Color(0xFFFF8A24)
-        hour in sunriseHour..sunsetHour -> Color(0xFFFFD43B)
+        now.hour == sunriseHour || now.hour == sunsetHour -> Color(0xFFFF8A24)
+        now.hour in sunriseHour..sunsetHour -> Color(0xFFFFD43B)
         else -> Color(0xFFE34234)
     }
 
+    val jd = julianDay(now)
+    val solarLongitude = runCatching {
+        val d = jd - 2_451_545.0
+        normalizeDegrees(
+            normalizeDegrees(280.460 + 0.9856474 * d) +
+                1.915 * sinD(normalizeDegrees(357.528 + 0.9856003 * d)) +
+                0.020 * sinD(2.0 * normalizeDegrees(357.528 + 0.9856003 * d))
+        )
+    }.getOrDefault(0.0)
+    val moon = runCatching { lunarEquatorial(jd) }.getOrNull()
+    val moonHorizontal = if (
+        moon != null &&
+        currentLatitude != null &&
+        currentLongitude != null &&
+        currentLatitude in -90.0..90.0 &&
+        currentLongitude in -180.0..180.0
+    ) {
+        localHorizontal(
+            rightAscension = moon.first,
+            declination = moon.second,
+            latitude = currentLatitude,
+            longitude = currentLongitude,
+            jd = jd
+        )
+    } else {
+        null
+    }
+
+    val moonPhaseAngle = moon?.let {
+        Math.toRadians(normalizeDegrees(it.third - solarLongitude))
+    }
+    val moonIllumination = moonPhaseAngle?.let { (1.0 - kotlin.math.cos(it)) / 2.0 } ?: 0.0
+    val waxingMoon = moonPhaseAngle?.let { it <= Math.PI } ?: true
+
     Canvas(modifier = modifier) {
         val symbolRadius = (if (compact) 7.dp else 10.dp).toPx()
+        val centerX = size.width / 2f
+        val centerY = size.height / 2f
         val orbitX = size.width / 2f - symbolRadius - 1.dp.toPx()
         val orbitY = size.height / 2f - symbolRadius - 1.dp.toPx()
-        val angle = Math.toRadians((90.0 + hour * 15.0))
-        val center = Offset(
-            x = size.width / 2f + cos(angle).toFloat() * orbitX,
-            y = size.height / 2f + sin(angle).toFloat() * orbitY
+
+        // Güneş ve Ay'ın ortak gökyüzü yörüngesi: özellikle gece ekranında
+        // belirginleşmeden, sadece yön veren silik bir kavis olarak görünür.
+        drawOval(
+            color = PrimaryText.copy(alpha = if (compact) .12f else .16f),
+            topLeft = Offset(centerX - orbitX, centerY - orbitY),
+            size = Size(orbitX * 2f, orbitY * 2f),
+            style = Stroke(width = (if (compact) .8.dp else 1.dp).toPx())
         )
+
+        // Güneşin mevcut hareket mantığı korunuyor; sadece dakika hassasiyeti eklendi.
+        val sunAngle = Math.toRadians(90.0 + hour * 15.0)
+        val sunCenter = Offset(
+            x = centerX + cos(sunAngle).toFloat() * orbitX,
+            y = centerY + sin(sunAngle).toFloat() * orbitY
+        )
+
         repeat(8) { index ->
             val ray = Math.toRadians(index * 45.0)
             val start = symbolRadius * 1.28f
             val end = symbolRadius * 1.72f
             drawLine(
                 color = sunColor,
-                start = Offset(center.x + cos(ray).toFloat() * start, center.y + sin(ray).toFloat() * start),
-                end = Offset(center.x + cos(ray).toFloat() * end, center.y + sin(ray).toFloat() * end),
+                start = Offset(sunCenter.x + cos(ray).toFloat() * start, sunCenter.y + sin(ray).toFloat() * start),
+                end = Offset(sunCenter.x + cos(ray).toFloat() * end, sunCenter.y + sin(ray).toFloat() * end),
                 strokeWidth = (if (compact) 1.4.dp else 1.9.dp).toPx(),
                 cap = StrokeCap.Round
             )
         }
-        drawCircle(color = sunColor.copy(alpha = .22f), radius = symbolRadius * 1.45f, center = center)
-        drawCircle(color = sunColor, radius = symbolRadius, center = center)
+        drawCircle(color = sunColor.copy(alpha = .22f), radius = symbolRadius * 1.45f, center = sunCenter)
+        drawCircle(color = sunColor, radius = symbolRadius, center = sunCenter)
+
+        moonHorizontal?.let { (azimuth, altitude) ->
+            if (altitude > -6.0) {
+                val altitudeRad = Math.toRadians(altitude.coerceIn(0.0, 90.0))
+                // Doğu mevcut güneş gösterimindeki sol tarafla, batı sağ tarafla
+                // eşleştirilir; Ay'ın gerçek azimut ve yüksekliği bu ortak yörüngeye taşınır.
+                val moonAngle = Math.toRadians(180.0 + (azimuth - 90.0))
+                val horizontalScale = kotlin.math.cos(altitudeRad).toFloat()
+                val moonCenter = Offset(
+                    x = centerX + cos(moonAngle).toFloat() * orbitX * horizontalScale,
+                    y = centerY - kotlin.math.sin(altitudeRad).toFloat() * orbitY
+                )
+                val moonRadius = symbolRadius * 0.92f
+                val moonLight = Color(0xFFE8EDF2)
+                val moonDark = Color(0xFF18222C)
+
+                drawCircle(
+                    color = moonDark,
+                    radius = moonRadius * 1.12f,
+                    center = moonCenter
+                )
+
+                if (moonIllumination > 0.015) {
+                    drawCircle(
+                        color = moonLight,
+                        radius = moonRadius,
+                        center = moonCenter
+                    )
+
+                    if (moonIllumination < 0.985) {
+                        val shift = if (waxingMoon) {
+                            (-4.0 * moonRadius * moonIllumination).toFloat()
+                        } else {
+                            (4.0 * moonRadius * (moonIllumination - 1.0)).toFloat()
+                        }
+                        drawCircle(
+                            color = moonDark,
+                            radius = moonRadius,
+                            center = Offset(moonCenter.x + shift, moonCenter.y)
+                        )
+                    }
+                }
+
+                drawCircle(
+                    color = moonLight.copy(alpha = .16f),
+                    radius = moonRadius * 1.35f,
+                    center = moonCenter,
+                    style = Stroke(width = (if (compact) .7.dp else .9.dp).toPx())
+                )
+            }
+        }
     }
 }
-
 @Composable
 private fun SpeedometerGauge(
     speedKmh: Int,
@@ -4652,8 +4928,6 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawVehicleWheel(
 private fun DashboardClockPanel(
     currentTime: String,
     currentDate: String,
-    isSpeedCorridorActive: Boolean,
-    speedCorridorAverageSpeedKmh: Double,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -4675,43 +4949,18 @@ private fun DashboardClockPanel(
             val widthDriven = maxWidth.value / 2.48f
             val largeClockValue = kotlin.math.min(heightDriven, widthDriven).coerceIn(54f, 158f)
             val largeClockSize = largeClockValue.sp
-            val corridorAlpha by animateFloatAsState(
-                targetValue = if (isSpeedCorridorActive) 1f else 0f,
-                animationSpec = tween(durationMillis = 280),
-                label = "corridorAverageAlpha"
+            Text(
+                text = currentTime,
+                color = PrimaryText,
+                fontSize = if (isLargeClock) largeClockSize else 30.sp,
+                letterSpacing = if (isLargeClock) (largeClockValue * 0.018f).sp else 1.sp,
+                fontWeight = FontWeight.Black,
+                maxLines = 1,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .fillMaxWidth()
             )
-            if (isSpeedCorridorActive) {
-                Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = currentTime, color = PrimaryText,
-                        fontSize = if (isLargeClock) (largeClockValue * .58f).sp else 20.sp,
-                        letterSpacing = 1.sp, fontWeight = FontWeight.Black, maxLines = 1,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                        modifier = Modifier.weight(1.32f)
-                    )
-                    Text(
-                        text = String.format(Locale.getDefault(), "%.0f", speedCorridorAverageSpeedKmh),
-                        color = Color(0xFFFF8A00),
-                        fontSize = if (isLargeClock) (largeClockValue * .58f).sp else 20.sp,
-                        letterSpacing = 1.sp, fontWeight = FontWeight.Black, maxLines = 1,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                        modifier = Modifier.weight(.68f).graphicsLayer { alpha = corridorAlpha }
-                    )
-                }
-            } else {
-                Text(
-                    text = currentTime,
-                    color = PrimaryText,
-                    fontSize = if (isLargeClock) largeClockSize else 30.sp,
-                    letterSpacing = if (isLargeClock) (largeClockValue * 0.018f).sp else 1.sp,
-                    fontWeight = FontWeight.Black,
-                    maxLines = 1,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .fillMaxWidth()
-                )
-            }
         }
     }
 }
