@@ -1,4 +1,4 @@
-name: Aldanmaz Drive 147 Debug Build
+name: Aldanmaz Drive 0410261450-1 Debug Build
 # 147 stable-signing retry
 on:
   push:
@@ -26,7 +26,7 @@ jobs:
           java-version: '17'
       - name: Configure TomTom API key
         env:
-          TOMTOM_API_KEY: ${{ secrets.TOMTOM_API_KEY }}
+          TOMTOM_API_KEY: ${{ secrets.TOMTOM2 }}
         run: |
           if [ -z "$TOMTOM_API_KEY" ]; then
             echo "TOMTOM_API_KEY GitHub Actions secret is missing."
@@ -52,18 +52,18 @@ jobs:
       - name: Build Debug APK
         run: ./gradlew assembleDebug --no-daemon
       - name: Create source ZIP
-        run: zip -r ../AldanmazDrive_147.zip . -x '.gradle/*' 'app/build/*' 'local.properties' '**/.DS_Store'
+        run: zip -r ../AldanmazDrive_0410261450-1.zip . -x '.gradle/*' 'app/build/*' 'local.properties' '**/.DS_Store'
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: AldanmazDrive_147_Debug_APK
+          name: AldanmazDrive_0410261450-1_APK
           path: Desktop/AldanmazDrive_147_github_hazir/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 30
       - name: Upload 147 ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: AldanmazDrive_147_ZIP
+          name: AldanmazDrive_0410261450-1_ZIP
           path: Desktop/AldanmazDrive_147.zip
           if-no-files-found: error
           retention-days: 30
