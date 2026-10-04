@@ -790,7 +790,7 @@ private fun SpeedCorridorMiniBar(
             Text(
                 text = if (isActive) {
                     androidx.compose.ui.text.buildAnnotatedString {
-                        append(" ORT HIZ ( ")
+                        append(" ORT HIZ (")
                         withStyle(
                             androidx.compose.ui.text.SpanStyle(
                                 color = Color(0xFFFF8A00)
@@ -799,7 +799,7 @@ private fun SpeedCorridorMiniBar(
                             append(
                                 String.format(
                                     Locale.getDefault(),
-                                    "A %d",
+                                    "A%d",
                                     averageSpeedKmh.roundToInt().coerceAtLeast(0)
                                 )
                             )
