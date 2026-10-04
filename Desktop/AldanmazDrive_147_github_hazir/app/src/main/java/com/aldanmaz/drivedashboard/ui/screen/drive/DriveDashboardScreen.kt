@@ -3028,7 +3028,12 @@ private fun SpeedPanel(
                 }
 
                 isParkMode -> {
-                    Box(modifier = Modifier.fillMaxSize()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            // Gündüz temasında park ekranı açık mavi zemin üzerindedir.
+                            .then(if (DayTheme) Modifier.background(Color(0xFF6FB1E8)) else Modifier)
+                    ) {
                         SunOrbitMarker(
                             sunriseTime = sunriseTime,
                             sunsetTime = sunsetTime,
@@ -3103,19 +3108,20 @@ private fun SpeedPanel(
                                     height = if (compact) 132.dp else 170.dp
                                 )
                                 .background(
-                                    color = Color(0xFF006FD6),
+                                    // Gündüz: gerçek park levhası mavisi, beyaz P ve çerçeve.
+                                    color = if (DayTheme) Color(0xFF0A58B5) else Color(0xFF006FD6),
                                     shape = RoundedCornerShape(if (compact) 16.dp else 22.dp)
                                 )
                                 .border(
                                     width = 3.dp,
-                                    color = CyanAccent,
+                                    color = if (DayTheme) Color.White else CyanAccent,
                                     shape = RoundedCornerShape(if (compact) 16.dp else 22.dp)
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = "P",
-                                color = PrimaryText,
+                                color = if (DayTheme) Color.White else PrimaryText,
                                 fontSize = if (compact) 78.sp else 104.sp,
                                 fontWeight = FontWeight.ExtraBold
                             )
@@ -3123,7 +3129,7 @@ private fun SpeedPanel(
 
                         Text(
                             text = formatParkDuration(parkDurationSeconds),
-                            color = PrimaryText,
+                            color = if (DayTheme) Color.White else PrimaryText,
                             fontSize = if (compact) 25.sp else 34.sp,
                             fontWeight = FontWeight.ExtraBold,
                             modifier = Modifier
@@ -3948,11 +3954,12 @@ private fun DaciaDayRoadAnimation(
     modifier: Modifier = Modifier
 ) {
     var phase by remember { mutableFloatStateOf(.16f) }
-    val smoothedRate = remember { Animatable(daciaNightRoadAnimationRate(speedKmh)) }
+    // Gündüz yolu, gece yoluna göre 2 kat hızlı akar.
+    val smoothedRate = remember { Animatable(daciaNightRoadAnimationRate(speedKmh) * 2f) }
 
     LaunchedEffect(speedKmh) {
         smoothedRate.animateTo(
-            targetValue = daciaNightRoadAnimationRate(speedKmh),
+            targetValue = daciaNightRoadAnimationRate(speedKmh) * 2f,
             animationSpec = tween(durationMillis = 1_800, easing = LinearEasing)
         )
     }
