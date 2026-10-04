@@ -3061,7 +3061,7 @@ private fun SpeedPanel(
                                     height = if (compact) 132.dp else 170.dp
                                 )
                                 .background(
-                                    color = Color(0xFF3A3A3A),
+                                    color = Color(0xFF006FD6),
                                     shape = RoundedCornerShape(if (compact) 16.dp else 22.dp)
                                 )
                                 .border(
@@ -3073,7 +3073,7 @@ private fun SpeedPanel(
                         ) {
                             Text(
                                 text = "P",
-                                color = Color.White,
+                                color = CyanAccent,
                                 fontSize = if (compact) 78.sp else 104.sp,
                                 fontWeight = FontWeight.ExtraBold
                             )
@@ -3081,7 +3081,7 @@ private fun SpeedPanel(
 
                         Text(
                             text = formatParkDuration(parkDurationSeconds),
-                            color = Color(0xFFFFFFFF),
+                            color = CyanAccent,
                             fontSize = if (compact) 25.sp else 34.sp,
                             fontWeight = FontWeight.ExtraBold,
                             modifier = Modifier
@@ -3094,7 +3094,7 @@ private fun SpeedPanel(
                                 String.format(Locale("tr", "TR"), "ARAÇ KM  %,.0f", vehicleRealKm).replace(',', '.')
                             else
                                 "ARAÇ KM  --",
-                            color = Color.White,
+                            color = CyanAccent,
                             fontSize = if (compact) 12.sp else 15.sp,
                             fontWeight = FontWeight.ExtraBold,
                             maxLines = 1,
@@ -3411,7 +3411,6 @@ private fun SunOrbitMarker(
                     center = moonCenter,
                     style = Stroke(width = (if (compact) .7.dp else .9.dp).toPx())
                 )
-            }
         }
     }
 }
@@ -4865,7 +4864,7 @@ private fun DashboardClockPanel(
             val largeClockSize = largeClockValue.sp
             Text(
                 text = currentTime,
-                color = PrimaryText,
+                color = if (DayTheme) Color.White else PrimaryText,
                 fontSize = if (isLargeClock) largeClockSize else 30.sp,
                 letterSpacing = if (isLargeClock) (largeClockValue * 0.018f).sp else 1.sp,
                 fontWeight = FontWeight.Black,
