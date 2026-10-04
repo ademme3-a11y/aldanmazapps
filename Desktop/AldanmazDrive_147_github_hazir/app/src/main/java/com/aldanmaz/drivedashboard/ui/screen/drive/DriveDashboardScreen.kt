@@ -821,8 +821,19 @@ private fun SpeedCorridorMiniBar(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = if (isActive) "-----ORT HIZ ($averageText) KORİDORU-----"
-                else "-----ORT HIZ KORİDORU-----",
+                text = if (isActive) {
+                    androidx.compose.ui.text.buildAnnotatedString {
+                        append("-----ORT HIZ (")
+                        withStyle(androidx.compose.ui.text.SpanStyle(color = Color(0xFFFF8A00))) {
+                            append(averageText)
+                        }
+                        append(") KORİDORU-----")
+                    }
+                } else {
+                    androidx.compose.ui.text.buildAnnotatedString {
+                        append("-----ORT HIZ KORİDORU-----")
+                    }
+                },
                 color = LightText,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Black,
@@ -3451,61 +3462,62 @@ private fun SpeedometerGauge(
             )
         }
 
-        Canvas(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            val center =
-                Offset(
-                    size.width / 2f,
-                    size.height * 0.43f
-                )
-
-            val radius =
-                min(
-                    size.width * 0.44f,
-                    size.height * 0.40f
-                )
-
-            if (radius <= 0f) {
-                return@Canvas
-            }
-
-            for (i in 0..20) {
-                val angle =
-                    -130f + i * 13f
-
-                val outer =
-                    pointOnCircle(
-                        center,
-                        radius * 0.90f,
-                        angle
+        if (!DayTheme) {
+            Canvas(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                val center =
+                    Offset(
+                        size.width / 2f,
+                        size.height * 0.43f
                     )
 
-                val inner =
-                    pointOnCircle(
-                        center,
-                        radius *
-                                if (i % 5 == 0) 0.79f
-                                else 0.84f,
-                        angle
+                val radius =
+                    min(
+                        size.width * 0.44f,
+                        size.height * 0.40f
                     )
 
-                drawLine(
-                    color =
-                        if (i % 5 == 0)
-                            SafeGreen
-                        else
-                            Color(0xFF127070),
-                    start = inner,
-                    end = outer,
-                    strokeWidth =
-                        if (i % 5 == 0)
-                            2.dp.toPx() * strokeScale
-                        else
-                            1.dp.toPx() * strokeScale
-                )
-            }
+                if (radius <= 0f) {
+                    return@Canvas
+                }
 
+                for (i in 0..20) {
+                    val angle =
+                        -130f + i * 13f
+
+                    val outer =
+                        pointOnCircle(
+                            center,
+                            radius * 0.90f,
+                            angle
+                        )
+
+                    val inner =
+                        pointOnCircle(
+                            center,
+                            radius *
+                                    if (i % 5 == 0) 0.79f
+                                    else 0.84f,
+                            angle
+                        )
+
+                    drawLine(
+                        color =
+                            if (i % 5 == 0)
+                                SafeGreen
+                            else
+                                Color(0xFF127070),
+                        start = inner,
+                        end = outer,
+                        strokeWidth =
+                            if (i % 5 == 0)
+                                2.dp.toPx() * strokeScale
+                            else
+                                1.dp.toPx() * strokeScale
+                    )
+                }
+            }
         }
 
         // Gerçek/aktif yol hız sınırı levhası + veri kaynağı
@@ -4109,7 +4121,7 @@ private fun SunriseBlock(
 
         Text(
             text = title,
-            color = PrimaryText,
+            color = if (DayTheme) Color.White else PrimaryText,
             fontSize = 15.sp,
             fontWeight = FontWeight.Medium
         )
