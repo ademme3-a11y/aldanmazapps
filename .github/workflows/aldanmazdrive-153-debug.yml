@@ -43,6 +43,16 @@ jobs:
         run: |
           keytool -list -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey >/dev/null
 
+      - name: Prepare TomTom API configuration
+        env:
+          TOMTOM2: ${{ secrets.TOMTOM2 }}
+        run: |
+          if [ -z "$TOMTOM2" ]; then
+            echo "TOMTOM2 GitHub secret is missing."
+            exit 1
+          fi
+          printf 'TOMTOM_API_KEY=%s\n' "$TOMTOM2" > local.properties
+
       - name: Build Debug APK
         run: ./gradlew assembleDebug --no-daemon
 
