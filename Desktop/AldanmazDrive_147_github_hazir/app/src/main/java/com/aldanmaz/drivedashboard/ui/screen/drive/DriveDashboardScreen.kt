@@ -805,6 +805,7 @@ private fun SpeedCorridorMiniBar(
         animationSpec = tween(durationMillis = 280),
         label = "speedCorridorTextReveal"
     )
+    val averageText = String.format(Locale.getDefault(), "A%02d", averageSpeedKmh.roundToInt().coerceIn(0, 99))
 
     Surface(
         modifier = modifier.fillMaxHeight().clickable(onClick = onClick),
@@ -815,49 +816,24 @@ private fun SpeedCorridorMiniBar(
             if (isActive) SafeGreen else Color.White.copy(alpha = .72f)
         )
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 5.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
         ) {
-            RoadDashes(7)
             Text(
-                text = if (isActive) {
-                    androidx.compose.ui.text.buildAnnotatedString {
-                        append(" ORT HIZ (")
-                        withStyle(
-                            androidx.compose.ui.text.SpanStyle(
-                                color = Color(0xFFFF8A00)
-                            )
-                        ) {
-                            append(
-                                String.format(
-                                    Locale.getDefault(),
-                                    "A%d",
-                                    averageSpeedKmh.roundToInt().coerceAtLeast(0)
-                                )
-                            )
-                        }
-                        append(" ) KORİDORU ")
-                    }
-                } else {
-                    androidx.compose.ui.text.buildAnnotatedString {
-                        append(" ORT HIZ KORİDORU ")
-                    }
-                },
+                text = if (isActive) "-----ORT HIZ ($averageText) KORİDORU-----"
+                else "-----ORT HIZ KORİDORU-----",
                 color = LightText,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Black,
                 maxLines = 1,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 modifier = Modifier.graphicsLayer {
                     val scale = if (isActive) revealProgress else 1f
                     scaleX = scale
-                    transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
+                    transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 0.5f)
                 }
             )
-            RoadDashes(7)
         }
     }
 }
@@ -3074,19 +3050,19 @@ private fun SpeedPanel(
                                     height = if (compact) 132.dp else 170.dp
                                 )
                                 .background(
-                                    color = Color(0xFF006FD6),
+                                    color = if (DayTheme) DashboardPaletteRuntime.dayTileBottom else Color(0xFF263238),
                                     shape = RoundedCornerShape(if (compact) 16.dp else 22.dp)
                                 )
                                 .border(
                                     width = 3.dp,
-                                    color = CyanAccent,
+                                    color = FrameAccent,
                                     shape = RoundedCornerShape(if (compact) 16.dp else 22.dp)
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = "P",
-                                color = PrimaryText,
+                                color = Color.White,
                                 fontSize = if (compact) 78.sp else 104.sp,
                                 fontWeight = FontWeight.ExtraBold
                             )
@@ -3104,13 +3080,14 @@ private fun SpeedPanel(
 
                         if (vehicleRealKm > 0.0) {
                             Text(
-                                text = String.format(Locale("tr", "TR"), "%,.0f Km", vehicleRealKm).replace(',', '.'),
-                                color = CyanAccent.copy(alpha = .95f),
+                                text = String.format(Locale("tr", "TR"), "ARAÇ KM  %,.0f", vehicleRealKm).replace(',', '.'),
+                                color = if (DayTheme) DashboardPaletteRuntime.dayFrame else Color.White,
                                 fontSize = if (compact) 12.sp else 15.sp,
-                                fontWeight = FontWeight.Bold,
+                                fontWeight = FontWeight.ExtraBold,
+                                maxLines = 1,
                                 modifier = Modifier
                                     .align(Alignment.BottomCenter)
-                                    .padding(bottom = 2.dp)
+                                    .padding(bottom = if (compact) 7.dp else 9.dp)
                             )
                         }
 
@@ -3460,6 +3437,13 @@ private fun SpeedometerGauge(
             )
         }
 
+        DayModeSpeedArc(
+            speedKmh = speedKmh,
+            speedColor = speedColor,
+            compact = compact,
+            modifier = Modifier.fillMaxSize()
+        )
+
         Canvas(
             modifier = Modifier.fillMaxSize()
         ) {
@@ -3478,55 +3462,6 @@ private fun SpeedometerGauge(
             if (radius <= 0f) {
                 return@Canvas
             }
-
-            // _41: dış çap değişmeden renkli hız halkası merkeze doğru %50 kalınlaşır.
-            // _46: dış kenar sabit; ek kalınlık yalnız merkeze doğru büyür.
-            // Dış çap sabit kalırken ilave kalınlığın tamamı kadranın içine büyür.
-            val speedRingWidth = 16.dp.toPx() * strokeScale
-            val speedRingOuterRadius = radius + (5.2.dp.toPx() * strokeScale)
-            val speedRingRadius = speedRingOuterRadius - speedRingWidth / 2f
-
-            drawArc(
-                color = Color(0xFF0B3737),
-                startAngle = 140f,
-                sweepAngle = 260f,
-                useCenter = false,
-                topLeft = Offset(
-                    center.x - speedRingRadius,
-                    center.y - speedRingRadius
-                ),
-                size = Size(
-                    speedRingRadius * 2f,
-                    speedRingRadius * 2f
-                ),
-                style = Stroke(
-                    width = speedRingWidth,
-                    cap = StrokeCap.Round
-                )
-            )
-
-            val progress =
-                (speedKmh / 160f)
-                    .coerceIn(0f, 1f)
-
-            drawArc(
-                color = speedColor,
-                startAngle = 140f,
-                sweepAngle = 260f * progress,
-                useCenter = false,
-                topLeft = Offset(
-                    center.x - speedRingRadius,
-                    center.y - speedRingRadius
-                ),
-                size = Size(
-                    speedRingRadius * 2f,
-                    speedRingRadius * 2f
-                ),
-                style = Stroke(
-                    width = speedRingWidth,
-                    cap = StrokeCap.Round
-                )
-            )
 
             for (i in 0..20) {
                 val angle =
@@ -3981,24 +3916,32 @@ private fun DaciaDayRoadAnimation(
                 }
             }
 
-            // Hız yayı kaynak gündüz sürümündeki konum ve davranışta korunur.
-            val progress = (speedKmh / 160f).coerceIn(0f, 1f)
-            if (progress > .005f) {
-                val center = at(.503f, .408f)
-                val radius = .312f * DayRoadImageWidth * scale
-                drawArc(
-                    color = speedColor,
-                    startAngle = 140f,
-                    sweepAngle = 260f * progress,
-                    useCenter = false,
-                    topLeft = Offset(center.x - radius, center.y - radius),
-                    size = Size(radius * 2f, radius * 2f),
-                    style = Stroke(
-                        width = .050f * DayRoadImageWidth * scale,
-                        cap = StrokeCap.Round
-                    )
-                )
-            }
+        }
+    }
+}
+
+@Composable
+private fun DayModeSpeedArc(
+    speedKmh: Int,
+    speedColor: Color,
+    compact: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Canvas(modifier = modifier) {
+        val scale = kotlin.math.max(size.width / DayRoadImageWidth, size.height / DayRoadImageHeight)
+        val center = Offset(size.width / 2f, size.height * 0.408f)
+        val radius = .312f * DayRoadImageWidth * scale
+        val progress = (speedKmh / 160f).coerceIn(0f, 1f)
+        if (progress > .005f) {
+            drawArc(
+                color = speedColor,
+                startAngle = 140f,
+                sweepAngle = 260f * progress,
+                useCenter = false,
+                topLeft = Offset(center.x - radius, center.y - radius),
+                size = Size(radius * 2f, radius * 2f),
+                style = Stroke(width = .050f * DayRoadImageWidth * scale, cap = StrokeCap.Round)
+            )
         }
     }
 }

@@ -346,22 +346,22 @@ fun HistoryStatisticsScreen(
                     border = BorderStroke(1.dp, HCyan),
                     shape = RoundedCornerShape(9.dp)
                 ) { Text("YEDEK", fontSize = 10.sp, fontWeight = FontWeight.Bold) }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    TextButton(
-                        onClick = { vehicleKmText.toDoubleOrNull()?.let(viewModel::setVehicleRealKm) },
-                        modifier = Modifier.height(28.dp)
-                    ) {
-                        Text("KAYDET", color = HGreen, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                OutlinedTextField(
+                    value = vehicleKmText,
+                    onValueChange = { vehicleKmText = it.filter(Char::isDigit) },
+                    label = { Text("ARAÇ KM", fontSize = 9.sp) },
+                    singleLine = true,
+                    modifier = Modifier.width(112.dp).height(58.dp),
+                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp, color = HText),
+                    trailingIcon = {
+                        TextButton(
+                            onClick = { vehicleKmText.toDoubleOrNull()?.let(viewModel::setVehicleRealKm) },
+                            modifier = Modifier.offset(y = (-2).dp)
+                        ) {
+                            Text("KAYDET", color = HGreen, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
-                    OutlinedTextField(
-                        value = vehicleKmText,
-                        onValueChange = { vehicleKmText = it.filter(Char::isDigit) },
-                        label = { Text("ARAÇ KM", fontSize = 9.sp) },
-                        singleLine = true,
-                        modifier = Modifier.width(145.dp).height(58.dp),
-                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp, color = HText)
-                    )
-                }
+                )
                 OutlinedTextField(
                     value = if (state.vehicleGpsKm > 0.0) String.format(Locale.US, "%.1f", state.vehicleGpsKm) else "0,0",
                     onValueChange = {},
@@ -591,6 +591,17 @@ private fun HistoryTable(state: HistoryUiState) {
                         BodyCell(
                             if (month.fuelPurchaseLiters > 0.0) (month.fuelPurchaseTl / month.fuelPurchaseLiters).two() else "—",
                             tlLw
+                        )
+                    }
+                    Row(
+                        Modifier.width(width).background(HBg).padding(vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        BodyCell("REVİZE KM", 188.dp)
+                        BodyCell("Gerçek KM − GPS KM", 185.dp)
+                        BodyCell(
+                            if (month.revisionKm == 0.0) "0,0 km" else "${month.revisionKm.one()} km",
+                            150.dp
                         )
                     }
                 }
