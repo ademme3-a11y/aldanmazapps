@@ -351,12 +351,12 @@ fun HistoryStatisticsScreen(
                     onValueChange = { vehicleKmText = it.filter(Char::isDigit) },
                     label = { Text("ARAÇ KM", fontSize = 9.sp) },
                     singleLine = true,
-                    modifier = Modifier.width(112.dp).height(58.dp),
+                    modifier = Modifier.width(112.dp).height(42.dp),
                     textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp, color = HText),
                     trailingIcon = {
                         TextButton(
                             onClick = { vehicleKmText.toDoubleOrNull()?.let(viewModel::setVehicleRealKm) },
-                            modifier = Modifier.padding(bottom = 2.dp)
+                            modifier = Modifier.offset(y = (-2).dp)
                         ) {
                             Text("KAYDET", color = HGreen, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                         }
@@ -369,6 +369,15 @@ fun HistoryStatisticsScreen(
                     label = { Text("GPS KM", fontSize = 9.sp) },
                     singleLine = true,
                     modifier = Modifier.width(112.dp).height(58.dp),
+                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp, color = HText)
+                )
+                OutlinedTextField(
+                    value = String.format(Locale("tr", "TR"), "%+.1f", state.vehicleRealKm - state.vehicleGpsKm),
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("REVİZE KM", fontSize = 9.sp) },
+                    singleLine = true,
+                    modifier = Modifier.width(112.dp).height(42.dp),
                     textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp, color = HText)
                 )
                 Button(
