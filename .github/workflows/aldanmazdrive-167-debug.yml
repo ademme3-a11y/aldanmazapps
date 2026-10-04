@@ -41,18 +41,18 @@ jobs:
       - name: Rename APK
         run: cp app/build/outputs/apk/debug/app-debug.apk ../AldanmazDrive_0410261234-1.apk
       - name: Create source ZIP
-        run: zip -r ../AldanmazDrive_0310262252-2.zip . -x '.gradle/*' 'app/build/*' '**/.DS_Store' 'local.properties'
+        run: zip -r ../AldanmazDrive_0410261234-1.zip . -x '.gradle/*' 'app/build/*' '**/.DS_Store' 'local.properties'
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: AldanmazDrive_0310262252-2_APK
-          path: Desktop/AldanmazDrive_0310262252-2.apk
+          name: AldanmazDrive_0410261234-1_APK
+          path: Desktop/AldanmazDrive_0410261234-1.apk
           if-no-files-found: error
           retention-days: 30
       - name: Upload source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: AldanmazDrive_0310262252-2_ZIP
-          path: Desktop/AldanmazDrive_0310262252-2.zip
+          name: AldanmazDrive_0410261234-1_ZIP
+          path: Desktop/AldanmazDrive_0410261234-1.zip
           if-no-files-found: error
           retention-days: 30
