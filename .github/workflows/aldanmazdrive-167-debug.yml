@@ -1,4 +1,4 @@
-name: Aldanmaz Drive 0410261345-1 Debug Build
+name: Aldanmaz Drive 0410261516-1 Debug Build
 
 on:
   push:
@@ -39,20 +39,20 @@ jobs:
       - name: Verify APK signing
         run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/debug/app-debug.apk
       - name: Rename APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk ../AldanmazDrive_0410261345-1.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk ../AldanmazDrive_0410261516-1.apk
       - name: Create source ZIP
-        run: zip -r ../AldanmazDrive_0410261345-1.zip . -x '.gradle/*' 'app/build/*' '**/.DS_Store' 'local.properties'
+        run: zip -r ../AldanmazDrive_0410261516-1.zip . -x '.gradle/*' 'app/build/*' '**/.DS_Store' 'local.properties'
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: AldanmazDrive_0410261345-1_APK
-          path: Desktop/AldanmazDrive_0410261345-1.apk
+          name: AldanmazDrive_0410261516-1_APK
+          path: Desktop/AldanmazDrive_0410261516-1.apk
           if-no-files-found: error
           retention-days: 30
       - name: Upload source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: AldanmazDrive_0410261345-1_ZIP
-          path: Desktop/AldanmazDrive_0410261345-1.zip
+          name: AldanmazDrive_0410261516-1_ZIP
+          path: Desktop/AldanmazDrive_0410261516-1.zip
           if-no-files-found: error
           retention-days: 30
