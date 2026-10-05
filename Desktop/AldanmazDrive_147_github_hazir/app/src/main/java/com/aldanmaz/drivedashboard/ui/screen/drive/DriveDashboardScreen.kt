@@ -1509,7 +1509,7 @@ private fun WeatherHeaderCard(
                                     it
                                 )
                             } ?: if (weatherUiState.isLoading) "…" else "--°",
-                            color = PrimaryText,
+                            color = if (DayTheme) Color.White else PrimaryText,
                             fontSize = 34.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1
@@ -1519,7 +1519,7 @@ private fun WeatherHeaderCard(
                             text = weatherConditionText(
                                 weatherUiState.condition
                             ),
-                            color = LegacyAccent,
+                            color = if (DayTheme) Color.White else LegacyAccent,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 1
@@ -1565,7 +1565,7 @@ private fun WeatherHeaderCard(
 
                             Text(
                                 text = weatherUiState.cityName ?: "Konum",
-                                color = PrimaryText,
+                                color = if (DayTheme) Color.White else PrimaryText,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1
@@ -1578,8 +1578,7 @@ private fun WeatherHeaderCard(
                                     } else {
                                         "Çevrim içi"
                                     },
-                                color =
-                                    if (weatherUiState.isUsingCachedData) {
+                                color = if (DayTheme) Color.White else if (weatherUiState.isUsingCachedData) {
                                         WarningYellow
                                     } else {
                                         SafeGreen
@@ -1591,7 +1590,7 @@ private fun WeatherHeaderCard(
 
                             Text(
                                 text = "Hiss. $feels  •  Nem $humidity",
-                                color = SecondaryText,
+                                color = if (DayTheme) Color.White else SecondaryText,
                                 fontSize = 14.sp,
                                 maxLines = 1
                             )
@@ -1599,14 +1598,14 @@ private fun WeatherHeaderCard(
                             Text(
                                 text =
                                     "Rüzgâr ${weatherUiState.windDirectionText} $wind km/h",
-                                color = SecondaryText,
+                                color = if (DayTheme) Color.White else SecondaryText,
                                 fontSize = 10.sp,
                                 maxLines = 1
                             )
 
                             Text(
                                 text = "Hamle $gust km/h",
-                                color = SecondaryText,
+                                color = if (DayTheme) Color.White else SecondaryText,
                                 fontSize = 10.sp,
                                 maxLines = 1
                             )
@@ -1622,7 +1621,7 @@ private fun WeatherHeaderCard(
                                     else ->
                                         "Konum bekleniyor"
                                 },
-                                color = SecondaryText,
+                                color = if (DayTheme) Color.White else SecondaryText,
                                 fontSize = 11.sp,
                                 maxLines = 1
                             )
@@ -1633,7 +1632,7 @@ private fun WeatherHeaderCard(
                 Text(
                     text = currentDate.uppercase(Locale("tr", "TR")),
                     modifier = Modifier.align(Alignment.BottomStart).padding(start = 10.dp, bottom = 9.dp),
-                    color = CyanAccent.copy(alpha = .95f),
+                    color = if (DayTheme) Color.White else CyanAccent.copy(alpha = .95f),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1
@@ -1642,7 +1641,7 @@ private fun WeatherHeaderCard(
                 Text(
                     text = "Tek dokun: küçült • Çift dokun: detay",
                     modifier = Modifier.align(Alignment.BottomEnd),
-                    color = SecondaryText.copy(alpha = 0.55f),
+                    color = if (DayTheme) Color.White else SecondaryText.copy(alpha = 0.55f),
                     fontSize = 7.sp,
                     maxLines = 1
                 )
@@ -1674,7 +1673,7 @@ private fun WeatherHeaderCard(
                                         it
                                     )
                                 } ?: if (weatherUiState.isLoading) "…" else "--°",
-                                color = PrimaryText,
+                                color = if (DayTheme) Color.White else PrimaryText,
                                 fontSize = 23.sp,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1
@@ -1684,7 +1683,7 @@ private fun WeatherHeaderCard(
                                 text = weatherConditionText(
                                     weatherUiState.condition
                                 ),
-                                color = CyanAccent,
+                                color = if (DayTheme) Color.White else CyanAccent,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 maxLines = 1
@@ -1715,14 +1714,14 @@ private fun WeatherHeaderCard(
                                 else ->
                                     "Konum bekleniyor"
                             },
-                            color = SecondaryText,
+                            color = if (DayTheme) Color.White else SecondaryText,
                             fontSize = 8.5.sp,
                             maxLines = 1
                         )
 
                         Text(
                             text = currentDate.uppercase(Locale("tr", "TR")),
-                            color = CyanAccent.copy(alpha = .95f),
+                            color = if (DayTheme) Color.White else CyanAccent.copy(alpha = .95f),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1
@@ -3672,12 +3671,12 @@ private fun DaciaNightRoadAnimation(
 ) {
     var phase by remember { mutableFloatStateOf(.16f) }
     var previousHeading by remember { mutableStateOf<Float?>(null) }
-    val smoothedRate = remember { Animatable(daciaNightRoadAnimationRate(speedKmh)) }
+    val smoothedRate = remember { Animatable(daciaNightRoadAnimationRate(speedKmh) * 2f) }
     val smoothedTurn = remember { Animatable(0f) }
 
     LaunchedEffect(speedKmh) {
         smoothedRate.animateTo(
-            targetValue = daciaNightRoadAnimationRate(speedKmh),
+            targetValue = daciaNightRoadAnimationRate(speedKmh) * 2f,
             animationSpec = tween(durationMillis = 1_800, easing = LinearEasing)
         )
     }
@@ -3689,7 +3688,7 @@ private fun DaciaNightRoadAnimation(
             val elapsedSeconds =
                 ((frame - previousFrame) / 1_000_000_000f).coerceIn(0f, .05f)
             previousFrame = frame
-            phase = (phase + elapsedSeconds * smoothedRate.value * 2f) % 1f
+            phase = (phase + elapsedSeconds * smoothedRate.value) % 1f
         }
     }
 
