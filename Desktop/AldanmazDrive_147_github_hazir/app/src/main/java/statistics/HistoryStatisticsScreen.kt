@@ -366,12 +366,12 @@ fun HistoryStatisticsScreen(
                 OutlinedTextField(
                     value = vehicleKmText,
                     onValueChange = { vehicleKmText = it.filter(Char::isDigit) },
-                    label = { Text("ARAÇ KM", fontSize = 9.sp) },
+                    label = { Text("ARAÇ KM", fontSize = 5.sp) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.width(180.dp).height(58.dp),
                     textStyle = androidx.compose.ui.text.TextStyle(
-                        fontSize = 15.sp,
+                        fontSize = 10.sp,
                         color = HText,
                         fontWeight = FontWeight.Bold
                     ),
