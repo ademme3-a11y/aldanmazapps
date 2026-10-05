@@ -497,8 +497,7 @@ fun DriveDashboardScreen(
                         } else {
                             Box(Modifier.fillMaxSize()) {
                                 LandscapeDashboard(
-                                    halfTrackingActive = showDashboardRouteProfile || showDashboardLiveProfile,
-                                    speedKmh = speedKmh,
+                                    halfTrackingActive = showDashboardRouteProfile || showDashboardLiveProfile,                                    speedKmh = speedKmh,
                                     speedDataSource = speedDataSource,
                                     speedColor = speedColor,
                                     speedLimitKmh = activeSpeedLimit,
@@ -997,8 +996,7 @@ private fun DashboardHeader(
     }
     // 136: Tek dokunuş artık gerçek çalma durumuna (musicPlaying) göre karar veriyor.
     // Böylece müzik Gemini tarafından başlatılmış olsa bile tek dokunuş onu doğru şekilde
-    // durdurur; yerelde başlatılmamış olması "durdur" kararını engellemez.
-    fun toggleMusic() {
+    // durdurur; yerelde başlatılmamış olması "durdur" kararını engellemez.    fun toggleMusic() {
         if (musicPlaying) {
             MediaAppController.stopMedia(context)
             musicPlaying = false
@@ -1497,8 +1495,7 @@ private fun WeatherHeaderCard(
                         modifier = Modifier.size(58.dp)
                     )
 
-                    Column(
-                        modifier = Modifier.weight(0.8f),
+                    Column(                        modifier = Modifier.weight(0.8f),
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
@@ -1997,8 +1994,7 @@ private fun MediaHeaderButton(
                 ),
                 label = "headerRadioGentleSpinAngle"
             )
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                HeaderPngIcon(
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {                HeaderPngIcon(
                     drawableRes = drawableRes,
                     contentDescription = contentDescription,
                     modifier = Modifier
@@ -2497,8 +2493,7 @@ private fun MiniCompassDial(
 
             val inner =
                 pointOnCircle(
-                    center,
-                    radius * 0.68f,
+                    center,                    radius * 0.68f,
                     degree.toFloat()
                 )
 
@@ -2997,8 +2992,7 @@ private fun SpeedPanel(
                         )
                         Column(
                             modifier = Modifier
-                                .align(Alignment.CenterStart)
-                                .padding(start = if (compact) 8.dp else 14.dp),
+                                .align(Alignment.CenterStart)                                .padding(start = if (compact) 8.dp else 14.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text("TL", color = if (DayTheme) Color.White else WarningYellow, fontSize = if (compact) 13.sp else 16.sp, fontWeight = FontWeight.Black)
@@ -3497,8 +3491,7 @@ private fun SpeedometerGauge(
                             angle
                         )
 
-                    val inner =
-                        pointOnCircle(
+                    val inner =                        pointOnCircle(
                             center,
                             radius *
                                     if (i % 5 == 0) 0.79f
@@ -3689,7 +3682,7 @@ private fun DaciaNightRoadAnimation(
             val elapsedSeconds =
                 ((frame - previousFrame) / 1_000_000_000f).coerceIn(0f, .05f)
             previousFrame = frame
-            phase = (phase + elapsedSeconds * smoothedRate.value) % 1f
+            phase = (phase + elapsedSeconds * smoothedRate.value * 2f) % 1f
         }
     }
 
@@ -3884,7 +3877,7 @@ private fun DaciaDayRoadAnimation(
             val elapsedSeconds =
                 ((frame - previousFrame) / 1_000_000_000f).coerceIn(0f, .05f)
             previousFrame = frame
-            phase = (phase + elapsedSeconds * smoothedRate.value) % 1f
+            phase = (phase + elapsedSeconds * smoothedRate.value * 2f) % 1f
         }
     }
 
@@ -3997,8 +3990,7 @@ private fun SpeedAltitudeBadge(
                 )
                 Text("m", color = if (DayTheme) Color.White else CyanBright, fontSize = if (compact) 9.sp else 12.sp, fontWeight = FontWeight.Bold)
             }
-        }
-    }
+        }    }
 }
 
 @Composable
@@ -4397,7 +4389,7 @@ private fun VehicleModeCard(
                 ) {
                     Text(
                         text = "ARAÇ MODU",
-                        color = SecondaryText,
+                        color = if (DayTheme) Color.White else SecondaryText,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -4497,8 +4489,7 @@ private fun VehicleModeCard(
                             } else {
                                 ColorFilter.tint(Color(0xFF646C74), BlendMode.Modulate)
                             },
-                            modifier = Modifier
-                                .width(176.dp)
+                            modifier = Modifier                                .width(176.dp)
                                 .height(82.dp)
                                 .graphicsLayer {
                                     rotationY =
@@ -4940,21 +4931,21 @@ private fun FuelGaugeCard(
                 Spacer(Modifier.width(5.dp))
                 Text(
                     text = if (isCriticalFuel) "DÜŞÜK YAKIT" else "YAKIT",
-                    color = if (isCriticalFuel) DangerRed else SecondaryText,
+                    color = if (isCriticalFuel) DangerRed else if (DayTheme) Color.White else SecondaryText,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
                     text = fuelDataSource,
-                    color = if (fuelDataSource == "OBD") SafeGreen else WarningYellow,
+                    color = if (fuelDataSource == "OBD") SafeGreen else if (DayTheme) Color.White else WarningYellow,
                     fontSize = 9.sp,
                     fontWeight = FontWeight.Black
                 )
                 Spacer(Modifier.weight(1f))
                 Text(
                     text = fuelSummaryText,
-                    color = if (isCriticalFuel || rangeIsCritical) DangerRed else CyanAccent,
+                    color = if (isCriticalFuel || rangeIsCritical) DangerRed else if (DayTheme) Color.White else CyanAccent,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Black,
                     maxLines = 1
@@ -4975,15 +4966,15 @@ private fun FuelGaugeCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("0", color = SecondaryText, fontSize = 7.sp)
+                Text("0", color = if (DayTheme) Color.White else SecondaryText, fontSize = 7.sp)
                 Spacer(Modifier.weight(1f))
-                Text("25", color = SecondaryText, fontSize = 7.sp)
+                Text("25", color = if (DayTheme) Color.White else SecondaryText, fontSize = 7.sp)
                 Spacer(Modifier.weight(1f))
-                Text("50", color = SecondaryText, fontSize = 7.sp)
+                Text("50", color = if (DayTheme) Color.White else SecondaryText, fontSize = 7.sp)
                 Spacer(Modifier.weight(1f))
-                Text("75", color = SecondaryText, fontSize = 7.sp)
+                Text("75", color = if (DayTheme) Color.White else SecondaryText, fontSize = 7.sp)
                 Spacer(Modifier.weight(1f))
-                Text("100", color = SecondaryText, fontSize = 7.sp)
+                Text("100", color = if (DayTheme) Color.White else SecondaryText, fontSize = 7.sp)
             }
 
         }
@@ -4997,8 +4988,7 @@ internal fun formatFuelSummaryText(
     val formattedRange = estimatedFuelRangeKm
         ?.takeIf { it.isFinite() }
         ?.let { "${it.roundToInt()} KM" }
-        ?: "— KM"
-    return "%${percentage.coerceIn(0.0, 100.0).roundToInt()} • $formattedRange"
+        ?: "— KM"    return "%${percentage.coerceIn(0.0, 100.0).roundToInt()} • $formattedRange"
 }
 
 @Composable
@@ -5497,8 +5487,7 @@ private fun MetricCard(
                 text = value,
                 color = PrimaryText,
                 fontSize = 37.sp,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1
+                fontWeight = FontWeight.SemiBold,                maxLines = 1
             )
 
             Text(
@@ -5997,7 +5986,6 @@ private fun formatParkDuration(
 
     val seconds =
         safeSeconds % 60L
-
     return if (hours > 0L) {
         String.format(
             Locale.getDefault(),
