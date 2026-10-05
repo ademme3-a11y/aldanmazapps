@@ -3460,6 +3460,7 @@ private fun SpeedometerGauge(
             DayModeSpeedArc(
                 speedKmh = speedKmh,
                 speedColor = speedColor,
+                speedWarningState = speedWarningState,
                 compact = compact,
                 modifier = Modifier.fillMaxSize()
             )
@@ -3597,16 +3598,16 @@ private fun SpeedometerGauge(
                 .zIndex(8f),
             shape = RoundedCornerShape(10.dp),
             colors = CardDefaults.cardColors(
-                containerColor = Color(0xD907131B)
+                containerColor = if (DayTheme) Color.Transparent else Color(0xD907131B)
             ),
             border = BorderStroke(
-                width = 1.dp * strokeScale,
-                color = PanelBorder
+                width = if (DayTheme) 0.dp else 1.dp * strokeScale,
+                color = if (DayTheme) Color.Transparent else PanelBorder
             )
         ) {
             Text(
                 text = "km/h",
-                color = PrimaryText,
+                color = if (DayTheme) Color.White else PrimaryText,
                 fontSize = if (compact) 11.sp else 13.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(
@@ -3945,6 +3946,7 @@ private fun DaciaDayRoadAnimation(
 private fun DayModeSpeedArc(
     speedKmh: Int,
     speedColor: Color,
+    speedWarningState: SpeedWarningState,
     compact: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -3955,7 +3957,7 @@ private fun DayModeSpeedArc(
         val progress = (speedKmh / 160f).coerceIn(0f, 1f)
         if (progress > .005f) {
             drawArc(
-                color = if (DayTheme) Color.White else speedColor,
+                color = if (speedWarningState == SpeedWarningState.NORMAL) Color.White else speedColor,
                 startAngle = 140f,
                 sweepAngle = 260f * progress,
                 useCenter = false,
