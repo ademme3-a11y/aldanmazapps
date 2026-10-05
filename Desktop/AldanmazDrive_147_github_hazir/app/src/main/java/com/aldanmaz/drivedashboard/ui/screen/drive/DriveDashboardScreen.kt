@@ -3001,10 +3001,10 @@ private fun SpeedPanel(
                                 .padding(start = if (compact) 8.dp else 14.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text("TL", color = WarningYellow, fontSize = if (compact) 13.sp else 16.sp, fontWeight = FontWeight.Black)
+                            Text("TL", color = if (DayTheme) Color.White else WarningYellow, fontSize = if (compact) 13.sp else 16.sp, fontWeight = FontWeight.Black)
                             Text(
                                 text = String.format(Locale("tr", "TR"), "%.1f ₺", dailyFuelCost),
-                                color = PrimaryText,
+                                color = if (DayTheme) Color.White else PrimaryText,
                                 fontSize = if (compact) 16.sp else 21.sp,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1
@@ -3019,7 +3019,7 @@ private fun SpeedPanel(
                         ) {
                             Text(
                                 text = "GÜN KM",
-                                color = WarningYellow,
+                                color = if (DayTheme) Color.White else WarningYellow,
                                 fontSize = if (compact) 12.sp else 16.sp,
                                 fontWeight = FontWeight.Black,
                                 maxLines = 1
@@ -3031,7 +3031,7 @@ private fun SpeedPanel(
                                     dailyDistanceKm,
                                     fuelCostPerKm
                                 ),
-                                color = PrimaryText,
+                                color = if (DayTheme) Color.White else PrimaryText,
                                 fontSize = if (compact) 13.sp else 17.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 maxLines = 1
@@ -3043,7 +3043,7 @@ private fun SpeedPanel(
                                     tripDistanceKm.coerceIn(0.0, 999.0).roundToInt(),
                                     tripFuelCost.coerceAtLeast(0.0).roundToInt()
                                 ),
-                                color = CyanBright,
+                                color = if (DayTheme) Color.White else CyanBright,
                                 fontSize = if (compact) 11.sp else 14.sp,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1
@@ -3073,7 +3073,7 @@ private fun SpeedPanel(
                         ) {
                             Text(
                                 text = "P",
-                                color = CyanAccent,
+                                color = if (DayTheme) Color.White else CyanAccent,
                                 fontSize = if (compact) 78.sp else 104.sp,
                                 fontWeight = FontWeight.ExtraBold
                             )
@@ -3081,7 +3081,7 @@ private fun SpeedPanel(
 
                         Text(
                             text = formatParkDuration(parkDurationSeconds),
-                            color = CyanAccent,
+                            color = if (DayTheme) Color.White else CyanAccent,
                             fontSize = if (compact) 25.sp else 34.sp,
                             fontWeight = FontWeight.ExtraBold,
                             modifier = Modifier
@@ -3094,7 +3094,7 @@ private fun SpeedPanel(
                                 String.format(Locale("tr", "TR"), "ARAÇ KM  %,.0f", vehicleRealKm).replace(',', '.')
                             else
                                 "ARAÇ KM  --",
-                            color = CyanAccent,
+                            color = if (DayTheme) Color.White else CyanAccent,
                             fontSize = if (compact) 12.sp else 15.sp,
                             fontWeight = FontWeight.ExtraBold,
                             maxLines = 1,
@@ -3109,10 +3109,10 @@ private fun SpeedPanel(
                                 .padding(end = if (compact) 8.dp else 14.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text("LT", color = CyanAccent, fontSize = if (compact) 13.sp else 16.sp, fontWeight = FontWeight.Black)
+                            Text("LT", color = if (DayTheme) Color.White else CyanAccent, fontSize = if (compact) 13.sp else 16.sp, fontWeight = FontWeight.Black)
                             Text(
                                 text = String.format(Locale("tr", "TR"), "%.2f L", dailyFuelLiters),
-                                color = PrimaryText,
+                                color = if (DayTheme) Color.White else PrimaryText,
                                 fontSize = if (compact) 16.sp else 21.sp,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1
@@ -3568,8 +3568,7 @@ private fun SpeedometerGauge(
 
             Text(
                 text = "YOL",
-                color =
-                    if (speedLimitSource == SpeedLimitSource.ROAD) {
+                color = if (DayTheme) Color.White else if (speedLimitSource == SpeedLimitSource.ROAD) {
                         SafeGreen
                     } else {
                         SecondaryText
@@ -3627,7 +3626,7 @@ private fun SpeedometerGauge(
         ) {
             Text(
                 text = speedKmh.toString(),
-                color = speedColor,
+                color = if (DayTheme) Color.White else speedColor,
                 fontSize = if (compact) 86.sp else 116.sp,
                 fontWeight = FontWeight.Black
             )
@@ -3928,7 +3927,7 @@ private fun DaciaDayRoadAnimation(
                     val q = value.pow(1.72f)
                     val end = (value + .05f + value * .03f).coerceAtMost(1f)
                     drawLine(
-                        color = Color(0xFFF7EBCB).copy(
+                        color = Color.White.copy(
                             alpha = (.35f + q * .6f).coerceIn(0f, .95f)
                         ),
                         start = roadPoint(value),
@@ -3957,7 +3956,7 @@ private fun DayModeSpeedArc(
         val progress = (speedKmh / 160f).coerceIn(0f, 1f)
         if (progress > .005f) {
             drawArc(
-                color = speedColor,
+                color = if (DayTheme) Color.White else speedColor,
                 startAngle = 140f,
                 sweepAngle = 260f * progress,
                 useCenter = false,
@@ -3986,17 +3985,17 @@ private fun SpeedAltitudeBadge(
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     "RAKIM",
-                    color = CyanBright,
+                    color = if (DayTheme) Color.White else CyanBright,
                     fontSize = if (compact) 9.sp else 12.sp,
                     fontWeight = FontWeight.Black
                 )
                 Text(
                     "${altitudeMeters ?: "--"}",
-                    color = PrimaryText,
+                    color = if (DayTheme) Color.White else PrimaryText,
                     fontSize = if (compact) 21.sp else 28.sp,
                     fontWeight = FontWeight.ExtraBold
                 )
-                Text("m", color = CyanBright, fontSize = if (compact) 9.sp else 12.sp, fontWeight = FontWeight.Bold)
+                Text("m", color = if (DayTheme) Color.White else CyanBright, fontSize = if (compact) 9.sp else 12.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -4531,14 +4530,14 @@ private fun VehicleModeCard(
 
                 Text(
                     text = selectedVehicle?.displayName ?: vehicleMode,
-                    color = PrimaryText,
+                    color = if (DayTheme) Color.White else PrimaryText,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Medium
                 )
 
                 Text(
                     text = "aktif",
-                    color = CyanAccent,
+                    color = if (DayTheme) Color.White else CyanAccent,
                     fontSize = 14.sp
                 )
             }
