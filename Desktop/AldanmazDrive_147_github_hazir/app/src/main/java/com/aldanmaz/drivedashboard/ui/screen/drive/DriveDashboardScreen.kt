@@ -283,14 +283,26 @@ fun DriveDashboardScreen(
         DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
     }
     val dateFormatter = remember {
-        DateTimeFormatter.ofPattern("d MMMM yyyy EEEE", Locale("tr", "TR"))
+        DateTimeFormatter.ofPattern("d MMMM yyyy", Locale("tr", "TR"))
+    }
+    fun formatWeatherDate(dateTime: LocalDateTime): String {
+        val day = when (dateTime.dayOfWeek) {
+            java.time.DayOfWeek.MONDAY -> "P.TESİ"
+            java.time.DayOfWeek.TUESDAY -> "SALI"
+            java.time.DayOfWeek.WEDNESDAY -> "ÇARŞA"
+            java.time.DayOfWeek.THURSDAY -> "PERŞ"
+            java.time.DayOfWeek.FRIDAY -> "CUMA"
+            java.time.DayOfWeek.SATURDAY -> "C.TESİ"
+            java.time.DayOfWeek.SUNDAY -> "PAZA"
+        }
+        return dateTime.format(dateFormatter) + " " + day
     }
 
     var currentTime by remember {
         mutableStateOf(LocalTime.now().format(clockFormatter))
     }
     var currentDate by remember {
-        mutableStateOf(LocalDateTime.now().format(dateFormatter))
+        mutableStateOf(formatWeatherDate(LocalDateTime.now()))
     }
 
     var dashboardRouteProfile by remember { mutableStateOf<RouteProfileResult?>(null) }
@@ -311,7 +323,7 @@ fun DriveDashboardScreen(
         while (true) {
             val now = LocalDateTime.now()
             currentTime = now.format(clockFormatter)
-            currentDate = now.format(dateFormatter)
+            currentDate = formatWeatherDate(now)
             delay(1_000L)
         }
     }
@@ -4007,11 +4019,12 @@ private fun DayModeSpeedArc(
     modifier: Modifier = Modifier
 ) {
     Canvas(modifier = modifier) {
-        val scale = kotlin.math.max(size.width / DayRoadImageWidth, size.height / DayRoadImageHeight)
-        val center = Offset(size.width / 2f, size.height * 0.408f)
-        val radius = .312f * DayRoadImageWidth * scale
+        // Gündüz ve gece hız yayı aynı merkez, yarıçap ve kalınlığı kullanır.
+        // Hız uyarı renk mantığı aynen korunur.
+        val center = Offset(size.width / 2f, size.height * 0.43f)
+        val radius = min(size.width * 0.44f, size.height * 0.40f)
         val progress = (speedKmh / 160f).coerceIn(0f, 1f)
-        if (progress > .005f) {
+        if (radius > 0f && progress > .005f) {
             drawArc(
                 color = if (speedWarningState == SpeedWarningState.NORMAL) Color.White else speedColor,
                 startAngle = 140f,
@@ -4019,7 +4032,7 @@ private fun DayModeSpeedArc(
                 useCenter = false,
                 topLeft = Offset(center.x - radius, center.y - radius),
                 size = Size(radius * 2f, radius * 2f),
-                style = Stroke(width = .050f * DayRoadImageWidth * scale, cap = StrokeCap.Round)
+                style = Stroke(width = 5.5.dp.toPx() * LocalDashboardStrokeScale.current, cap = StrokeCap.Round)
             )
         }
     }
