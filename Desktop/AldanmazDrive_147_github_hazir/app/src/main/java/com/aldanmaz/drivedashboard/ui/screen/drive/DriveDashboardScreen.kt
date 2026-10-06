@@ -3384,17 +3384,18 @@ private fun SunOrbitMarker(
                 val horizontalScale = kotlin.math.cos(altitudeRad).toFloat()
                 // Gerçek azimut: kuzey=0°, doğu=90°, güney=180°, batı=270°.
                 // Bu değer ekrandaki ortak gökyüzü yörüngesine aynalanmadan taşınır.
-                val moonCenter = if (moonHorizontal != null) {
-                    Offset(
-                        x = centerX + kotlin.math.sin(azimuthRad).toFloat() * orbitX * horizontalScale,
-                        y = centerY - kotlin.math.sin(altitudeRad).toFloat() * orbitY
-                    )
+                // Ay, Güneş ile aynı eliptik yörünge üzerinde tutulur.
+                // GPS varsa gerçek azimut kullanılır; GPS yoksa Güneş'in karşı
+                // tarafında görünür. Ufuk altındayken de görsel olarak yörüngede kalır.
+                val moonOrbitAngle = if (moonHorizontal != null) {
+                    Math.toRadians(azimuth - 90.0)
                 } else {
-                    Offset(
-                        x = centerX - cos(sunAngle).toFloat() * orbitX,
-                        y = centerY - sin(sunAngle).toFloat() * orbitY
-                    )
+                    sunAngle + Math.PI
                 }
+                val moonCenter = Offset(
+                    x = centerX + cos(moonOrbitAngle).toFloat() * orbitX,
+                    y = centerY + sin(moonOrbitAngle).toFloat() * orbitY
+                )
                 val moonRadius = symbolRadius * 0.92f
                 // Gece zemininden net ayrılan Ay rengi.
                 val moonLight = Color(0xFFF2F5F7)
@@ -3498,6 +3499,25 @@ private fun SpeedometerGauge(
                 compact = compact,
                 modifier = Modifier.fillMaxSize()
             )
+        } else {
+            // Gece modunda hız yayı korunur. Hız limiti aşıldığında
+            // rakamla aynı anda kırmızı/sarı uyarı rengine geçer.
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val center = Offset(size.width / 2f, size.height * 0.43f)
+                val radius = min(size.width * 0.44f, size.height * 0.40f)
+                val progress = (speedKmh / 160f).coerceIn(0f, 1f)
+                if (radius > 0f && progress > .005f) {
+                    drawArc(
+                        color = speedColor,
+                        startAngle = 140f,
+                        sweepAngle = 260f * progress,
+                        useCenter = false,
+                        topLeft = Offset(center.x - radius, center.y - radius),
+                        size = Size(radius * 2f, radius * 2f),
+                        style = Stroke(width = 5.5.dp.toPx() * strokeScale, cap = StrokeCap.Round)
+                    )
+                }
+            }
         }
 
         if (!DayTheme) {
@@ -3660,7 +3680,9 @@ private fun SpeedometerGauge(
         ) {
             Text(
                 text = speedKmh.toString(),
-                color = if (DayTheme) Color.White else speedColor,
+                // Gündüzde rakam ve hız yayı aynı uyarı durumunu paylaşır:
+                // normalde beyaz, limit aşımında yayı ile aynı uyarı rengi.
+                color = if (speedWarningState == SpeedWarningState.NORMAL) Color.White else speedColor,
                 fontSize = if (compact) 86.sp else 116.sp,
                 fontWeight = FontWeight.Black
             )
