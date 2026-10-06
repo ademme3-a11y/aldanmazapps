@@ -3361,10 +3361,22 @@ private fun SunOrbitMarker(
         drawCircle(color = sunColor.copy(alpha = .22f), radius = symbolRadius * 1.45f, center = sunCenter)
         drawCircle(color = sunColor, radius = symbolRadius, center = sunCenter)
 
-        moonHorizontal?.let { (azimuth, altitude) ->
-            // Ay, Güneş gibi aynı yörünge üzerinde her zaman görünür.
-            // Ufkun altındaysa yörüngenin alt yarısına taşınır; böylece
-            // gerçek azimut/yükseklik hesabı korunurken Ay görseli kaybolmaz.
+        run {
+            // GPS konumu hazırsa Ay gerçek azimut/yükseklik hesabıyla çizilir.
+            // Park ekranında GPS henüz hazır değilse Ay tamamen kaybolmasın diye
+            // Güneş yörüngesinde karşı tarafa güvenli bir görsel konum kullanılır.
+            val azimuth: Double
+            val altitude: Double
+            if (moonHorizontal != null) {
+                azimuth = moonHorizontal.first
+                altitude = moonHorizontal.second
+            } else {
+                val fallbackAngle = sunAngle + Math.PI
+                azimuth = 180.0
+                altitude = 0.0
+                // Aşağıdaki merkez hesabında fallback kullanılır.
+                // Değişkenler yalnızca gerçek GPS hesabı için kullanılmaz.
+            }
             val altitudeRad = Math.toRadians(altitude.coerceIn(-90.0, 90.0))
                 // Doğu mevcut güneş gösterimindeki sol tarafla, batı sağ tarafla
                 // eşleştirilir; Ay'ın gerçek azimut ve yüksekliği bu ortak yörüngeye taşınır.
@@ -3372,10 +3384,17 @@ private fun SunOrbitMarker(
                 val horizontalScale = kotlin.math.cos(altitudeRad).toFloat()
                 // Gerçek azimut: kuzey=0°, doğu=90°, güney=180°, batı=270°.
                 // Bu değer ekrandaki ortak gökyüzü yörüngesine aynalanmadan taşınır.
-                val moonCenter = Offset(
-                    x = centerX + kotlin.math.sin(azimuthRad).toFloat() * orbitX * horizontalScale,
-                    y = centerY - kotlin.math.sin(altitudeRad).toFloat() * orbitY
-                )
+                val moonCenter = if (moonHorizontal != null) {
+                    Offset(
+                        x = centerX + kotlin.math.sin(azimuthRad).toFloat() * orbitX * horizontalScale,
+                        y = centerY - kotlin.math.sin(altitudeRad).toFloat() * orbitY
+                    )
+                } else {
+                    Offset(
+                        x = centerX - cos(sunAngle).toFloat() * orbitX,
+                        y = centerY - sin(sunAngle).toFloat() * orbitY
+                    )
+                }
                 val moonRadius = symbolRadius * 0.92f
                 // Gece zemininden net ayrılan Ay rengi.
                 val moonLight = Color(0xFFF2F5F7)
