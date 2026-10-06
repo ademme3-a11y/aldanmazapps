@@ -3380,13 +3380,16 @@ private fun SunOrbitMarker(
                 val moonLight = Color(0xFFF2F5F7)
                 val moonDark = Color(0xFF303A43)
 
-                drawCircle(
-                    color = moonDark,
-                    radius = moonRadius * 1.12f,
-                    center = moonCenter
-                )
-
-                if (moonIllumination > 0.015) {
+                // Tek bir Ay diski üzerinde fazı oluşturuyoruz. Önce aydınlık disk,
+                // ardından aynı yarıçaplı karanlık disk ile örtme yapılır; böylece
+                // iki ayrı birbirine değen daire görüntüsü oluşmaz.
+                if (moonIllumination <= 0.015) {
+                    drawCircle(
+                        color = moonDark,
+                        radius = moonRadius,
+                        center = moonCenter
+                    )
+                } else {
                     drawCircle(
                         color = moonLight,
                         radius = moonRadius,
@@ -3394,11 +3397,8 @@ private fun SunOrbitMarker(
                     )
 
                     if (moonIllumination < 0.985) {
-                        val shift = if (waxingMoon) {
-                            (-4.0 * moonRadius * moonIllumination).toFloat()
-                        } else {
-                            (4.0 * moonRadius * (moonIllumination - 1.0)).toFloat()
-                        }
+                        val phaseShift = (2.0 * moonRadius * (1.0 - moonIllumination)).toFloat()
+                        val shift = if (waxingMoon) -phaseShift else phaseShift
                         drawCircle(
                             color = moonDark,
                             radius = moonRadius,
@@ -3409,7 +3409,7 @@ private fun SunOrbitMarker(
 
                 drawCircle(
                     color = moonLight.copy(alpha = .16f),
-                    radius = moonRadius * 1.35f,
+                    radius = moonRadius * 1.12f,
                     center = moonCenter,
                     style = Stroke(width = (if (compact) .7.dp else .9.dp).toPx())
                 )
