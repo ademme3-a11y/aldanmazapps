@@ -153,6 +153,9 @@ class HistoryStatisticsViewModel(application: Application) : AndroidViewModel(ap
                 val cutoff = cutoffMillis()
                 tripDao.deleteTripsBefore(cutoff)
                 fuelRepo.deleteBefore(cutoff)
+                vehicleOdometerRepository.recordCurrentMonthRevision(
+                    tripDao.getAllTrips().sumOf { it.distanceKm }.coerceAtLeast(0.0)
+                )
                 buildHistory(cutoff)
             }.onSuccess { result ->
                 _state.value = _state.value.copy(rows = result.first, months = result.second, vehicleRealKm = vehicleOdometerRepository.enteredRealKm(), vehicleGpsKm = vehicleOdometerRepository.currentGpsKm(tripDao.getAllTrips().sumOf { it.distanceKm }.coerceAtLeast(0.0)), isLoading = false)
