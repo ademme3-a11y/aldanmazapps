@@ -86,6 +86,7 @@ data class HistoryDayRow(
     val tripCount: Int,
     val distanceKm: Double,
     val movingSeconds: Long,
+    val parkSeconds: Long,
     val averageSpeedKmh: Double,
     val maxSpeedKmh: Int,
     val estimatedFuelLiters: Double,
@@ -104,6 +105,7 @@ data class HistoryMonthTotal(
     val fuelPurchaseTl: Double,
     val estimatedFuelTl: Double,
     val movingSeconds: Long,
+    val parkSeconds: Long,
     val revisionKm: Double
 )
 
@@ -197,6 +199,7 @@ class HistoryStatisticsViewModel(application: Application) : AndroidViewModel(ap
                 tripCount = dayTrips.size,
                 distanceKm = dayTrips.sumOf { it.distanceKm },
                 movingSeconds = moving,
+                parkSeconds = dayTrips.sumOf { it.parkDurationSeconds },
                 averageSpeedKmh = if (moving > 0) dayTrips.sumOf { it.distanceKm } * 3600.0 / moving else 0.0,
                 maxSpeedKmh = dayTrips.maxOfOrNull { it.maxSpeedKmh } ?: 0,
                 estimatedFuelLiters = dayTrips.sumOf { it.estimatedFuelConsumedLiters },
@@ -226,6 +229,7 @@ class HistoryStatisticsViewModel(application: Application) : AndroidViewModel(ap
                     fuelPurchaseTl = items.sumOf { it.fuelPurchaseTl },
                     estimatedFuelTl = items.sumOf { it.estimatedFuelTl },
                     movingSeconds = items.sumOf { it.movingSeconds },
+                    parkSeconds = items.sumOf { it.parkSeconds },
                     revisionKm = if (month == SimpleDateFormat("yyyy-MM", Locale.US).format(Date())) { vehicleOdometerRepository.enteredRealKm() - vehicleOdometerRepository.currentGpsKm(allGpsTotalKm) } else { vehicleOdometerRepository.revisionForMonth(month, allGpsTotalKm) }
                 )
             }
@@ -487,6 +491,7 @@ private fun HistoryTable(state: HistoryUiState) {
     val yolW = 55.dp
     val kmW = 72.dp
     val surusW = 80.dp
+    val parkW = 70.dp
     val avgW = 78.dp
     val maxW = 65.dp
     val tukLtW = 65.dp
@@ -494,7 +499,7 @@ private fun HistoryTable(state: HistoryUiState) {
     val alimLW = 75.dp
     val alimTlW = 92.dp
     val tlLw = 70.dp
-    val width = dateW + driverW + yolW + kmW + surusW + avgW + maxW + tukLtW + tukTlW + alimLW + alimTlW + tlLw
+    val width = dateW + driverW + yolW + kmW + surusW + parkW + avgW + maxW + tukLtW + tukTlW + alimLW + alimTlW + tlLw
 
     fun monthTitle(month: HistoryMonthTotal): String {
         val monthName = runCatching {
@@ -518,6 +523,7 @@ private fun HistoryTable(state: HistoryUiState) {
                 fuelPurchaseTl = items.sumOf { it.fuelPurchaseTl },
                 estimatedFuelTl = items.sumOf { it.estimatedFuelTl },
                 movingSeconds = items.sumOf { it.movingSeconds },
+                parkSeconds = items.sumOf { it.parkSeconds },
                 revisionKm = items.sumOf { it.revisionKm }
             )
         }
@@ -534,6 +540,7 @@ private fun HistoryTable(state: HistoryUiState) {
             HeaderCell("YOL", yolW)
             HeaderCell("KM", kmW)
             HeaderCell("SÜRÜŞ", surusW)
+            HeaderCell("PARK", parkW)
             HeaderCell("ORT.HIZ", avgW)
             HeaderCell("MAX", maxW)
             HeaderCell("TÜK LT", tukLtW)
@@ -573,6 +580,7 @@ private fun HistoryTable(state: HistoryUiState) {
                     BodyCell(month.tripCount.toString(), yolW)
                     BodyCell(month.distanceKm.one(), kmW)
                     BodyCell(duration(month.movingSeconds), surusW)
+                    BodyCell(duration(month.parkSeconds), parkW)
                     BodyCell("—", avgW)
                     BodyCell("—", maxW)
                     BodyCell(month.estimatedFuelLiters.two(), tukLtW)
@@ -599,6 +607,7 @@ private fun HistoryTable(state: HistoryUiState) {
                                 BodyCell(row.tripCount.toString(), yolW)
                                 BodyCell(row.distanceKm.one(), kmW)
                                 BodyCell(duration(row.movingSeconds), surusW)
+                                BodyCell(duration(row.parkSeconds), parkW)
                                 BodyCell(row.averageSpeedKmh.one(), avgW)
                                 BodyCell(row.maxSpeedKmh.toString(), maxW)
                                 BodyCell(row.estimatedFuelLiters.two(), tukLtW)
@@ -621,6 +630,7 @@ private fun HistoryTable(state: HistoryUiState) {
                         BodyCell(month.tripCount.toString(), yolW)
                         BodyCell(month.distanceKm.one(), kmW)
                         BodyCell(duration(month.movingSeconds), surusW)
+                        BodyCell(duration(month.parkSeconds), parkW)
                         BodyCell("", avgW)
                         BodyCell("", maxW)
                         BodyCell(month.estimatedFuelLiters.two(), tukLtW)
@@ -656,6 +666,7 @@ private fun HistoryTable(state: HistoryUiState) {
                     BodyCell(year.tripCount.toString(), yolW)
                     BodyCell(year.distanceKm.one(), kmW)
                     BodyCell(duration(year.movingSeconds), surusW)
+                    BodyCell(duration(year.parkSeconds), parkW)
                     BodyCell("—", avgW)
                     BodyCell("—", maxW)
                     BodyCell(year.estimatedFuelLiters.two(), tukLtW)
