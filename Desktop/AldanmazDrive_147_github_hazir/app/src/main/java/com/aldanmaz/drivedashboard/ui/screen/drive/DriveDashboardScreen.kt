@@ -3397,13 +3397,27 @@ private fun SunOrbitMarker(
                     )
 
                     if (moonIllumination < 0.985) {
+                        // Karanlık faz diskin dışına taşmasın: aynı Ay diskinin içinde
+                        // kırpılarak gerçek hilal görünümü oluşturulur.
                         val phaseShift = (2.0 * moonRadius * (1.0 - moonIllumination)).toFloat()
                         val shift = if (waxingMoon) -phaseShift else phaseShift
-                        drawCircle(
-                            color = moonDark,
-                            radius = moonRadius,
-                            center = Offset(moonCenter.x + shift, moonCenter.y)
-                        )
+                        val moonClip = Path().apply {
+                            addOval(
+                                androidx.compose.ui.geometry.Rect(
+                                    moonCenter.x - moonRadius,
+                                    moonCenter.y - moonRadius,
+                                    moonCenter.x + moonRadius,
+                                    moonCenter.y + moonRadius
+                                )
+                            )
+                        }
+                        clipPath(moonClip) {
+                            drawCircle(
+                                color = moonDark,
+                                radius = moonRadius,
+                                center = Offset(moonCenter.x + shift, moonCenter.y)
+                            )
+                        }
                     }
                 }
 
