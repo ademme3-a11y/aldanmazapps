@@ -33,6 +33,8 @@ class VehicleOdometerRepository(context: Context) {
         val revisions = JSONObject(prefs.getString(KEY_REVISIONS, "{}") ?: "{}")
         if (oldReal > 0.0 && oldMonth != null && correction != 0.0) {
             revisions.put(oldMonth, revisions.optDouble(oldMonth, 0.0) + correction)
+        } else if (oldReal <= 0.0) {
+            revisions.put(monthKey(System.currentTimeMillis()), realKm - gpsTotalKm)
         }
 
         prefs.edit()
@@ -54,7 +56,16 @@ class VehicleOdometerRepository(context: Context) {
     fun currentGpsKm(gpsTotalKm: Double): Double {
         val real = prefs.getDouble(KEY_REAL_KM)
         if (real <= 0.0) return 0.0
-        return (real + (gpsTotalKm - prefs.getDouble(KEY_BASE_GPS_KM))).coerceAtLeast(0.0)
+        return gpsTotalKm.coerceAtLeast(0.0)
+    }
+
+    fun recordCurrentMonthRevision(gpsTotalKm: Double) {
+        val real = prefs.getDouble(KEY_REAL_KM)
+        if (real <= 0.0) return
+        val month = monthKey(System.currentTimeMillis())
+        val revisions = JSONObject(prefs.getString(KEY_REVISIONS, "{}") ?: "{}")
+        revisions.put(month, real + (gpsTotalKm - prefs.getDouble(KEY_BASE_GPS_KM)) - gpsTotalKm)
+        prefs.edit().putString(KEY_REVISIONS, revisions.toString()).apply()
     }
 
     fun enteredRealKm(): Double = prefs.getDouble(KEY_REAL_KM)
@@ -64,6 +75,14 @@ class VehicleOdometerRepository(context: Context) {
         // REVİZE KM yalnızca gerçek odometre ile GPS hesabı arasında
         // kullanıcı tarafından doğrulanmış bir fark oluştuğunda vardır.
         // GPS sürüşü tek başına negatif REVİZE oluşturmaz.
+        if (month == monthKey(System.currentTimeMillis())) {
+            val real = prefs.getDouble(KEY_REAL_KM)
+            if (real > 0.0) {
+                val currentGps = gpsTotalKm.coerceAtLeast(0.0)
+                val currentReal = real + (gpsTotalKm - prefs.getDouble(KEY_BASE_GPS_KM))
+                return currentReal - currentGps
+            }
+        }
         return revisions.optDouble(month, 0.0)
     }
 
