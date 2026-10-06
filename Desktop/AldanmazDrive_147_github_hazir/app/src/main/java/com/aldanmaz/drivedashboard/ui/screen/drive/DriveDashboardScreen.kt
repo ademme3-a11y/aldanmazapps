@@ -4018,6 +4018,7 @@ private fun DayModeSpeedArc(
     compact: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val strokeScale = LocalDashboardStrokeScale.current
     Canvas(modifier = modifier) {
         // Gündüz ve gece hız yayı aynı merkez, yarıçap ve kalınlığı kullanır.
         // Hız uyarı renk mantığı aynen korunur.
@@ -4032,7 +4033,7 @@ private fun DayModeSpeedArc(
                 useCenter = false,
                 topLeft = Offset(center.x - radius, center.y - radius),
                 size = Size(radius * 2f, radius * 2f),
-                style = Stroke(width = 5.5.dp.toPx() * LocalDashboardStrokeScale.current, cap = StrokeCap.Round)
+                style = Stroke(width = 5.5.dp.toPx() * strokeScale, cap = StrokeCap.Round)
             )
         }
     }
