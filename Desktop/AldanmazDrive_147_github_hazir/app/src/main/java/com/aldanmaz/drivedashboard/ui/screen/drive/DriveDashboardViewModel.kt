@@ -141,6 +141,10 @@ class DriveDashboardViewModel(
     private var activeDriverId = "1"
     private var activeDriverName = "Mehmet"
     private var hasSelectedDriverSession = false
+
+    // Sürüş başladıktan sonra sürücü kimliği bu alanlarda sabitlenir.
+    private var tripDriverId = "1"
+    private var tripDriverName = "Mehmet"
     private var tripStartLatitude: Double? = null
     private var tripStartLongitude: Double? = null
 
@@ -148,6 +152,10 @@ class DriveDashboardViewModel(
         activeDriverId = id
         activeDriverName = name
         hasSelectedDriverSession = true
+        if (!_uiState.value.isTripActive) {
+            tripDriverId = id
+            tripDriverName = name
+        }
     }
 
     /** 94: ViewModel configuration change boyunca yaşadığı için ekran döndürmede sürücü seçimini korur. */
@@ -1190,6 +1198,8 @@ class DriveDashboardViewModel(
         val endedAt = dailyTripPrefs.getLong("lastPersistedAt", startedAt).coerceAtLeast(startedAt)
         val storedDriverId = dailyTripPrefs.getString("driverId", "1") ?: "1"
         val storedDriverName = dailyTripPrefs.getString("driverName", "Mehmet") ?: "Mehmet"
+        tripDriverId = storedDriverId
+        tripDriverName = storedDriverName
         val storedStartLatitude = dailyTripPrefs.takeIf { it.contains("startLatitudeBits") }?.let {
             java.lang.Double.longBitsToDouble(it.getLong("startLatitudeBits", 0L))
         }
@@ -1400,8 +1410,8 @@ class DriveDashboardViewModel(
             vehicleId = state.selectedVehicleId,
             estimatedFuelConsumedLiters = fuelLiters,
             estimatedFuelCost = fuelLiters * fuelPrice,
-            driverId = activeDriverId,
-            driverName = activeDriverName,
+            driverId = tripDriverId,
+            driverName = tripDriverName,
             startLatitude = tripStartLatitude,
             startLongitude = tripStartLongitude,
             endLatitude = endLatitude,
