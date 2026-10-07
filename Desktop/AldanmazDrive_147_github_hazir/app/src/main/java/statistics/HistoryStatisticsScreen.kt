@@ -79,6 +79,7 @@ private val HText = Color(0xFFF4F7FB)
 private val HMuted = Color(0xFF9CB0C5)
 
 data class HistoryDayRow(
+    val tripIds: List<Long>,
     val dateKey: String,
     val dateLabel: String,
     val driverId: String,
@@ -146,6 +147,13 @@ class HistoryStatisticsViewModel(application: Application) : AndroidViewModel(ap
         refresh()
     }
 
+    fun updateTripDrivers(tripIds: List<Long>, driverId: String, driverName: String) {
+        viewModelScope.launch {
+            tripDao.updateDriverForTrips(tripIds, driverId, driverName)
+            refresh()
+        }
+    }
+
     fun refresh() {
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true, error = null)
@@ -195,6 +203,7 @@ class HistoryStatisticsViewModel(application: Application) : AndroidViewModel(ap
                 ?: driverId
             val moving = dayTrips.sumOf { it.movingDurationSeconds }
             HistoryDayRow(
+                tripIds = dayTrips.map { it.id },
                 dateKey = date,
                 dateLabel = displayDate(date),
                 driverId = driverId,
@@ -435,7 +444,12 @@ fun HistoryStatisticsScreen(
                     Text(state.error!!, color = Color.Red, modifier = Modifier.padding(14.dp))
                 }
             } else {
-                HistoryTable(state)
+                HistoryTable(
+                    state = state,
+                    onChangeTripDriver = { tripIds, driverId, driverName ->
+                        viewModel.updateTripDrivers(tripIds, driverId, driverName)
+                    }
+                )
             }
         }
     }
@@ -483,10 +497,14 @@ private fun DriverButton(text: String, selected: Boolean, onClick: () -> Unit, m
 }
 
 @Composable
-private fun HistoryTable(state: HistoryUiState) {
+private fun HistoryTable(
+    state: HistoryUiState,
+    onChangeTripDriver: (List<Long>, String, String) -> Unit
+) {
     val scrollX = rememberScrollState()
     val scrollY = rememberScrollState()
     var expandedMonths by remember { mutableStateOf(emptySet<String>()) }
+    var editingRow by remember { mutableStateOf<HistoryDayRow?>(null) }
 
     val hasDriverColumn = state.selectedDriverId == null
     val dateW = 88.dp
@@ -606,7 +624,19 @@ private fun HistoryTable(state: HistoryUiState) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 BodyCell(row.dateLabel, dateW)
-                                if (hasDriverColumn) BodyCell(row.driverName, driverW)
+                                if (hasDriverColumn) {
+                                    Card(
+                                        modifier = Modifier.width(driverW).height(34.dp),
+                                        onClick = { editingRow = row },
+                                        colors = CardDefaults.cardColors(containerColor = HCyan.copy(alpha = 0.08f)),
+                                        border = BorderStroke(1.dp, HCyan.copy(alpha = 0.45f)),
+                                        shape = RoundedCornerShape(7.dp)
+                                    ) {
+                                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                            Text(row.driverName, color = HCyan, fontSize = 10.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                                        }
+                                    }
+                                }
                                 BodyCell(row.tripCount.toString(), yolW)
                                 BodyCell(row.distanceKm.one(), kmW)
                                 BodyCell(duration(row.movingSeconds), surusW)
@@ -683,6 +713,26 @@ private fun HistoryTable(state: HistoryUiState) {
                 }
             }
         }
+    }
+}
+
+editingRow?.let { row ->
+        AlertDialog(
+            onDismissRequest = { editingRow = null },
+            containerColor = HCard,
+            title = { Text("SÜRÜCÜYÜ DEĞİŞTİR", color = HCyan, fontWeight = FontWeight.Black) },
+            text = { Text("Bu tarihteki ${row.tripIds.size} sürüş kaydı ${row.driverName} olarak görünüyor. Yeni sürücüyü seçin.", color = HText) },
+            dismissButton = { TextButton(onClick = { editingRow = null }) { Text("İPTAL", color = HMuted) } },
+            confirmButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    state.driverNames.forEach { (id, name) ->
+                        TextButton(onClick = { onChangeTripDriver(row.tripIds, id, name); editingRow = null }) {
+                            Text(name, color = if (id == row.driverId) HCyan else HText)
+                        }
+                    }
+                }
+            }
+        )
     }
 }
 
