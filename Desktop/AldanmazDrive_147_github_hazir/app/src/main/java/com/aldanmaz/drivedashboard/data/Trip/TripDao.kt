@@ -73,6 +73,18 @@ interface TripDao {
     suspend fun deleteTripById(id: Long)
 
     @Query("""
+        UPDATE trips
+        SET driverId = :driverId,
+            driverName = :driverName
+        WHERE id IN (:tripIds)
+    """)
+    suspend fun updateDriverForTrips(
+        tripIds: List<Long>,
+        driverId: String,
+        driverName: String
+    )
+
+    @Query("""
         SELECT * FROM trips
         WHERE startedAtEpochMillis >= :startEpochMillis
           AND startedAtEpochMillis < :endEpochMillis
