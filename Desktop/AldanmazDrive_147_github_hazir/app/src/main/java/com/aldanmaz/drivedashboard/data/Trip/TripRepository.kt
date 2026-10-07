@@ -36,6 +36,15 @@ class TripRepository(
     ): TripEntity? =
         tripDao.getTripByLogicalKey(driverId, startedAtEpochMillis)
 
+    suspend fun updateDriverForTrips(
+        tripIds: List<Long>,
+        driverId: String,
+        driverName: String
+    ) {
+        if (tripIds.isEmpty()) return
+        tripDao.updateDriverForTrips(tripIds, driverId, driverName)
+    }
+
     /**
      * 129: Eski sürümlerde aynı sürüş, süreç restore edildiğinde birden fazla kez
      * eklenebiliyordu. Aynı sürücü + aynı başlangıç zamanını tek kayıt kabul eder.
