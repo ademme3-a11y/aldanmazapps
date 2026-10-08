@@ -1,0 +1,24 @@
+name: ALDFİNANS Build
+
+on:
+  push:
+    paths:
+      - "ALDFINANS/**"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ALDFINANS
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.4.1"
+      - run: gradle :app:assembleDebug --stacktrace
