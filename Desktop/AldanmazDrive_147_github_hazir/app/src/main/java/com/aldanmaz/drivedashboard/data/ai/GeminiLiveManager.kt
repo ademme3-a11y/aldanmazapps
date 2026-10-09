@@ -1539,7 +1539,7 @@ class GeminiLiveManager private constructor(context: Context) {
                 val closed = activeSession.isClosed()
                 val unansweredUserSpeech =
                     lastUserTranscriptAtElapsed > lastGeminiActivityAtElapsed &&
-                        now - lastUserTranscriptAtElapsed >= 22_000L
+                        now - lastUserTranscriptAtElapsed >= 12_000L
                 // Firebase Live bağlantısı yaklaşık 10 dakika ile sınırlı. 91, sessiz bir
                 // anda sınırdan önce kontrollü yeniden bağlanarak 'dönüyor ama cevap yok'
                 // durumunu önler.
