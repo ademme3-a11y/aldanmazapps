@@ -714,9 +714,8 @@ private fun HistoryTable(
             }
         }
     }
-}
 
-editingRow?.let { row ->
+    editingRow?.let { row ->
         AlertDialog(
             onDismissRequest = { editingRow = null },
             containerColor = HCard,
