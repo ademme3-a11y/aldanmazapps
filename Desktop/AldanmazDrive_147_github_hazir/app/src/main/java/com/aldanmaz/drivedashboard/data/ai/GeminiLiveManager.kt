@@ -117,9 +117,11 @@ class GeminiLiveManager private constructor(context: Context) {
     private var audioFocusRequest: AudioFocusRequest? = null
     private var audioFocusGainType = 0
     private var appCheckConfigured = false
+    // Kontrollü hız testi: önce 3.1 Flash Live denenir; bağlantı kurulamazsa
+    // mevcut 2.5 native-audio modeline geri dönülür. 22 sn watchdog korunur.
     private val liveModelNames = listOf(
-        "gemini-2.5-flash-native-audio-preview-12-2025",
         "gemini-3.1-flash-live-preview",
+        "gemini-2.5-flash-native-audio-preview-12-2025",
     )
     private var preferredLiveModelIndex = 0
     private var activeLiveModelIndex = -1
