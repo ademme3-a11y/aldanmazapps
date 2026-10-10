@@ -278,7 +278,6 @@ class RoadSpeedLimitRepository(context: Context? = null) {
         val prefs = cachePrefs ?: return null
         val raw = prefs.getString("entries", null).orEmpty()
         if (raw.isBlank()) return null
-        val (latCell, lonCell) = cacheCell(latitude, longitude)
         val heading = headingBucket(headingDegrees)
         val now = System.currentTimeMillis()
         return runCatching {
