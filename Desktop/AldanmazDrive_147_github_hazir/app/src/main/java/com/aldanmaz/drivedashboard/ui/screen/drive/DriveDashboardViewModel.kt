@@ -1637,6 +1637,10 @@ class DriveDashboardViewModel(
         uncommittedFuelDistanceKm = 0.0
         tripStartedElapsedRealtime = SystemClock.elapsedRealtime()
         tripTimerBaseDurationSeconds = 0L
+        // Sürücü kimliğini sürüşün başladığı anda sabitle; sonraki ekran/sürücü
+        // seçimi değişiklikleri bu sürüşün sahibini değiştiremez.
+        tripDriverId = activeDriverId
+        tripDriverName = activeDriverName
         tripStartLatitude = _uiState.value.latitude
         tripStartLongitude = _uiState.value.longitude
 
