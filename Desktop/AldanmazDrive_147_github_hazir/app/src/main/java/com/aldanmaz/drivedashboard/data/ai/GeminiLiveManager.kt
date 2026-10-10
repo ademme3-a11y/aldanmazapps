@@ -163,6 +163,11 @@ class GeminiLiveManager private constructor(context: Context) {
     private val dailyFinancePrefs =
         appContext.getSharedPreferences("gemini_daily_finance", Context.MODE_PRIVATE)
 
+    // Kullanıcının açık onayıyla telefonda saklanan yol hız sınırı hafızası.
+    private val roadSpeedMemoryPrefs =
+        appContext.getSharedPreferences("gemini_road_speed_memory", Context.MODE_PRIVATE)
+    private var pendingRoadSpeedMemory: JSONObject? = null
+
     // 91 - Live kilitlenmesini ve yaklaşık 10 dakikalık bağlantı sınırını yönetir.
     private var sessionStartedAtElapsed = 0L
     private var lastUserTranscriptAtElapsed = 0L
@@ -602,7 +607,8 @@ class GeminiLiveManager private constructor(context: Context) {
                             "Ürün fiyatı, işletme/ziyaretçi yorumu, güncel dizel fiyatı, uçak-otobüs-tren-özel araç maliyeti veya başka güncel fiyat istenirse Google Search grounding kullan; tarih ve konumu gerekiyorsa önce get_local_time/get_status ile al. Tahmini değer ile canlı fiyatı ayır. " +
                             "Belirli sanatçı/parça için önce play_music_query; müzik uygulamasıyla bulunamayabilecek Kur'an, tilavet veya web içeriği için play_web_media kullan. Telifli içeriği metin olarak uzun uzun okuma; uygun uygulamada oynat. " +
                             "Not oluşturup e-posta için email_note kullan. Kayıtlı e-posta yoksa kullanıcıdan bir kez adres iste ve set_note_email ile kaydet. " +
-                            "Sürüş özeti için get_drive_summary; son park yeri için get_last_park; park notu için set_parking_note; sessiz/aile modu için assistant_silent_on/off kullan. Acil durumda emergency_mode açık onay ister. " +
+                            "Sürüş özeti için get_drive_summary; son park yeri için get_last_park; park notu için set_parking_note; sessiz/aile modu için assistant_silent_on/off kullan. " +
+                            "Kullanıcı bir yolun hız sınırını kalıcı hafızaya eklemek isterse önce action=prepare_road_speed_memory ile value alanına hız|||yol adı yaz. Araç bu isteği onay bekliyor olarak döndürür; ardından kullanıcıya açıkça bu noktadaki hız sınırını hafızaya kaydetmek için onay sor. Yalnız kullanıcı açıkça evet/onay verirse action=confirm_road_speed_memory çağır; hayır/iptal derse action=cancel_road_speed_memory çağır. Onay gelmeden asla kaydetme. Hız birimini yalnız km/sa olarak konuş. " +
                             "Bölgesel şiddetli yağmur, fırtına, dolu riski veya aşırı sıcak uyarısı sistemden geldiğinde kısa ve öncelikli güvenlik uyarısı olarak hemen söyle. " +
                             "Sistem günlük finans sorusunu sordurduğunda kullanıcı evet derse Google Search grounding ile gram altın satış, Amerikan doları/TL, BIST 100 ve Arçelik ARCLK değerlerini o anda doğrula; güncelleme zamanını veya son kapanış bilgisini belirt. Güncel veri yoksa sayı uydurma. Hayır derse yalnız 'Tamam.' de. " +
                             "Güvenlik uyarılarında teşhis koyma; gözlenen değeri söyle ve güvenli davranışı öner. " +
@@ -874,7 +880,7 @@ class GeminiLiveManager private constructor(context: Context) {
                     "media_play, media_pause, set_program_toggle, set_program_value, set_text_scale, set_day_brightness, set_night_brightness, volume_up, volume_down, volume_mute, volume_unmute, set_volume_percent, brightness_up, brightness_down, " +
                     "set_brightness_percent, set_day_mode, set_night_mode, set_auto_appearance, open_wifi_settings, open_bluetooth_settings, " +
                     "obd_connect, obd_disconnect, refresh_weather, close_gemini, reset_statistics, reset_fuel_statistics, add_fuel, reset_trip_distance, " +
-                    "set_note_email, email_note, get_vehicle_health, get_maintenance, set_maintenance, get_drive_summary, get_last_park, set_parking_note, assistant_silent_on, assistant_silent_off, emergency_mode, play_web_media. " +
+                    "set_note_email, email_note, get_vehicle_health, get_maintenance, set_maintenance, get_drive_summary, get_last_park, set_parking_note, assistant_silent_on, assistant_silent_off, emergency_mode, play_web_media, prepare_road_speed_memory, confirm_road_speed_memory, cancel_road_speed_memory. " +
                     "value yalnız işlem ek bilgi gerektiriyorsa kullanılır: hedef, sürücü, araç modu, araç veya 0-100 yüzde gibi. " +
                     "Doğal Türkçe eş anlamları kabul et: ana ekran/başlangıç=open_drive, depo/yakıt=open_fuel, hava durumu=open_weather, " +
                     "harita/rota=open_navigation, Google Maps=open_google_navigation, Yandex=open_yandex_navigation, Google haritada ara=google_maps_search, Yandexte ara=yandex_maps_search, Google yol tarifi=google_maps_route, Yandex yol tarifi=yandex_maps_route, geri git/bu sayfayı kapat=go_back, ev adresi kaydet=set_home_address, iş adresi kaydet=set_work_address, tema/görünüm=open_appearance, araç deposu=open_vehicle_selection, ortalama hız/hız koridoru=open_speed_corridor, " +
@@ -925,6 +931,12 @@ class GeminiLiveManager private constructor(context: Context) {
             action == "get_last_park" -> buildLastParkResponse()
 
             action == "set_parking_note" -> setParkingNote(value)
+
+            action == "prepare_road_speed_memory" -> prepareRoadSpeedMemory(value)
+
+            action == "confirm_road_speed_memory" -> confirmRoadSpeedMemory()
+
+            action == "cancel_road_speed_memory" -> cancelRoadSpeedMemory()
 
             action == "assistant_silent_on" -> setAssistantSilentMode(true)
 
@@ -1306,6 +1318,75 @@ class GeminiLiveManager private constructor(context: Context) {
         put("longitude", latest?.endLongitude?.toString() ?: latestVehicleSnapshot.longitude?.toString() ?: "unknown")
         put("parkedAtEpochMillis", latest?.endedAtEpochMillis?.toString() ?: "unknown")
         put("note", note ?: "none")
+    }
+
+    private fun prepareRoadSpeedMemory(value: String?) = buildJsonObject {
+        val parts = value.orEmpty().split("|||", limit = 2)
+        val speed = parts.getOrNull(0)?.trim()?.filter { it.isDigit() }?.toIntOrNull()
+        val road = parts.getOrNull(1)?.trim().orEmpty()
+        val snapshot = latestVehicleSnapshot
+        if (speed == null || speed !in 10..160 || snapshot.latitude == null || snapshot.longitude == null) {
+            put("status", "rejected")
+            put("message", "Hız sınırı için 10-160 km/sa arası bir değer ve geçerli GPS konumu gerekli. Kaydedilmedi.")
+        } else {
+            pendingRoadSpeedMemory = JSONObject().apply {
+                put("speed", speed)
+                put("road", road.ifBlank { snapshot.currentAddressText.orEmpty() })
+                put("latitude", snapshot.latitude)
+                put("longitude", snapshot.longitude)
+                put("address", snapshot.currentAddressText.orEmpty())
+                put("createdAt", System.currentTimeMillis())
+            }
+            put("status", "confirmation_required")
+            put("speedLimitKmh", speed)
+            put("road", road.ifBlank { snapshot.currentAddressText.orEmpty() })
+            put("message", "Henüz kaydetme. Kullanıcıya bu noktadaki hız sınırını telefondaki hafızaya kaydetmek için açık onay sor.")
+        }
+    }
+
+    private fun confirmRoadSpeedMemory() = buildJsonObject {
+        val pending = pendingRoadSpeedMemory
+        if (pending == null) {
+            put("status", "nothing_pending")
+            put("message", "Onay bekleyen hız sınırı kaydı yok.")
+            return@buildJsonObject
+        }
+        val lat = pending.optDouble("latitude", Double.NaN)
+        val lon = pending.optDouble("longitude", Double.NaN)
+        val speed = pending.optInt("speed", 0)
+        if (lat.isNaN() || lon.isNaN() || speed !in 10..160) {
+            pendingRoadSpeedMemory = null
+            put("status", "rejected")
+            put("message", "Konum veya hız değeri geçersiz; kayıt yapılmadı.")
+            return@buildJsonObject
+        }
+        val entries = runCatching {
+            JSONArray(roadSpeedMemoryPrefs.getString("entries", "[]") ?: "[]")
+        }.getOrElse { JSONArray() }
+        val cellLat = (lat * 1000.0).toInt()
+        val cellLon = (lon * 1000.0).toInt()
+        val kept = JSONArray()
+        for (i in 0 until entries.length()) {
+            val item = entries.optJSONObject(i) ?: continue
+            if (item.optInt("latCell") == cellLat && item.optInt("lonCell") == cellLon) continue
+            kept.put(item)
+        }
+        pending.put("latCell", cellLat)
+        pending.put("lonCell", cellLon)
+        pending.put("savedAt", System.currentTimeMillis())
+        kept.put(pending)
+        roadSpeedMemoryPrefs.edit().putString("entries", kept.toString()).apply()
+        pendingRoadSpeedMemory = null
+        put("status", "accepted")
+        put("speedLimitKmh", speed)
+        put("road", pending.optString("road"))
+        put("message", "Kullanıcının onayladığı hız sınırı bu telefona kalıcı olarak kaydedildi. Konum/yol eşleşmesiyle sonraki geçişlerde hatırlanabilir; yön bilgisi henüz ayrı tutulmuyor.")
+    }
+
+    private fun cancelRoadSpeedMemory() = buildJsonObject {
+        pendingRoadSpeedMemory = null
+        put("status", "cancelled")
+        put("message", "Hız sınırı hafızaya kaydedilmedi.")
     }
 
     private fun setParkingNote(value: String?) = buildJsonObject {
