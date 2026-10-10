@@ -33,7 +33,9 @@ class RoadSpeedLimitRepository(context: Context? = null) {
     private val hereClient = HereSpeedLimitClient()
     private val osmClient = OsmSpeedLimitClient()
 
-    private val cachePrefs = context?.applicationContext?.getSharedPreferences("tomtom_speed_cache_131", Context.MODE_PRIVATE)
+    private val appContext = context?.applicationContext
+    private val cachePrefs = appContext?.getSharedPreferences("tomtom_speed_cache_131", Context.MODE_PRIVATE)
+    private val userMemoryPrefs = appContext?.getSharedPreferences("gemini_road_speed_memory", Context.MODE_PRIVATE)
 
     @Volatile
     var lastRequestQuotaBlocked: Boolean = false
@@ -251,6 +253,28 @@ class RoadSpeedLimitRepository(context: Context? = null) {
     }
 
     private fun readCached(latitude: Double, longitude: Double, headingDegrees: Float?): RoadSpeedLimitResult? {
+        val (latCell, lonCell) = cacheCell(latitude, longitude)
+        // Gemini'nin kullanıcı tarafından açıkça onaylanan kayıtları süre sınırı olmadan saklanır.
+        val memoryRaw = userMemoryPrefs?.getString("entries", null).orEmpty()
+        if (memoryRaw.isNotBlank()) {
+            val remembered = runCatching {
+                val array = JSONArray(memoryRaw)
+                var best: JSONObject? = null
+                for (i in 0 until array.length()) {
+                    val item = array.optJSONObject(i) ?: continue
+                    if (item.optInt("latCell") != latCell || item.optInt("lonCell") != lonCell) continue
+                    if (best == null || item.optLong("savedAt") > best!!.optLong("savedAt")) best = item
+                }
+                best?.let { item ->
+                    RoadSpeedLimitResult(
+                        speedLimitKmh = item.optInt("speed", 0).takeIf { it in 10..160 },
+                        roadName = item.optString("road").takeIf { it.isNotBlank() },
+                        source = "Gemini hafızası"
+                    )
+                }
+            }.getOrNull()
+            if (remembered?.speedLimitKmh != null) return remembered
+        }
         val prefs = cachePrefs ?: return null
         val raw = prefs.getString("entries", null).orEmpty()
         if (raw.isBlank()) return null
