@@ -69,6 +69,25 @@ interface TripDao {
         keepId: Long
     )
 
+    // Bir sürüşün sahibi değişse bile aynı başlangıç zamanlı ikinci kayıt oluşmasın.
+    @Query("""
+        SELECT * FROM trips
+        WHERE startedAtEpochMillis = :startedAtEpochMillis
+        ORDER BY id ASC
+        LIMIT 1
+    """)
+    suspend fun getTripByStartTime(startedAtEpochMillis: Long): TripEntity?
+
+    @Query("""
+        DELETE FROM trips
+        WHERE startedAtEpochMillis = :startedAtEpochMillis
+          AND id != :keepId
+    """)
+    suspend fun deleteDuplicateTripsByStartTime(
+        startedAtEpochMillis: Long,
+        keepId: Long
+    )
+
     @Query("DELETE FROM trips WHERE id = :id")
     suspend fun deleteTripById(id: Long)
 
