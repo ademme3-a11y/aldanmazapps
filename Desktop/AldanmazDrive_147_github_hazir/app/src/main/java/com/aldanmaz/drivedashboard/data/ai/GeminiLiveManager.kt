@@ -1363,8 +1363,8 @@ class GeminiLiveManager private constructor(context: Context) {
         val entries = runCatching {
             JSONArray(roadSpeedMemoryPrefs.getString("entries", "[]") ?: "[]")
         }.getOrElse { JSONArray() }
-        val cellLat = (lat * 1000.0).toInt()
-        val cellLon = (lon * 1000.0).toInt()
+        val cellLat = kotlin.math.round(lat * 1000.0).toInt()
+        val cellLon = kotlin.math.round(lon * 1000.0).toInt()
         val kept = JSONArray()
         for (i in 0 until entries.length()) {
             val item = entries.optJSONObject(i) ?: continue
