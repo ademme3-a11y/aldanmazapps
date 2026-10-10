@@ -13,17 +13,19 @@ class TripRepository(
     suspend fun saveTrip(
         trip: TripEntity
     ): Long {
-        val existing = tripDao.getTripByLogicalKey(
-            driverId = trip.driverId,
-            startedAtEpochMillis = trip.startedAtEpochMillis
-        )
+        // Sürüşün kimliği başlangıç zamanıdır; sonradan aktif sürücü değişse bile
+        // aynı sürüş başka bir sürücüye ikinci kez yazılmamalı.
+        val existing = tripDao.getTripByStartTime(trip.startedAtEpochMillis)
+        val normalized = if (existing != null) {
+            trip.copy(
+                id = existing.id,
+                driverId = existing.driverId,
+                driverName = existing.driverName
+            )
+        } else trip
 
-        val id = tripDao.insertTrip(
-            if (existing != null) trip.copy(id = existing.id) else trip
-        )
-
-        tripDao.deleteDuplicateLogicalTrips(
-            driverId = trip.driverId,
+        val id = tripDao.insertTrip(normalized)
+        tripDao.deleteDuplicateTripsByStartTime(
             startedAtEpochMillis = trip.startedAtEpochMillis,
             keepId = id
         )
@@ -46,22 +48,26 @@ class TripRepository(
     }
 
     /**
-     * 129: Eski sürümlerde aynı sürüş, süreç restore edildiğinde birden fazla kez
-     * eklenebiliyordu. Aynı sürücü + aynı başlangıç zamanını tek kayıt kabul eder.
-     * En uzun/en güncel sürüş tutulur, ara kopyalar silinir.
+     * Aynı başlangıç zamanındaki kayıtlar tek fiziksel sürüştür. Önce oluşturulan
+     * kayıt sürücüsünü koru; aynı sürücüdeki kopyalarda en eksiksiz kayıt kalsın.
      */
     suspend fun removeDuplicateTrips() {
         val trips = tripDao.getAllTrips()
-        trips.groupBy { it.driverId to it.startedAtEpochMillis }
+        trips.groupBy { it.startedAtEpochMillis }
             .values
             .filter { it.size > 1 }
             .forEach { group ->
-                val keep = group.maxWithOrNull(
-                    compareBy<TripEntity> { it.endedAtEpochMillis }
-                        .thenBy { it.distanceKm }
-                        .thenBy { it.totalDurationSeconds }
-                        .thenBy { it.id }
-                ) ?: return@forEach
+                val hasDifferentDrivers = group.map { it.driverId }.distinct().size > 1
+                val keep = if (hasDifferentDrivers) {
+                    group.minByOrNull { it.id }
+                } else {
+                    group.maxWithOrNull(
+                        compareBy<TripEntity> { it.endedAtEpochMillis }
+                            .thenBy { it.distanceKm }
+                            .thenBy { it.totalDurationSeconds }
+                            .thenBy { it.id }
+                    )
+                } ?: return@forEach
                 group.asSequence()
                     .filter { it.id != keep.id }
                     .forEach { duplicate -> tripDao.deleteTripById(duplicate.id) }
