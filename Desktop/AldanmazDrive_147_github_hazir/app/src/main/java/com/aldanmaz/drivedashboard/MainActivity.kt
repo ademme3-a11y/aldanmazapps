@@ -380,14 +380,23 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 val configuredDefaultDriver = drivers.firstOrNull { it.id == configuredDefaultDriverId } ?: drivers.first()
-                // 94: Rotation/configuration change gerçek uygulama başlangıcı değildir.
-                // DriveDashboardViewModel configuration change boyunca yaşar; mevcut sürücüyü oradan korur.
-                // Gerçek soğuk başlangıçta ViewModel yeni olduğu için sürücü seçimi yeniden gösterilir.
+                // Ekran/Android yeniden başlasa bile, sürücü seçimi hemen marş sırasında kaybolmasın.
+                // Kayıt yalnız kısa bir seçim penceresinde geri yüklenir; tamamlanan yolculukta
+                // active_driver_id zaten temizlenir ve sonraki yolculukta yeniden seçim yapılır.
+                val recentSavedDriverId = remember(driverSelectionEnabled) {
+                    val savedId = driverPrefs.getString("active_driver_id", null)
+                    val selectedAt = driverPrefs.getLong("active_driver_selected_at", 0L)
+                    val ageMs = System.currentTimeMillis() - selectedAt
+                    savedId?.takeIf {
+                        selectedAt > 0L &&
+                            ageMs in 0L..(15L * 60_000L) &&
+                            drivers.any { driver -> driver.id == it }
+                    }
+                }
                 val initialDriverId = remember(driverSelectionEnabled) {
-                    // 149: Sürücü seçimi yalnız mevcut araç/sürüş oturumu için geçerlidir.
-                    // Uygulama yeniden başladığında SharedPreferences'tan eski sürücü yüklenmez.
                     driveViewModel.currentDriverSessionIdOrNull()
-                        ?: if (!driverSelectionEnabled) configuredDefaultDriver.id else null
+                        ?: if (!driverSelectionEnabled) configuredDefaultDriver.id
+                        else recentSavedDriverId
                 }
                 var selectedDriverId by remember { mutableStateOf(initialDriverId) }
                 var driverSelectionSeconds by remember { mutableIntStateOf(10) }
@@ -1381,14 +1390,43 @@ class MainActivity : ComponentActivity() {
                     .uiState
                     .collectAsStateWithLifecycle()
 
-                val automaticDay = weatherUiState.hasData && weatherUiState.isDay
+                // Otomatik mod güneşin bugünkü doğuş/batış saatine göre belirlenir.
+                // Dakikalık tik, uygulama açıkken de gün doğumu/batımında temanın değişmesini sağlar.
+                var dayNightClockEpochMs by remember { mutableStateOf(System.currentTimeMillis()) }
+                LaunchedEffect(Unit) {
+                    while (true) {
+                        delay(60_000L)
+                        dayNightClockEpochMs = System.currentTimeMillis()
+                    }
+                }
+                val dayNightCalendar = java.util.Calendar.getInstance().apply {
+                    timeInMillis = dayNightClockEpochMs
+                }
+                val currentLocalTime = java.time.LocalTime.of(
+                    dayNightCalendar.get(java.util.Calendar.HOUR_OF_DAY),
+                    dayNightCalendar.get(java.util.Calendar.MINUTE)
+                )
+                val todayLocalDate = java.time.Instant.ofEpochMilli(dayNightClockEpochMs)
+                    .atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString()
+                val todaySunForecast = weatherUiState.dailyForecast.firstOrNull { it.date == todayLocalDate }
+                val sunriseLocalTime = todaySunForecast?.sunrise
+                    ?.substringAfter('T')?.take(5)
+                    ?.let { runCatching { java.time.LocalTime.parse(it) }.getOrNull() }
+                val sunsetLocalTime = todaySunForecast?.sunset
+                    ?.substringAfter('T')?.take(5)
+                    ?.let { runCatching { java.time.LocalTime.parse(it) }.getOrNull() }
+                val automaticDay = if (sunriseLocalTime != null && sunsetLocalTime != null) {
+                    !currentLocalTime.isBefore(sunriseLocalTime) &&
+                        currentLocalTime.isBefore(sunsetLocalTime)
+                } else if (weatherUiState.hasData) {
+                    weatherUiState.isDay
+                } else {
+                    currentLocalTime.hour in 7..18
+                }
                 val effectiveDay = when (appearance.dayNightMode) {
                     "GUNDUZ" -> true
                     "GECE" -> false
-                    else -> if (weatherUiState.hasData) automaticDay else {
-                        val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
-                        hour in 7..18
-                    }
+                    else -> automaticDay
                 }
                 val sunlightActive = when (appearance.sunlightMode) {
                     "ACIK" -> true

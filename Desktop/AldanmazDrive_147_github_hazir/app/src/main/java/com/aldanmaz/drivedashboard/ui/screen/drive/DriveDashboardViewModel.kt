@@ -1676,6 +1676,21 @@ class DriveDashboardViewModel(
     private fun announceTripStartOnce() {
         ensureDailyState()
         if (tripStartAnnouncementDoneThisProcess) return
+
+        // Multimedya ekranı marş sırasında yeniden başlatılırsa ViewModel de yeniden
+        // yaratılabilir. Kısa aralıkta aynı başlangıç anonsunu ikinci kez oynatma.
+        val announcementGuard = getApplication<Application>()
+            .getSharedPreferences("trip_start_announcement_guard", Context.MODE_PRIVATE)
+        val nowEpochMs = System.currentTimeMillis()
+        val lastAnnouncementEpochMs = announcementGuard.getLong("last_trip_start_announcement_epoch_ms", 0L)
+        if (lastAnnouncementEpochMs > 0L &&
+            nowEpochMs >= lastAnnouncementEpochMs &&
+            nowEpochMs - lastAnnouncementEpochMs < 5L * 60_000L
+        ) {
+            tripStartAnnouncementDoneThisProcess = true
+            return
+        }
+
         val prefs = getApplication<Application>()
             .getSharedPreferences("drive_start_settings", Context.MODE_PRIVATE)
         val safetyEnabled = prefs.getBoolean("safety_enabled", true)
@@ -1694,7 +1709,11 @@ class DriveDashboardViewModel(
                 durationMs = 4_000L
             )
         }
+        if (clips.isEmpty()) return
         tripStartAnnouncementDoneThisProcess = true
+        announcementGuard.edit()
+            .putLong("last_trip_start_announcement_epoch_ms", nowEpochMs)
+            .apply()
         voiceAlertManager.playRecordedSequence(
             type = VoiceAlertType.TRIP_START,
             priority = VoiceAlertPriority.NORMAL,
