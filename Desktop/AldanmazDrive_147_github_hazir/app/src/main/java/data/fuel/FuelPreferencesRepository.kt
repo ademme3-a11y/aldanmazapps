@@ -200,6 +200,37 @@ class FuelPreferencesRepository(context: Context) {
         }
     }
 
+    /** Keeps the fuel ledger consistent when a same-day purchase amount is corrected. */
+    suspend fun adjustFuelPurchase(
+        oldLiters: Double,
+        oldCost: Double,
+        newLiters: Double,
+        newCost: Double,
+    ) {
+        require(oldLiters >= 0.0 && newLiters > 0.0 && oldCost >= 0.0 && newCost >= 0.0)
+        dataStore.edit { preferences ->
+            val tankCapacity = preferences[Keys.TANK_CAPACITY_LITERS] ?: DEFAULT_TANK_CAPACITY_LITERS
+            val currentFuel = preferences[Keys.CURRENT_FUEL_LITERS] ?: DEFAULT_CURRENT_FUEL_LITERS
+            val currentCost = preferences[Keys.TOTAL_FUEL_COST] ?: DEFAULT_TOTAL_FUEL_COST
+            val currentPurchased = preferences[Keys.TOTAL_PURCHASED_LITERS] ?: 0.0
+            val deltaLiters = newLiters - oldLiters
+            val nextPurchased = (currentPurchased + deltaLiters).coerceAtLeast(0.0)
+            val nextCost = (currentCost + newCost - oldCost).coerceAtLeast(0.0)
+            preferences[Keys.CURRENT_FUEL_LITERS] = (currentFuel + deltaLiters).coerceIn(0.0, tankCapacity)
+            preferences[Keys.TOTAL_PURCHASED_LITERS] = nextPurchased
+            preferences[Keys.TOTAL_FUEL_COST] = nextCost
+            val lastPrice = preferences[Keys.LAST_FUEL_PRICE_PER_LITER] ?: 0.0
+            val oldUnitPrice = if (oldLiters > 0.0) oldCost / oldLiters else 0.0
+            if (lastPrice > 0.0 && oldUnitPrice > 0.0 &&
+                kotlin.math.abs(lastPrice - oldUnitPrice) < 0.05 && newLiters > 0.0
+            ) {
+                preferences[Keys.LAST_FUEL_PRICE_PER_LITER] = newCost / newLiters
+            } else if (nextPurchased > 0.0) {
+                preferences[Keys.LAST_FUEL_PRICE_PER_LITER] = nextCost / nextPurchased
+            }
+        }
+    }
+
     suspend fun resetFuelStatistics() {
         dataStore.edit { preferences ->
             preferences[Keys.TOTAL_FUEL_COST] = 0.0
