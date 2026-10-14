@@ -368,10 +368,16 @@ private fun MonthlyFuelMetric(
 }
 
 @Composable
-private fun FuelPurchaseHistoryPanel(records: List<FuelPurchaseRecord>) {
+private fun FuelPurchaseHistoryPanel(
+    records: List<FuelPurchaseRecord>,
+    onUpdateFuelPurchase: (FuelPurchaseRecord, Double, Double) -> Unit,
+) {
     val context = LocalContext.current
     var selectedDriverId by remember { mutableStateOf<String?>(null) }
     var expandedMonth by remember { mutableStateOf<YearMonth?>(null) }
+    var editingRecord by remember { mutableStateOf<FuelPurchaseRecord?>(null) }
+    var editLitersText by remember { mutableStateOf("") }
+    var editCostText by remember { mutableStateOf("") }
     val zone = remember { ZoneId.systemDefault() }
     val trLocale = remember { Locale("tr", "TR") }
     val monthFormatter = remember { DateTimeFormatter.ofPattern("MMMM yyyy", trLocale) }
