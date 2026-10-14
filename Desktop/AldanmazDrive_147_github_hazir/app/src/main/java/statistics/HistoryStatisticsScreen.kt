@@ -148,7 +148,14 @@ class HistoryStatisticsViewModel(application: Application) : AndroidViewModel(ap
     }
 
     fun updateTripDrivers(tripIds: List<Long>, driverId: String, driverName: String) {
+        if (tripIds.isEmpty()) return
         viewModelScope.launch {
+            val today = dateKey(System.currentTimeMillis())
+            val todayTripIds = tripDao.getAllTrips()
+                .filter { dateKey(it.startedAtEpochMillis) == today }
+                .map { it.id }
+                .toSet()
+            if (tripIds.any { it !in todayTripIds }) return@launch
             tripDao.updateDriverForTrips(tripIds, driverId, driverName)
             refresh()
         }
@@ -346,6 +353,7 @@ fun HistoryStatisticsScreen(
                 Column(Modifier.weight(1f)) {
                     Text("ALD DRIVE", color = HCyan, fontSize = 18.sp, fontWeight = FontWeight.Black)
                     Text("GEÇMİŞ • SON 180 GÜN", color = HMuted, fontSize = 11.sp)
+                    Text("SÜRÜCÜ DÜZELTME: TÜM SÜRÜCÜ + BUGÜN", color = HMuted, fontSize = 9.sp)
                 }
                 TextButton(onClick = { viewModel.refresh() }) { Text("YENİLE", color = HCyan, fontWeight = FontWeight.Bold) }
                 TextButton(onClick = onDetailedClick) { Text("DETAYLI", color = HMuted, fontWeight = FontWeight.Bold) }
@@ -617,6 +625,7 @@ private fun HistoryTable(
                 if (expanded) {
                     state.rows.filter { it.dateKey.startsWith(month.monthKey) }
                         .forEachIndexed { index, row ->
+                            val canEditDriver = row.dateKey == dateKey(System.currentTimeMillis()) && row.tripIds.isNotEmpty()
                             Row(
                                 Modifier.width(width)
                                     .background(if (index % 2 == 0) HBg else HCard.copy(alpha = .72f))
@@ -626,10 +635,12 @@ private fun HistoryTable(
                                 BodyCell(row.dateLabel, dateW)
                                 if (hasDriverColumn) {
                                     Card(
-                                        modifier = Modifier.width(driverW).height(34.dp),
-                                        onClick = { editingRow = row },
-                                        colors = CardDefaults.cardColors(containerColor = HCyan.copy(alpha = 0.08f)),
-                                        border = BorderStroke(1.dp, HCyan.copy(alpha = 0.45f)),
+                                        modifier = Modifier.width(driverW).height(34.dp)
+                                            .clickable(enabled = canEditDriver) { editingRow = row },
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = if (canEditDriver) HCyan.copy(alpha = 0.08f) else HCard
+                                        ),
+                                        border = BorderStroke(1.dp, if (canEditDriver) HCyan.copy(alpha = 0.45f) else HBorder),
                                         shape = RoundedCornerShape(7.dp)
                                     ) {
                                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -720,7 +731,7 @@ private fun HistoryTable(
             onDismissRequest = { editingRow = null },
             containerColor = HCard,
             title = { Text("SÜRÜCÜYÜ DEĞİŞTİR", color = HCyan, fontWeight = FontWeight.Black) },
-            text = { Text("Bu tarihteki ${row.tripIds.size} sürüş kaydı ${row.driverName} olarak görünüyor. Yeni sürücüyü seçin.", color = HText) },
+            text = { Text("Bugünkü ${row.tripIds.size} sürüş kaydı ${row.driverName} olarak görünüyor. Doğru sürücüyü seçin. Yalnızca bugünün kayıtları değiştirilebilir.", color = HText) },
             dismissButton = { TextButton(onClick = { editingRow = null }) { Text("İPTAL", color = HMuted) } },
             confirmButton = {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
