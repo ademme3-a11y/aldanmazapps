@@ -4,6 +4,7 @@ import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
+import java.util.Calendar
 
 data class FuelPurchaseRecord(
     val id: String,
@@ -88,6 +89,29 @@ class FuelPurchaseHistoryRepository(context: Context) {
         }
         prefs.edit().putString(KEY_RECORDS, array.toString()).apply()
         return record
+    }
+
+    /** Only today's fuel entries may be corrected; the original timestamp and location stay intact. */
+    @Synchronized
+    fun updateToday(
+        recordId: String,
+        liters: Double,
+        costTl: Double,
+    ): Pair<FuelPurchaseRecord, FuelPurchaseRecord>? {
+        if (!liters.isFinite() || liters <= 0.0 || !costTl.isFinite() || costTl < 0.0) return null
+        val records = getAll()
+        val existing = records.firstOrNull { it.id == recordId } ?: return null
+        if (!isSameLocalDay(existing.purchasedAtEpochMillis, System.currentTimeMillis())) return null
+        val updated = existing.copy(liters = liters, costTl = costTl)
+        write(records.map { if (it.id == recordId) updated else it })
+        return existing to updated
+    }
+
+    private fun isSameLocalDay(firstEpochMillis: Long, secondEpochMillis: Long): Boolean {
+        val first = Calendar.getInstance().apply { timeInMillis = firstEpochMillis }
+        val second = Calendar.getInstance().apply { timeInMillis = secondEpochMillis }
+        return first.get(Calendar.YEAR) == second.get(Calendar.YEAR) &&
+            first.get(Calendar.DAY_OF_YEAR) == second.get(Calendar.DAY_OF_YEAR)
     }
 
     @Synchronized
