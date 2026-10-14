@@ -515,7 +515,7 @@ private fun FuelPurchaseHistoryPanel(
                     )
                     FuelInputField(
                         value = editCostText,
-                        onValueChange = { editCostText = it.filterFuelInput() },
+                        onValueChange = { editCostText = it.filter { ch -> ch.isDigit() || ch == '.' || ch == ',' } },
                         label = "Doğru toplam tutar (₺)",
                         modifier = Modifier.fillMaxWidth(),
                     )
