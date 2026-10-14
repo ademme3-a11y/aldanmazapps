@@ -38,6 +38,7 @@ fun FuelRoute(
         onRefuelCostChanged = viewModel::onRefuelCostChanged,
         onFillTankChanged = viewModel::onFillTankChanged,
         onSaveRefuel = viewModel::saveRefuel,
+        onUpdateFuelPurchase = { record, liters, cost -> viewModel.updateFuelPurchase(record.id, liters, cost) },
         onRefreshShellFuelPrice = viewModel::refreshShellFuelPrice,
         onResetStatistics = {
             if (onResetAllStatistics != null) {
