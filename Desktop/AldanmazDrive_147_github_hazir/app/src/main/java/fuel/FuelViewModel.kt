@@ -261,6 +261,37 @@ class FuelViewModel(application: Application) : AndroidViewModel(application) {
         return effectiveLiters
     }
 
+    fun updateFuelPurchase(recordId: String, liters: Double, costTl: Double) {
+        if (!liters.isFinite() || liters <= 0.0 || !costTl.isFinite() || costTl < 0.0) {
+            _uiState.update { it.copy(errorMessage = "Litre sıfırdan büyük, tutar sıfır veya daha büyük olmalıdır.") }
+            return
+        }
+        viewModelScope.launch {
+            runCatching {
+                val (oldRecord, newRecord) = purchaseHistoryRepository.updateToday(recordId, liters, costTl)
+                    ?: throw IllegalStateException("Yalnız bugünün yakıt kaydı aynı gün içinde düzeltilebilir.")
+                repository.adjustFuelPurchase(
+                    oldLiters = oldRecord.liters,
+                    oldCost = oldRecord.costTl,
+                    newLiters = newRecord.liters,
+                    newCost = newRecord.costTl,
+                )
+            }.onSuccess {
+                _uiState.update {
+                    it.copy(
+                        purchaseHistory = purchaseHistoryRepository.getAll(),
+                        errorMessage = null,
+                        confirmationMessage = "Bugünkü yakıt kaydı düzeltildi.",
+                    )
+                }
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(errorMessage = error.message ?: "Yakıt kaydı düzeltilemedi.")
+                }
+            }
+        }
+    }
+
     /** Gemini yakıt komutunu manuel "Yakıt Aldım" kayıt zincirine bağlar. */
     fun addFuelFromGemini(
         rawValue: String?,
