@@ -509,7 +509,7 @@ private fun FuelPurchaseHistoryPanel(
                     Text("Tarih ve konum korunur. Yalnızca litre ve toplam tutar değişir.", color = FuelSecondaryText, fontSize = 12.sp)
                     FuelInputField(
                         value = editLitersText,
-                        onValueChange = { editLitersText = it.filterFuelInput() },
+                        onValueChange = { editLitersText = it.filter { ch -> ch.isDigit() || ch == '.' || ch == ',' } },
                         label = "Doğru yakıt miktarı (L)",
                         modifier = Modifier.fillMaxWidth(),
                     )
