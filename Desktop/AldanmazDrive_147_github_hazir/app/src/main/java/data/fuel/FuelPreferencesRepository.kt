@@ -225,8 +225,6 @@ class FuelPreferencesRepository(context: Context) {
                 kotlin.math.abs(lastPrice - oldUnitPrice) < 0.05 && newLiters > 0.0
             ) {
                 preferences[Keys.LAST_FUEL_PRICE_PER_LITER] = newCost / newLiters
-            } else if (nextPurchased > 0.0) {
-                preferences[Keys.LAST_FUEL_PRICE_PER_LITER] = nextCost / nextPurchased
             }
         }
     }
