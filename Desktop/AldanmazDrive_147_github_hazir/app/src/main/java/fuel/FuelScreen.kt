@@ -87,6 +87,7 @@ fun FuelScreen(
     onRefuelCostChanged: (String) -> Unit,
     onFillTankChanged: (Boolean) -> Unit,
     onSaveRefuel: () -> Unit,
+    onUpdateFuelPurchase: (FuelPurchaseRecord, Double, Double) -> Unit,
     onRefreshShellFuelPrice: () -> Unit,
     onResetStatistics: () -> Unit,
     modifier: Modifier = Modifier,
@@ -181,7 +182,7 @@ fun FuelScreen(
             }
             Spacer(modifier = Modifier.height(12.dp))
             if (!uiState.isLoading) {
-                FuelPurchaseHistoryPanel(uiState.purchaseHistory)
+                FuelPurchaseHistoryPanel(uiState.purchaseHistory, onUpdateFuelPurchase)
                 Spacer(modifier = Modifier.height(12.dp))
             }
             Row(
@@ -455,13 +456,25 @@ private fun FuelPurchaseHistoryPanel(records: List<FuelPurchaseRecord>) {
                                 }
                                 if (expandedMonth == month) {
                                     monthRecords.sortedByDescending { it.purchasedAtEpochMillis }.forEach { record ->
-                                        FuelPurchaseHistoryRow(record, zone, dateFormatter) {
-                                            openFuelPurchaseLocation(
-                                                context,
-                                                requireNotNull(record.latitude),
-                                                requireNotNull(record.longitude),
-                                            )
-                                        }
+                                        FuelPurchaseHistoryRow(
+                                            record = record,
+                                            zone = zone,
+                                            dateFormatter = dateFormatter,
+                                            onOpenMap = {
+                                                openFuelPurchaseLocation(
+                                                    context,
+                                                    requireNotNull(record.latitude),
+                                                    requireNotNull(record.longitude),
+                                                )
+                                            },
+                                            onEdit = if (isFuelPurchaseToday(record.purchasedAtEpochMillis, zone)) {
+                                                {
+                                                    editingRecord = record
+                                                    editLitersText = String.format(Locale.US, "%.2f", record.liters)
+                                                    editCostText = String.format(Locale.US, "%.2f", record.costTl)
+                                                }
+                                            } else null,
+                                        )
                                     }
                                     Text(
                                         "AY TOPLAMI • ${monthLiters.twoDecimals()} L • ${monthCost.twoDecimals()} ₺",
@@ -477,6 +490,52 @@ private fun FuelPurchaseHistoryPanel(records: List<FuelPurchaseRecord>) {
             }
         }
     }
+
+    editingRecord?.let { record ->
+        val parsedLiters = editLitersText.toFuelNumberOrNull()
+        val parsedCost = editCostText.toFuelNumberOrNull()
+        AlertDialog(
+            onDismissRequest = { editingRecord = null },
+            containerColor = FuelCard,
+            title = { Text("BUGÜNKÜ YAKIT KAYDINI DÜZELT", color = FuelCyan, fontWeight = FontWeight.Black) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Tarih ve konum korunur. Yalnızca litre ve toplam tutar değişir.", color = FuelSecondaryText, fontSize = 12.sp)
+                    FuelInputField(
+                        value = editLitersText,
+                        onValueChange = { editLitersText = it.filterFuelInput() },
+                        label = "Doğru yakıt miktarı (L)",
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    FuelInputField(
+                        value = editCostText,
+                        onValueChange = { editCostText = it.filterFuelInput() },
+                        label = "Doğru toplam tutar (₺)",
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { editingRecord = null }) {
+                    Text("İPTAL", color = FuelSecondaryText)
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (parsedLiters != null && parsedLiters > 0.0 && parsedCost != null && parsedCost >= 0.0) {
+                            onUpdateFuelPurchase(record, parsedLiters, parsedCost)
+                            editingRecord = null
+                        }
+                    },
+                    enabled = parsedLiters != null && parsedLiters > 0.0 && parsedCost != null && parsedCost >= 0.0,
+                    colors = ButtonDefaults.buttonColors(containerColor = FuelGreen, contentColor = FuelBackground),
+                ) {
+                    Text("DÜZELTMEYİ KAYDET", fontWeight = FontWeight.ExtraBold)
+                }
+            },
+        )
+    }
 }
 
 @Composable
@@ -485,6 +544,7 @@ private fun FuelPurchaseHistoryRow(
     zone: ZoneId,
     dateFormatter: DateTimeFormatter,
     onOpenMap: () -> Unit,
+    onEdit: (() -> Unit)?,
 ) {
     val date = Instant.ofEpochMilli(record.purchasedAtEpochMillis).atZone(zone).format(dateFormatter)
     val hasLocation = record.latitude != null && record.longitude != null
@@ -514,8 +574,16 @@ private fun FuelPurchaseHistoryRow(
             fontSize = 10.sp,
             modifier = Modifier.clickable(enabled = hasLocation, onClick = onOpenMap),
         )
+        if (onEdit != null) {
+            TextButton(onClick = onEdit, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 0.dp, vertical = 0.dp)) {
+                Text("BUGÜNÜN KAYDINI DÜZELT", color = FuelCyan, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            }
+        }
     }
 }
+
+private fun isFuelPurchaseToday(epochMillis: Long, zone: ZoneId): Boolean =
+    Instant.ofEpochMilli(epochMillis).atZone(zone).toLocalDate() == java.time.LocalDate.now(zone)
 
 @Composable
 private fun FuelHistoryFilter(
