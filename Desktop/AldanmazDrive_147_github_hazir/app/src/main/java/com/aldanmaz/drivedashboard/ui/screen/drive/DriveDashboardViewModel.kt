@@ -152,10 +152,9 @@ class DriveDashboardViewModel(
         activeDriverId = id
         activeDriverName = name
         hasSelectedDriverSession = true
-        if (!_uiState.value.isTripActive) {
-            tripDriverId = id
-            tripDriverName = name
-        }
+        // A manual correction on the driving screen must also correct the trip currently in progress.
+        tripDriverId = id
+        tripDriverName = name
     }
 
     /** 94: ViewModel configuration change boyunca yaşadığı için ekran döndürmede sürücü seçimini korur. */
