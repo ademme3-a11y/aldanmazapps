@@ -251,6 +251,7 @@ fun DriveDashboardScreen(
     onWifiClick: () -> Unit = {},
     onBluetoothClick: () -> Unit = {},
     onObdClick: () -> Unit = {},
+    onDriverClick: () -> Unit = {},
     onAppSoundToggle: () -> Unit = {},
     onRouteSlopeClick: () -> Unit = {},
     onLiveSlopeClick: () -> Unit = {},
@@ -459,6 +460,7 @@ fun DriveDashboardScreen(
                             bluetoothLabel = bluetoothShortName,
                             obdLabel = obdShortName,
                             selectedDriverName = selectedDriverName,
+                            onDriverClick = onDriverClick,
                             isAppSoundEnabled = isAppSoundEnabled,
                             isAppAudioPlaying = isAppAudioPlaying,
                             onAppSoundToggle = onAppSoundToggle,
@@ -713,6 +715,7 @@ private fun ConnectionStatusStrip(
     bluetoothLabel: String,
     obdLabel: String,
     selectedDriverName: String,
+    onDriverClick: () -> Unit,
     isAppSoundEnabled: Boolean,
     isAppAudioPlaying: Boolean,
     onAppSoundToggle: () -> Unit,
@@ -746,7 +749,7 @@ private fun ConnectionStatusStrip(
             ConnectionStatusItem(
                 selectedDriverName.filter { it.isLetterOrDigit() }.take(3).uppercase(Locale("tr", "TR")).ifBlank { "---" },
                 selectedDriverName.isNotBlank() && selectedDriverName != "---",
-                Modifier.weight(.9f)
+                Modifier.weight(.9f).clickable(onClick = onDriverClick)
             )
             ConnectionStatusItem(if (isObdConnected) obdLabel else "OBD", isObdConnected, Modifier.weight(1f))
         }
