@@ -207,7 +207,7 @@ class FuelPreferencesRepository(context: Context) {
         newLiters: Double,
         newCost: Double,
     ) {
-        require(oldLiters >= 0.0 && newLiters > 0.0 && oldCost >= 0.0 && newCost >= 0.0)
+        require(oldLiters >= 0.0 && newLiters >= 0.0 && oldCost >= 0.0 && newCost >= 0.0)
         dataStore.edit { preferences ->
             val tankCapacity = preferences[Keys.TANK_CAPACITY_LITERS] ?: DEFAULT_TANK_CAPACITY_LITERS
             val currentFuel = preferences[Keys.CURRENT_FUEL_LITERS] ?: DEFAULT_CURRENT_FUEL_LITERS
