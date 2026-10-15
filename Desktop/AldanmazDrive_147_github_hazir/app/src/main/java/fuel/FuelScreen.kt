@@ -88,6 +88,7 @@ fun FuelScreen(
     onFillTankChanged: (Boolean) -> Unit,
     onSaveRefuel: () -> Unit,
     onUpdateFuelPurchase: (FuelPurchaseRecord, Double, Double) -> Unit,
+    onDeleteFuelPurchase: (FuelPurchaseRecord) -> Unit,
     onRefreshShellFuelPrice: () -> Unit,
     onResetStatistics: () -> Unit,
     modifier: Modifier = Modifier,
@@ -182,7 +183,7 @@ fun FuelScreen(
             }
             Spacer(modifier = Modifier.height(12.dp))
             if (!uiState.isLoading) {
-                FuelPurchaseHistoryPanel(uiState.purchaseHistory, onUpdateFuelPurchase)
+                FuelPurchaseHistoryPanel(uiState.purchaseHistory, onUpdateFuelPurchase, onDeleteFuelPurchase)
                 Spacer(modifier = Modifier.height(12.dp))
             }
             Row(
@@ -371,11 +372,13 @@ private fun MonthlyFuelMetric(
 private fun FuelPurchaseHistoryPanel(
     records: List<FuelPurchaseRecord>,
     onUpdateFuelPurchase: (FuelPurchaseRecord, Double, Double) -> Unit,
+    onDeleteFuelPurchase: (FuelPurchaseRecord) -> Unit,
 ) {
     val context = LocalContext.current
     var selectedDriverId by remember { mutableStateOf<String?>(null) }
     var expandedMonth by remember { mutableStateOf<YearMonth?>(null) }
     var editingRecord by remember { mutableStateOf<FuelPurchaseRecord?>(null) }
+    var deletingRecord by remember { mutableStateOf<FuelPurchaseRecord?>(null) }
     var editLitersText by remember { mutableStateOf("") }
     var editCostText by remember { mutableStateOf("") }
     val zone = remember { ZoneId.systemDefault() }
@@ -480,6 +483,7 @@ private fun FuelPurchaseHistoryPanel(
                                                     editCostText = String.format(Locale.US, "%.2f", record.costTl)
                                                 }
                                             } else null,
+                                            onDelete = { deletingRecord = record },
                                         )
                                     }
                                     Text(
@@ -542,6 +546,37 @@ private fun FuelPurchaseHistoryPanel(
             },
         )
     }
+
+    deletingRecord?.let { record ->
+        AlertDialog(
+            onDismissRequest = { deletingRecord = null },
+            containerColor = FuelCard,
+            title = { Text("YAKIT KAYDINI TAMAMEN SİL?", color = FuelRed, fontWeight = FontWeight.Black) },
+            text = {
+                Text(
+                    "${record.driverName} • ${record.liters.twoDecimals()} L • ${record.costTl.twoDecimals()} ₺ kaydı kalıcı olarak silinecek. Yakıt toplamları da güncellenecek.",
+                    color = FuelSecondaryText,
+                    fontSize = 12.sp,
+                )
+            },
+            dismissButton = {
+                TextButton(onClick = { deletingRecord = null }) {
+                    Text("VAZGEÇ", color = FuelSecondaryText)
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDeleteFuelPurchase(record)
+                        deletingRecord = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = FuelRed, contentColor = Color.White),
+                ) {
+                    Text("TAMAMEN SİL", fontWeight = FontWeight.ExtraBold)
+                }
+            },
+        )
+    }
 }
 
 @Composable
@@ -551,6 +586,7 @@ private fun FuelPurchaseHistoryRow(
     dateFormatter: DateTimeFormatter,
     onOpenMap: () -> Unit,
     onEdit: (() -> Unit)?,
+    onDelete: (() -> Unit)? = null,
 ) {
     val date = Instant.ofEpochMilli(record.purchasedAtEpochMillis).atZone(zone).format(dateFormatter)
     val hasLocation = record.latitude != null && record.longitude != null
@@ -583,6 +619,14 @@ private fun FuelPurchaseHistoryRow(
         if (onEdit != null) {
             TextButton(onClick = onEdit, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 0.dp, vertical = 0.dp)) {
                 Text("BUGÜNÜN KAYDINI DÜZELT", color = FuelCyan, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+        if (onDelete != null) {
+            TextButton(
+                onClick = onDelete,
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 0.dp, vertical = 0.dp),
+            ) {
+                Text("KAYDI TAMAMEN SİL", color = FuelRed, fontSize = 10.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
