@@ -292,6 +292,31 @@ class FuelViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun deleteFuelPurchase(recordId: String) {
+        viewModelScope.launch {
+            runCatching {
+                val removed = purchaseHistoryRepository.deleteById(recordId)
+                    ?: throw IllegalStateException("Yakıt kaydı bulunamadı; zaten silinmiş olabilir.")
+                repository.adjustFuelPurchase(
+                    oldLiters = removed.liters,
+                    oldCost = removed.costTl,
+                    newLiters = 0.0,
+                    newCost = 0.0,
+                )
+            }.onSuccess {
+                _uiState.update {
+                    it.copy(
+                        purchaseHistory = purchaseHistoryRepository.getAll(),
+                        errorMessage = null,
+                        confirmationMessage = "Yakıt kaydı tamamen silindi.",
+                    )
+                }
+            }.onFailure { error ->
+                _uiState.update { it.copy(errorMessage = error.message ?: "Yakıt kaydı silinemedi.") }
+            }
+        }
+    }
+
     /** Gemini yakıt komutunu manuel "Yakıt Aldım" kayıt zincirine bağlar. */
     fun addFuelFromGemini(
         rawValue: String?,
