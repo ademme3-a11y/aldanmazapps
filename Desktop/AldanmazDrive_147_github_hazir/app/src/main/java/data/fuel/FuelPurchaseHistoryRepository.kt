@@ -107,6 +107,15 @@ class FuelPurchaseHistoryRepository(context: Context) {
         return existing to updated
     }
 
+    /** Permanently removes a fuel row by its stable record ID. */
+    @Synchronized
+    fun deleteById(recordId: String): FuelPurchaseRecord? {
+        val records = getAll()
+        val existing = records.firstOrNull { it.id == recordId } ?: return null
+        write(records.filterNot { it.id == recordId })
+        return existing
+    }
+
     private fun isSameLocalDay(firstEpochMillis: Long, secondEpochMillis: Long): Boolean {
         val first = Calendar.getInstance().apply { timeInMillis = firstEpochMillis }
         val second = Calendar.getInstance().apply { timeInMillis = secondEpochMillis }
