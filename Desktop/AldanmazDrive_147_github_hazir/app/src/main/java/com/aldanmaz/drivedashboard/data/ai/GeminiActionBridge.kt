@@ -100,8 +100,8 @@ object GeminiActionBridge {
     @Volatile
     private var pendingCriticalCommand: GeminiAppCommand? = null
 
-    // Gemini Live may emit the same tool call more than once for one spoken request.
-    // Ignore identical action/value pairs repeated within five seconds.
+    // Gemini Live may emit the same fuel-add tool call more than once for one spoken request.
+    // Deduplicate only fuel writes so repeated voice controls (e.g. volume up) still work.
     private var lastCommandKey: String? = null
     private var lastCommandAtMs: Long = 0L
 
@@ -320,7 +320,7 @@ object GeminiActionBridge {
         val command = GeminiAppCommand(action = action, value = value?.trim()?.takeIf { it.isNotBlank() })
         val now = System.currentTimeMillis()
         val commandKey = "${command.action}|${command.value.orEmpty().trim().lowercase()}"
-        if (lastCommandKey == commandKey && now - lastCommandAtMs in 0L..5_000L) {
+        if (action == "add_fuel" && lastCommandKey == commandKey && now - lastCommandAtMs in 0L..5_000L) {
             return GeminiDispatchResult.Rejected("Gemini aynı komutu kısa aralıkla tekrar gönderdi; ikinci işlem engellendi.")
         }
 
@@ -328,15 +328,15 @@ object GeminiActionBridge {
             if (action in setOf("reset_statistics", "reset_fuel_statistics", "reset_trip_distance") && latestSnapshot.speedKmh >= 5) {
                 return GeminiDispatchResult.Rejected("Kritik silme/sıfırlama işlemleri araç hareket halindeyken kullanılamaz.")
             }
-            lastCommandKey = commandKey
-            lastCommandAtMs = now
             pendingCriticalCommand = command
             return GeminiDispatchResult.ConfirmationRequired(command)
         }
 
         return if (_commands.tryEmit(command)) {
-            lastCommandKey = commandKey
-            lastCommandAtMs = now
+            if (action == "add_fuel") {
+                lastCommandKey = commandKey
+                lastCommandAtMs = now
+            }
             GeminiDispatchResult.Accepted(command)
         } else {
             GeminiDispatchResult.Rejected("Komut kuyruğu şu anda dolu. Tekrar deneyin.")
