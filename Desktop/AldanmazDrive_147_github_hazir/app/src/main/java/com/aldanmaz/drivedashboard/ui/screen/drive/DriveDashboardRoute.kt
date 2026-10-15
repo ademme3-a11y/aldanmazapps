@@ -56,6 +56,7 @@ fun DriveDashboardRoute(
     obdAlertMessage: String? = null,
     obdShortName: String = "OBD",
     selectedDriverName: String = "---",
+    onDriverClick: () -> Unit = {},
     onObdClick: () -> Unit = {},
     onTrafficAgentClick: () -> Unit = {},
     onNavigationClick: () -> Unit = {},
@@ -459,6 +460,7 @@ fun DriveDashboardRoute(
         bluetoothShortName = bluetoothShortName,
         obdShortName = obdShortName,
         selectedDriverName = selectedDriverName,
+        onDriverClick = onDriverClick,
         isAppSoundEnabled = isAppSoundEnabled,
         isAppAudioPlaying = isAppAudioPlaying,
         onAppSoundToggle = {
