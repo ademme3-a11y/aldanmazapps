@@ -402,9 +402,14 @@ class MainActivity : ComponentActivity() {
                 var driverSelectionSeconds by remember { mutableIntStateOf(10) }
                 var driverSelectionCommitted by remember { mutableStateOf(initialDriverId != null) }
                 var driverWelcomeInProgress by remember { mutableStateOf(false) }
+                var showManualDriverSelection by remember { mutableStateOf(false) }
                 val selectedDriver = drivers.firstOrNull { it.id == selectedDriverId }
-                fun selectDriver(driver: com.aldanmaz.drivedashboard.ui.screen.driver.DriverProfile, announce: Boolean = true) {
-                    if (driverSelectionCommitted) return
+                fun selectDriver(
+                    driver: com.aldanmaz.drivedashboard.ui.screen.driver.DriverProfile,
+                    announce: Boolean = true,
+                    force: Boolean = false
+                ) {
+                    if (driverSelectionCommitted && !force) return
                     driverSelectionCommitted = true
                     driverSelectionSeconds = 0
                     selectedDriverId = driver.id
@@ -1512,6 +1517,7 @@ class MainActivity : ComponentActivity() {
                             viewModel = driveViewModel,
                             weatherViewModel = weatherViewModel,
                             selectedDriverName = selectedDriver?.name ?: "---",
+                            onDriverClick = { showManualDriverSelection = true },
 
                             onFuelClick = {
                                 navController.navigate(
@@ -1858,7 +1864,7 @@ class MainActivity : ComponentActivity() {
                             onReject = { incomingCallController.reject() }
                         )
                     }
-                    if (currentRoute != ROUTE_SPLASH && driverSelectionEnabled && selectedDriver == null) {
+                    if (showManualDriverSelection || (currentRoute != ROUTE_SPLASH && driverSelectionEnabled && selectedDriver == null)) {
                         Box(Modifier.fillMaxSize().zIndex(1000f)) {
                             DriverSelectionOverlay(
                                 drivers = drivers,
@@ -1867,7 +1873,8 @@ class MainActivity : ComponentActivity() {
                                 // davranışıyla eşleşsin diye 2. kişi (Nurdan) gösterilir.
                                 defaultDriverName = (drivers.firstOrNull { it.id == "2" } ?: configuredDefaultDriver).name
                             ) { driver ->
-                                selectDriver(driver)
+                                selectDriver(driver, force = showManualDriverSelection)
+                                showManualDriverSelection = false
                             }
                         }
                     }
