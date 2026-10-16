@@ -202,7 +202,7 @@ fun DriveDashboardRoute(
                 onLocation = { location ->
                     remoteLocationUpdatedAt = location?.updatedAt ?: 0L
                     remoteDriverLive = location != null &&
-                        System.currentTimeMillis() - location.updatedAt in 0L..15_000L
+                        System.currentTimeMillis() - location.updatedAt in -120_000L..60_000L
                     if (location != null) {
                         remoteDriverName = loadDrivers(context)
                             .firstOrNull { it.id == location.driverId }?.name ?: "Sürücü"
@@ -228,7 +228,7 @@ fun DriveDashboardRoute(
     LaunchedEffect(remoteLocationUpdatedAt) {
         while (true) {
             remoteDriverLive = remoteLocationUpdatedAt > 0L &&
-                System.currentTimeMillis() - remoteLocationUpdatedAt in 0L..15_000L
+                System.currentTimeMillis() - remoteLocationUpdatedAt in -120_000L..60_000L
             delay(1_000L)
         }
     }
