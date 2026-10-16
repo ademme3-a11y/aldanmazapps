@@ -7,7 +7,7 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
-// 102: Firebase yapilandirmasi kaynak ZIP'e gizli dosya olarak girmediyse önce
+// 102: Firebase yapilandirmasi kaynak ZIP'e gizli dosya olarak girmediyse once
 // ayni klasordeki calisan 99 projesinden, sonra dogrulanmis 72 projesinden alinir.
 // Genel bir google-services.json kullanilmaz; farkli Firebase projesi Live/App Check
 // baglantisini bozabilir.
@@ -105,11 +105,12 @@ dependencies {
 
     implementation(platform("com.google.firebase:firebase-bom:34.19.0"))
     implementation("com.google.firebase:firebase-ai")
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-database")
     implementation("com.google.firebase:firebase-appcheck-debug")
     implementation("com.google.firebase:firebase-appcheck-playintegrity")
 
     // Firebase AI function-calling API exposes JsonObject/JsonElement types.
-
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
 
     implementation(libs.androidx.activity.compose)
