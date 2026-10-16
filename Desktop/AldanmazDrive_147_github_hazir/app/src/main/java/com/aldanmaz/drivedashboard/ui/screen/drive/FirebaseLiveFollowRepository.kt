@@ -55,6 +55,7 @@ class FirebaseLiveFollowRepository(context: Context) {
             .setValue(true).await()
         prefs.edit().putString("paired_uid", otherFirebaseUid).apply()
     }
+
     suspend fun publishLocation(
         driverId: String,
         latitude: Double,
@@ -100,8 +101,9 @@ class FirebaseLiveFollowRepository(context: Context) {
             }
 
             override fun onCancelled(error: DatabaseError) {
+                // Preserve the real Firebase error; calling onLocation(null) here
+                // would immediately overwrite it with the generic offline message.
                 onError(error.message)
-                onLocation(null)
             }
         }
         database.child("liveFollow").child(pairedFirebaseUid).addValueEventListener(listener)
