@@ -1,0 +1,35 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "liveFollow": {
+      "$uid": {
+        ".read": "auth != null && root.child('pairedDevices').child($uid).child(auth.uid).val() == true",
+        ".write": "auth != null && auth.uid == $uid",
+        ".validate": "newData.hasChildren(['driverId', 'deviceId', 'latitude', 'longitude', 'updatedAt'])",
+        "driverId": {
+          ".validate": "newData.isString() && (newData.val() == '1' || newData.val() == '2')"
+        },
+        "deviceId": {
+          ".validate": "newData.isString() && newData.val().length <= 64"
+        },
+        "latitude": {
+          ".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90"
+        },
+        "longitude": {
+          ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180"
+        },
+        "updatedAt": {
+          ".validate": "newData.isNumber() && newData.val() <= now + 10000"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "pairedDevices": {
+      ".read": false,
+      ".write": false
+    }
+  }
+}
