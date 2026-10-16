@@ -84,6 +84,7 @@ fun DriveDashboardRoute(
     var pairedFirebaseUid by remember { mutableStateOf(context.getSharedPreferences("live_follow_pairing", Context.MODE_PRIVATE).getString("paired_uid", "").orEmpty()) }
     var remoteDriverName by remember { mutableStateOf("---") }
     var remoteDriverLive by remember { mutableStateOf(false) }
+    var remoteLocationUpdatedAt by remember { mutableStateOf(0L) }
     var showLiveFollowDialog by remember { mutableStateOf(false) }
     var pairingUidInput by remember { mutableStateOf(pairedFirebaseUid) }
     var liveFollowStatus by remember { mutableStateOf("Eşleştirme yapılmadı") }
@@ -189,6 +190,7 @@ fun DriveDashboardRoute(
         val targetUid = pairedFirebaseUid.trim()
         if (targetUid.isBlank() || localFirebaseUid.isBlank() || targetUid == localFirebaseUid) {
             remoteDriverLive = false
+            remoteLocationUpdatedAt = 0L
             remoteDriverName = "---"
             liveFollowStatus = if (targetUid.isNotBlank() && targetUid == localFirebaseUid) {
                 "Kendi cihaz UID'si eşleştirilemez"
@@ -200,7 +202,8 @@ fun DriveDashboardRoute(
             val listener = liveFollowRepository.observePairedDevice(
                 pairedFirebaseUid = targetUid,
                 onLocation = { location ->
-                    remoteDriverLive = location != null
+                    remoteLocationUpdatedAt = location?.updatedAt ?: 0L
+                    remoteDriverLive = location != null && System.currentTimeMillis() - location.updatedAt in 0L..15_000L
                     if (location != null) {
                         remoteDriverName = loadDrivers(context)
                             .firstOrNull { it.id == location.driverId }?.name ?: "Sürücü"
@@ -230,7 +233,7 @@ fun DriveDashboardRoute(
         while (true) {
             val lat = uiState.latitude
             val lon = uiState.longitude
-            if (lat != null && lon != null && localFirebaseUid.isNotBlank() && isInternetAvailable) {
+            if (lat != null && lon != null && uiState.isGpsActive && localFirebaseUid.isNotBlank() && isInternetAvailable) {
                 runCatching {
                     val drivers = loadDrivers(context)
                     val driver = drivers.firstOrNull { it.name.equals(selectedDriverName, ignoreCase = true) }
