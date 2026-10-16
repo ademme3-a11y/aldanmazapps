@@ -16,6 +16,7 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -174,6 +175,53 @@ fun DriveDashboardRoute(
 
     val uiState by
     viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        runCatching { liveFollowRepository.signInAnonymously() }
+            .onSuccess {
+                localFirebaseUid = it
+                liveFollowStatus = "Cihaz kimliği hazır"
+            }
+            .onFailure { liveFollowStatus = "Firebase oturumu açılamadı" }
+    }
+
+    DisposableEffect(pairedFirebaseUid, localFirebaseUid) {
+        val targetUid = pairedFirebaseUid.trim()
+        if (targetUid.isBlank() || localFirebaseUid.isBlank() || targetUid == localFirebaseUid) {
+            remoteDriverLive = false
+            remoteDriverName = "---"
+            liveFollowStatus = if (targetUid.isNotBlank() && targetUid == localFirebaseUid) {
+                "Kendi cihaz UID'si eşleştirilemez"
+            } else {
+                "Eşleştirme bekleniyor"
+            }
+            onDispose { }
+        } else {
+            val listener = liveFollowRepository.observePairedDevice(
+                pairedFirebaseUid = targetUid,
+                onLocation = { location ->
+                    remoteDriverLive = location != null
+                    if (location != null) {
+                        remoteDriverName = loadDrivers(context)
+                            .firstOrNull { it.id == location.driverId }?.name ?: "Sürücü"
+                        liveFollowStatus = "Canlı konum alınıyor"
+                    } else {
+                        remoteDriverName = "---"
+                        liveFollowStatus = "Karşı cihaz çevrimdışı veya eski konum"
+                    }
+                },
+                onError = { message ->
+                    remoteDriverLive = false
+                    liveFollowStatus = "Firebase erişimi reddedildi: $message"
+                }
+            )
+            onDispose {
+                liveFollowRepository.removeListener(targetUid, listener)
+                remoteDriverLive = false
+            }
+        }
+    }
+
 
     val weatherUiState by
     weatherViewModel.uiState.collectAsStateWithLifecycle()
