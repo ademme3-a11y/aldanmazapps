@@ -226,10 +226,18 @@ fun DriveDashboardRoute(
     }
 
 
+    LaunchedEffect(remoteLocationUpdatedAt) {
+        while (true) {
+            remoteDriverLive = remoteLocationUpdatedAt > 0L &&
+                System.currentTimeMillis() - remoteLocationUpdatedAt in 0L..15_000L
+            delay(1_000L)
+        }
+    }
+
     val weatherUiState by
     weatherViewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(localFirebaseUid, isInternetAvailable, selectedDriverName) {
+    LaunchedEffect(localFirebaseUid, isInternetAvailable, selectedDriverName, uiState.isGpsActive) {
         while (true) {
             val lat = uiState.latitude
             val lon = uiState.longitude
