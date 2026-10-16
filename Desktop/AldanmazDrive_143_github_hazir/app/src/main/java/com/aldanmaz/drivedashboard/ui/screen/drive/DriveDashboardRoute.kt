@@ -16,12 +16,17 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.Button
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
@@ -45,6 +50,9 @@ import com.aldanmaz.drivedashboard.data.speedlimit.UpcomingRoadSignKind
 import com.aldanmaz.drivedashboard.data.alert.CentralVoiceAlertManager
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
+import com.google.firebase.database.ValueEventListener
+import com.aldanmaz.drivedashboard.ui.screen.driver.loadDrivers
 
 @Composable
 fun DriveDashboardRoute(
@@ -69,6 +77,16 @@ fun DriveDashboardRoute(
     weatherViewModel: WeatherViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val liveFollowRepository = remember { FirebaseLiveFollowRepository(context) }
+    val liveFollowScope = rememberCoroutineScope()
+    var localFirebaseUid by remember { mutableStateOf("") }
+    var pairedFirebaseUid by remember { mutableStateOf(context.getSharedPreferences("live_follow_pairing", Context.MODE_PRIVATE).getString("paired_uid", "").orEmpty()) }
+    var remoteDriverName by remember { mutableStateOf("---") }
+    var remoteDriverLive by remember { mutableStateOf(false) }
+    var showLiveFollowDialog by remember { mutableStateOf(false) }
+    var pairingUidInput by remember { mutableStateOf(pairedFirebaseUid) }
+    var liveFollowStatus by remember { mutableStateOf("Eşleştirme yapılmadı") }
+    var liveFollowListener by remember { mutableStateOf<ValueEventListener?>(null) }
     val voiceManager = remember { CentralVoiceAlertManager.getInstance(context) }
     var isAppSoundEnabled by remember { mutableStateOf(voiceManager.isMasterEnabled()) }
     var isAppAudioPlaying by remember { mutableStateOf(false) }
@@ -159,6 +177,23 @@ fun DriveDashboardRoute(
 
     val weatherUiState by
     weatherViewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(localFirebaseUid, isInternetAvailable, selectedDriverName) {
+        while (true) {
+            val lat = uiState.latitude
+            val lon = uiState.longitude
+            if (lat != null && lon != null && localFirebaseUid.isNotBlank() && isInternetAvailable) {
+                runCatching {
+                    val drivers = loadDrivers(context)
+                    val driver = drivers.firstOrNull { it.name.equals(selectedDriverName, ignoreCase = true) }
+                        ?: drivers.first()
+                    liveFollowRepository.publishLocation(driver.id, lat, lon)
+                }.onFailure { liveFollowStatus = "Konum gönderilemedi; eşleştirme/izin kontrol edilmeli" }
+            }
+            delay(5_000L)
+        }
+    }
+
 
     LaunchedEffect(
         uiState.latitude,
@@ -449,6 +484,9 @@ fun DriveDashboardRoute(
         bluetoothShortName = bluetoothShortName,
         obdShortName = obdShortName,
         selectedDriverName = selectedDriverName,
+        remoteDriverName = remoteDriverName,
+        isRemoteDriverLive = remoteDriverLive,
+        onLiveFollowClick = { pairingUidInput = pairedFirebaseUid; showLiveFollowDialog = true },
         isAppSoundEnabled = isAppSoundEnabled,
         isAppAudioPlaying = isAppAudioPlaying,
         onAppSoundToggle = {
@@ -494,6 +532,46 @@ fun DriveDashboardRoute(
         onTripStop =
             viewModel::stopTrip
     )
+    }
+    if (showLiveFollowDialog) {
+        AlertDialog(
+            onDismissRequest = { showLiveFollowDialog = false },
+            title = { Text("Meh / Nur canlı konum") },
+            text = {
+                androidx.compose.foundation.layout.Column {
+                    Text("Bu cihazın Firebase kimliği:")
+                    Text(localFirebaseUid.ifBlank { "Kimlik alınıyor..." }, fontSize = 12.sp)
+                    TextButton(onClick = {
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Firebase cihaz UID", localFirebaseUid))
+                        liveFollowStatus = "Cihaz UID'si kopyalandı"
+                    }) { Text("Cihaz UID'sini kopyala") }
+                    OutlinedTextField(
+                        value = pairingUidInput,
+                        onValueChange = { pairingUidInput = it.trim() },
+                        label = { Text("Diğer cihazın UID'si") },
+                        singleLine = true
+                    )
+                    Text(liveFollowStatus, fontSize = 12.sp)
+                    Text("Not: Güvenlik nedeniyle Firebase Console'da iki UID karşılıklı eşleştirilmeden veri okunamaz.", fontSize = 11.sp)
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    val other = pairingUidInput.trim()
+                    if (other.isNotBlank() && other != localFirebaseUid) {
+                        context.getSharedPreferences("live_follow_pairing", Context.MODE_PRIVATE)
+                            .edit().putString("paired_uid", other).apply()
+                        pairedFirebaseUid = other
+                        showLiveFollowDialog = false
+                    } else {
+                        liveFollowStatus = "Geçerli diğer cihaz UID'sini girin"
+                    }
+                }) { Text("Kaydet ve bağlan") }
+            },
+            dismissButton = { TextButton(onClick = { showLiveFollowDialog = false }) { Text("Kapat") }
+            }
+        )
     }
 }
 
