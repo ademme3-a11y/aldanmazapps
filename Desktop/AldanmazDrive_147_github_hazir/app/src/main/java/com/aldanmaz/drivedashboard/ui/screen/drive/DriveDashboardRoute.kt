@@ -16,6 +16,12 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.Button
+import com.aldanmaz.drivedashboard.ui.screen.driver.loadDrivers
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -157,6 +163,92 @@ fun DriveDashboardRoute(
 
     val uiState by
     viewModel.uiState.collectAsStateWithLifecycle()
+
+    val liveFollowRepository = remember { FirebaseLiveFollowRepository(context) }
+    var localFirebaseUid by remember { mutableStateOf("") }
+    var pairedFirebaseUid by remember {
+        mutableStateOf(context.getSharedPreferences("live_follow_pairing", Context.MODE_PRIVATE)
+            .getString("paired_uid", "").orEmpty())
+    }
+    var pairingUidInput by remember { mutableStateOf(pairedFirebaseUid) }
+    var remoteDriverName by remember { mutableStateOf("---") }
+    var remoteDriverLive by remember { mutableStateOf(false) }
+    var remoteLocationUpdatedAt by remember { mutableStateOf(0L) }
+    var showLiveFollowDialog by remember { mutableStateOf(false) }
+    var liveFollowStatus by remember { mutableStateOf("Eşleştirme bekleniyor") }
+
+    LaunchedEffect(Unit) {
+        runCatching { liveFollowRepository.signInAnonymously() }
+            .onSuccess { localFirebaseUid = it; liveFollowStatus = "Cihaz kimliği hazır" }
+            .onFailure { liveFollowStatus = "Firebase oturumu açılamadı" }
+    }
+
+    DisposableEffect(pairedFirebaseUid, localFirebaseUid) {
+        val targetUid = pairedFirebaseUid.trim()
+        if (targetUid.isBlank() || localFirebaseUid.isBlank() || targetUid == localFirebaseUid) {
+            remoteDriverLive = false
+            remoteLocationUpdatedAt = 0L
+            remoteDriverName = "---"
+            liveFollowStatus = if (targetUid.isNotBlank() && targetUid == localFirebaseUid) {
+                "Kendi cihaz UID'si eşleştirilemez"
+            } else "Eşleştirme bekleniyor"
+            onDispose { }
+        } else {
+            val listener = liveFollowRepository.observePairedDevice(
+                pairedFirebaseUid = targetUid,
+                onLocation = { location ->
+                    remoteLocationUpdatedAt = location?.updatedAt ?: 0L
+                    remoteDriverLive = location != null &&
+                        System.currentTimeMillis() - location.updatedAt in 0L..15_000L
+                    if (location != null) {
+                        remoteDriverName = loadDrivers(context)
+                            .firstOrNull { it.id == location.driverId }?.name ?: "Sürücü"
+                        liveFollowStatus = "Canlı konum alınıyor"
+                    } else {
+                        remoteDriverName = "---"
+                        liveFollowStatus = "Karşı cihaz çevrimdışı veya eski konum"
+                    }
+                },
+                onError = { message ->
+                    remoteDriverLive = false
+                    remoteLocationUpdatedAt = 0L
+                    liveFollowStatus = "Firebase erişimi reddedildi: $message"
+                }
+            )
+            onDispose {
+                liveFollowRepository.removeListener(targetUid, listener)
+                remoteDriverLive = false
+            }
+        }
+    }
+
+    LaunchedEffect(remoteLocationUpdatedAt) {
+        while (true) {
+            remoteDriverLive = remoteLocationUpdatedAt > 0L &&
+                System.currentTimeMillis() - remoteLocationUpdatedAt in 0L..15_000L
+            delay(1_000L)
+        }
+    }
+
+    LaunchedEffect(localFirebaseUid, isInternetAvailable, selectedDriverName, uiState.isGpsActive) {
+        while (true) {
+            val lat = uiState.latitude
+            val lon = uiState.longitude
+            if (lat != null && lon != null && uiState.isGpsActive &&
+                localFirebaseUid.isNotBlank() && isInternetAvailable) {
+                runCatching {
+                    val drivers = loadDrivers(context)
+                    val driver = drivers.firstOrNull {
+                        it.name.equals(selectedDriverName, ignoreCase = true)
+                    } ?: drivers.first()
+                    liveFollowRepository.publishLocation(driver.id, lat, lon)
+                }.onFailure {
+                    liveFollowStatus = "Konum gönderilemedi; eşleştirme/izin kontrol edilmeli"
+                }
+            }
+            delay(5_000L)
+        }
+    }
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -506,6 +598,57 @@ fun DriveDashboardRoute(
         onTripStop =
             viewModel::stopTrip
     )
+        FloatingActionButton(
+            onClick = {
+                pairingUidInput = pairedFirebaseUid
+                showLiveFollowDialog = true
+            },
+            modifier = Modifier.align(Alignment.BottomEnd).padding(18.dp).zIndex(2f),
+            containerColor = if (remoteDriverLive) Color(0xFF168A52) else Color(0xFF526170)
+        ) {
+            Text(if (remoteDriverLive) "CANLI" else "TAKİP", fontSize = 11.sp)
+        }
+    }
+    if (showLiveFollowDialog) {
+        AlertDialog(
+            onDismissRequest = { showLiveFollowDialog = false },
+            title = { Text("Mehmet / Nurdan canlı konum") },
+            text = {
+                androidx.compose.foundation.layout.Column {
+                    Text("Bu cihazın Firebase kimliği:")
+                    Text(localFirebaseUid.ifBlank { "Kimlik alınıyor..." }, fontSize = 12.sp)
+                    TextButton(onClick = {
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Firebase cihaz UID", localFirebaseUid))
+                        liveFollowStatus = "Cihaz UID'si kopyalandı"
+                    }) { Text("Cihaz UID'sini kopyala") }
+                    OutlinedTextField(
+                        value = pairingUidInput,
+                        onValueChange = { pairingUidInput = it.trim() },
+                        label = { Text("Diğer cihazın UID'si") },
+                        singleLine = true
+                    )
+                    Text(liveFollowStatus, fontSize = 12.sp)
+                    Text("Firebase Console'da iki UID karşılıklı eşleştirilmeden konum okunamaz.", fontSize = 11.sp)
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    val other = pairingUidInput.trim()
+                    if (other.isNotBlank() && other != localFirebaseUid) {
+                        context.getSharedPreferences("live_follow_pairing", Context.MODE_PRIVATE)
+                            .edit().putString("paired_uid", other).apply()
+                        pairedFirebaseUid = other
+                        showLiveFollowDialog = false
+                    } else {
+                        liveFollowStatus = "Geçerli diğer cihaz UID'sini girin"
+                    }
+                }) { Text("Kaydet ve bağlan") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLiveFollowDialog = false }) { Text("Kapat") }
+            }
+        )
     }
 }
 
