@@ -38,6 +38,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
@@ -50,6 +51,7 @@ import com.aldanmaz.drivedashboard.data.speedlimit.UpcomingRoadSignInfo
 import com.aldanmaz.drivedashboard.data.speedlimit.UpcomingRoadSignKind
 import com.aldanmaz.drivedashboard.data.alert.CentralVoiceAlertManager
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @Composable
@@ -76,6 +78,7 @@ fun DriveDashboardRoute(
     weatherViewModel: WeatherViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val liveFollowScope = rememberCoroutineScope()
     val voiceManager = remember { CentralVoiceAlertManager.getInstance(context) }
     var isAppSoundEnabled by remember { mutableStateOf(voiceManager.isMasterEnabled()) }
     var isAppAudioPlaying by remember { mutableStateOf(false) }
@@ -639,10 +642,18 @@ fun DriveDashboardRoute(
                 Button(onClick = {
                     val other = pairingUidInput.trim()
                     if (other.isNotBlank() && other != localFirebaseUid) {
-                        context.getSharedPreferences("live_follow_pairing", Context.MODE_PRIVATE)
-                            .edit().putString("paired_uid", other).apply()
-                        pairedFirebaseUid = other
-                        showLiveFollowDialog = false
+                        liveFollowStatus = "Firebase eşleştirmesi kaydediliyor..."
+                        liveFollowScope.launch {
+                            runCatching { liveFollowRepository.pairWith(other) }
+                                .onSuccess {
+                                    pairedFirebaseUid = other
+                                    liveFollowStatus = "Eşleştirme kaydedildi; diğer cihazın da bu cihazı eşleştirmesi gerekiyor."
+                                    showLiveFollowDialog = false
+                                }
+                                .onFailure { error ->
+                                    liveFollowStatus = "Eşleştirme hatası: " + (error.message ?: "Firebase erişimi başarısız")
+                                }
+                        }
                     } else {
                         liveFollowStatus = "Geçerli diğer cihaz UID'sini girin"
                     }
