@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "1009672894895",
+    "firebase_url": "https://aldanmaz-drive-default-rtdb.europe-west1.firebasedatabase.app",
     "project_id": "aldanmaz-drive",
     "storage_bucket": "aldanmaz-drive.firebasestorage.app"
   },
@@ -12,7 +13,12 @@
           "package_name": "com.aldanmaz.drivedashboard"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1009672894895-77742h9slvdt1rbcrcn9v79r0rd738i3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDQq6QJuSxwURXTtaLmr7Q1sHj-969B3wc"
@@ -20,7 +26,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1009672894895-77742h9slvdt1rbcrcn9v79r0rd738i3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
