@@ -112,6 +112,7 @@ dependencies {
 
     // Firebase AI function-calling API exposes JsonObject/JsonElement types.
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.2")
 
     implementation(libs.androidx.activity.compose)
 
