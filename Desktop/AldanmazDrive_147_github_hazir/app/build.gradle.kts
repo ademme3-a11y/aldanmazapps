@@ -39,8 +39,8 @@ android {
         applicationId = "com.aldanmaz.drivedashboard"
         minSdk = 29
         targetSdk = 37
-        versionCode = 239
-        versionName = "1510261745-1"
+        versionCode = 240
+        versionName = "1610261800-1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "TOMTOM_API_KEY", "\"$tomTomApiKey\"")
         buildConfigField("String", "HERE_API_KEY", "\"$hereApiKey\"" )
@@ -69,6 +69,9 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(platform("com.google.firebase:firebase-bom:34.19.0"))
     implementation("com.google.firebase:firebase-ai")
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-database")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.2")
     implementation("com.google.firebase:firebase-appcheck-debug")
     implementation("com.google.firebase:firebase-appcheck-playintegrity")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
