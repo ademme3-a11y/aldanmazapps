@@ -92,7 +92,7 @@ class FirebaseLiveFollowRepository(context: Context) {
                 val timestamp = snapshot.child("updatedAt").getValue(Long::class.java)
                 if (lat == null || lon == null || driver == null || timestamp == null ||
                     driver !in setOf("1", "2") ||
-                    System.currentTimeMillis() - timestamp !in 0L..15_000L
+                    System.currentTimeMillis() - timestamp !in -120_000L..60_000L
                 ) {
                     onLocation(null)
                     return
