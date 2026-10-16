@@ -215,6 +215,7 @@ fun DriveDashboardRoute(
                 },
                 onError = { message ->
                     remoteDriverLive = false
+                    remoteLocationUpdatedAt = 0L
                     liveFollowStatus = "Firebase erişimi reddedildi: $message"
                 }
             )
