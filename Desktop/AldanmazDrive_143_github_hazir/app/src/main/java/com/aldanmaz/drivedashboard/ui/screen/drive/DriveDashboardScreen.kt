@@ -219,6 +219,9 @@ fun DriveDashboardScreen(
     bluetoothShortName: String = "---",
     obdShortName: String = "OBD",
     selectedDriverName: String = "---",
+    remoteDriverName: String = "---",
+    isRemoteDriverLive: Boolean = false,
+    onLiveFollowClick: () -> Unit = {},
     isAppSoundEnabled: Boolean = true,
     isAppAudioPlaying: Boolean = false,
     isGpsActive: Boolean = false,
@@ -402,6 +405,9 @@ fun DriveDashboardScreen(
                             bluetoothLabel = bluetoothShortName,
                             obdLabel = obdShortName,
                             selectedDriverName = selectedDriverName,
+                            remoteDriverName = remoteDriverName,
+                            isRemoteDriverLive = isRemoteDriverLive,
+                            onLiveFollowClick = onLiveFollowClick,
                             isAppSoundEnabled = isAppSoundEnabled,
                             isAppAudioPlaying = isAppAudioPlaying,
                             onAppSoundToggle = onAppSoundToggle,
@@ -649,6 +655,9 @@ private fun ConnectionStatusStrip(
     bluetoothLabel: String,
     obdLabel: String,
     selectedDriverName: String,
+    remoteDriverName: String,
+    isRemoteDriverLive: Boolean,
+    onLiveFollowClick: () -> Unit,
     isAppSoundEnabled: Boolean,
     isAppAudioPlaying: Boolean,
     onAppSoundToggle: () -> Unit,
@@ -673,11 +682,23 @@ private fun ConnectionStatusStrip(
             ConnectionStatusItem(if (isInternetAvailable) networkLabel else "NET", isInternetAvailable, Modifier.weight(1f))
             SpeedCorridorMiniBar(isSpeedCorridorActive, onSpeedCorridorClick, Modifier.weight(3.23f))
             ConnectionStatusItem(if (isBluetoothConnected) bluetoothLabel else "BT", isBluetoothConnected, Modifier.weight(1f))
-            ConnectionStatusItem(
-                selectedDriverName.filter { it.isLetterOrDigit() }.take(3).uppercase(Locale("tr", "TR")).ifBlank { "---" },
-                selectedDriverName.isNotBlank() && selectedDriverName != "---",
-                Modifier.weight(.9f)
-            )
+            Box(
+                modifier = Modifier.weight(1.25f).fillMaxHeight().clickable(onClick = onLiveFollowClick),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(1.dp)) {
+                    LiveFollowSignal(
+                        shortName = selectedDriverName.filter { it.isLetterOrDigit() }.take(3).ifBlank { "---" },
+                        isLive = false,
+                        modifier = Modifier.size(31.dp)
+                    )
+                    LiveFollowSignal(
+                        shortName = remoteDriverName.filter { it.isLetterOrDigit() }.take(3).ifBlank { "Nur" },
+                        isLive = isRemoteDriverLive,
+                        modifier = Modifier.size(31.dp)
+                    )
+                }
+            }
             ConnectionStatusItem(if (isObdConnected) obdLabel else "OBD", isObdConnected, Modifier.weight(1f))
         }
     }
