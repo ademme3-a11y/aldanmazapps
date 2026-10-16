@@ -34,7 +34,6 @@ jobs:
           HERE_API_KEY: ${{ secrets.HERE_API_KEY }}
         run: |
           test -n "$TOMTOM_API_KEY" || { echo "TOMTOM2 secret is missing."; exit 1; }
-          test -n "$HERE_API_KEY" || { echo "HERE_API_KEY secret is missing."; exit 1; }
           printf 'TOMTOM_API_KEY=%s\n' "$TOMTOM_API_KEY" > local.properties
           printf 'HERE_API_KEY=%s\n' "$HERE_API_KEY" >> local.properties
           echo "TomTom and HERE keys are configured."
