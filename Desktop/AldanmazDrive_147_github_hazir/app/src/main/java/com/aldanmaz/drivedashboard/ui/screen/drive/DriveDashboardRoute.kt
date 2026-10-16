@@ -237,11 +237,14 @@ fun DriveDashboardRoute(
             if (lat != null && lon != null && uiState.isGpsActive &&
                 localFirebaseUid.isNotBlank() && isInternetAvailable) {
                 runCatching {
-                    val drivers = loadDrivers(context)
-                    val driver = drivers.firstOrNull {
+                    val driver = loadDrivers(context).firstOrNull {
                         it.name.equals(selectedDriverName, ignoreCase = true)
-                    } ?: drivers.first()
-                    liveFollowRepository.publishLocation(driver.id, lat, lon)
+                    }
+                    if (driver != null) {
+                        liveFollowRepository.publishLocation(driver.id, lat, lon)
+                    } else {
+                        liveFollowStatus = "Konum gönderilmedi; önce sürücü seçin"
+                    }
                 }.onFailure {
                     liveFollowStatus = "Konum gönderilemedi; eşleştirme/izin kontrol edilmeli"
                 }
