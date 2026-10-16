@@ -44,6 +44,17 @@ class FirebaseLiveFollowRepository(context: Context) {
         return requireNotNull(user) { "Firebase cihaz kimliği alınamadı." }.uid
     }
 
+    suspend fun pairWith(otherFirebaseUid: String) {
+        val ownUid = signInAnonymously()
+        require(otherFirebaseUid.isNotBlank() && otherFirebaseUid != ownUid) {
+            "Geçerli diğer cihaz UID'sini girin."
+        }
+        // Each device grants pairing consent only for its own UID.
+        // Both devices must pair with each other before either can read location.
+        database.child("pairedDevices").child(ownUid).child(otherFirebaseUid)
+            .setValue(true).await()
+        prefs.edit().putString("paired_uid", otherFirebaseUid).apply()
+    }
     suspend fun publishLocation(
         driverId: String,
         latitude: Double,
