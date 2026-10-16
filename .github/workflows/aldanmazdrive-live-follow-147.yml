@@ -35,8 +35,12 @@ jobs:
         run: |
           test -n "$TOMTOM_API_KEY" || { echo "TOMTOM2 secret is missing."; exit 1; }
           printf 'TOMTOM_API_KEY=%s\n' "$TOMTOM_API_KEY" > local.properties
-          printf 'HERE_API_KEY=%s\n' "$HERE_API_KEY" >> local.properties
-          echo "TomTom and HERE keys are configured."
+          if [ -n "$HERE_API_KEY" ]; then
+            printf 'HERE_API_KEY=%s\n' "$HERE_API_KEY" >> local.properties
+            echo "TomTom and HERE keys are configured."
+          else
+            echo "::warning::HERE_API_KEY secret is missing; HERE provider code is preserved but will not return results until the secret is configured."
+          fi
       - name: Build Debug APK
         run: ./gradlew assembleDebug --no-daemon
       - name: Verify APK exists
