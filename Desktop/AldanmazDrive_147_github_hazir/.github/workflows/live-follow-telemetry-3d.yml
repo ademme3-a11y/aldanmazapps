@@ -1,0 +1,37 @@
+name: Aldanmaz Drive Live Follow 202610171622 Build
+
+on:
+  push:
+    branches: [feature/live-follow-147-preserved]
+    paths:
+      - 'Desktop/AldanmazDrive_147_github_hazir/**'
+  workflow_dispatch:
+
+jobs:
+  build-debug:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: Desktop/AldanmazDrive_147_github_hazir
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Build APK
+        run: ./gradlew assembleDebug --no-daemon
+      - name: Package uniquely named APK
+        run: |
+          VERSION="$(date -u +'%d%m%y%H%M')-1"
+          cp app/build/outputs/apk/debug/app-debug.apk "../AldanmazDrive_${VERSION}.apk"
+          echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AldanmazDrive_${{ env.VERSION }}_APK
+          path: Desktop/AldanmazDrive_${{ env.VERSION }}.apk
+          if-no-files-found: error
+          retention-days: 30
