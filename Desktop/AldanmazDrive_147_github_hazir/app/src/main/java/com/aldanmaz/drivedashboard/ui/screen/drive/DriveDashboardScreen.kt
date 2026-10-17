@@ -266,7 +266,9 @@ fun DriveDashboardScreen(
     onCompassClick: () -> Unit = {},
     onVehicleModeChange: (String) -> Unit = {},
     onTripStart: () -> Unit = {},
-    onTripStop: () -> Unit = {}
+    onTripStop: () -> Unit = {},
+    onLiveFollowClick: () -> Unit = {},
+    liveFollowActive: Boolean = false
 ) {
     val context = LocalContext.current
     val odometerPrefs = remember { context.getSharedPreferences("vehicle_odometer", Context.MODE_PRIVATE) }
@@ -2739,6 +2741,8 @@ private fun LandscapeDashboard(
             ) {
                 EnhancedMultimediaCard(
                     speedKmh = speedKmh,
+                    onLiveFollowClick = onLiveFollowClick,
+                    liveFollowActive = liveFollowActive,
                     modifier = Modifier.weight(1f)
                 )
 
@@ -2912,6 +2916,8 @@ private fun PortraitDashboard(
         ) {
             EnhancedMultimediaCard(
                 speedKmh = speedKmh,
+                onLiveFollowClick = onLiveFollowClick,
+                liveFollowActive = liveFollowActive,
                 modifier = Modifier.weight(1f)
             )
 
