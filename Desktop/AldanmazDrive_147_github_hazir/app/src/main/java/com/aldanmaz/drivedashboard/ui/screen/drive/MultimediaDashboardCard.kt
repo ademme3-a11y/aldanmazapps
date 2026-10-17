@@ -100,6 +100,8 @@ private data class DashboardMediaItem(
 @Composable
 internal fun EnhancedMultimediaCard(
     speedKmh: Int,
+    onLiveFollowClick: () -> Unit = {},
+    liveFollowActive: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -169,7 +171,7 @@ internal fun EnhancedMultimediaCard(
             DashboardMediaItem("radio", "Radyo", "▤", Color(0xFFFFA43A)),
             DashboardMediaItem("chrome", "Chrome", "◎", Color(0xFF4D9DFF), listOf("com.android.chrome")),
             DashboardMediaItem("gemini", "Gemini Live", "✦", Color(0xFF8F8CFF), listOf("com.google.android.apps.bard")),
-            DashboardMediaItem("chatgpt", "ChatGPT", "⌬", MultimediaGreen, listOf("com.openai.chatgpt"))
+            DashboardMediaItem("livefollow", "Canlı Takip", "◎", Color(0xFF31E39A))
         )
     }
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -284,8 +286,8 @@ internal fun EnhancedMultimediaCard(
                                         if (!geminiLiveState.occupiesMicrophone && geminiLiveState.status != GeminiLiveStatus.LISTENING) {
                                             toggleGeminiLive()
                                         }
-                                    } else if (item.id == "chatgpt") {
-                                        openAppOrWeb(context, item)
+                                    } else if (item.id == "livefollow") {
+                                        onLiveFollowClick()
                                     } else {
                                         selectedId = item.id
                                     }
@@ -319,7 +321,7 @@ internal fun EnhancedMultimediaCard(
                                             toggleGeminiLive()
                                         }
                                     }
-                                    else if (item.id == "chatgpt") openAppOrWeb(context, item)
+                                    else if (item.id == "livefollow") onLiveFollowClick()
                                     else fullScreenId = item.id
                                 }
                             )
@@ -424,6 +426,8 @@ private fun MediaShortcutTile(
                     modifier = Modifier.size(54.dp),
                     compact = true,
                 )
+            } else if (item.id == "livefollow") {
+                LiveFollowSignalIcon(isActive = liveFollowActive, modifier = Modifier.size(54.dp))
             } else if (item.id == "radio") {
                 // 141: Ekolayzer kaldırıldı. Radyo aktifken ikon hafifçe sola-sağa
                 // döner; radyo kapalıyken herhangi bir animasyon oynatılmaz.
@@ -438,6 +442,28 @@ private fun MediaShortcutTile(
     }
 }
 
+
+@Composable
+private fun LiveFollowSignalIcon(isActive: Boolean, modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "liveFollowSignal")
+    val progress = transition.animateFloat(
+        initialValue = 0f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(animation = tween(1600, easing = LinearEasing)),
+        label = "liveFollowSignalProgress"
+    ).value
+    Canvas(modifier = modifier) {
+        val center = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f)
+        if (isActive) {
+            for (phase in listOf(progress, (progress + 0.5f) % 1f)) {
+                val radius = size.minDimension * (0.12f + phase * 0.38f)
+                drawCircle(Color(0xFF31E39A).copy(alpha = 1f - phase), radius, center,
+                    style = Stroke(width = 2.dp.toPx()))
+            }
+        }
+        drawCircle(if (isActive) Color(0xFF31E39A) else Color(0xFF8A98A8),
+            size.minDimension * 0.12f, center)
+    }
+}
 
 @Composable
 private fun RadioGentleSpinIcon(isActive: Boolean, modifier: Modifier = Modifier) {
