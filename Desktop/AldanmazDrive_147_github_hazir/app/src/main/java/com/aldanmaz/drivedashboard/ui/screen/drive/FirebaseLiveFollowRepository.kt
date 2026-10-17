@@ -26,7 +26,12 @@ class FirebaseLiveFollowRepository(context: Context) {
         val driverId: String,
         val latitude: Double,
         val longitude: Double,
-        val updatedAt: Long
+        val updatedAt: Long,
+        val speedKmh: Int? = null,
+        val tripDistanceKm: Double? = null,
+        val gpsTotalKm: Double? = null,
+        val isParkMode: Boolean? = null,
+        val parkDurationSeconds: Long? = null
     )
 
     fun localDeviceId(): String {
@@ -57,7 +62,12 @@ class FirebaseLiveFollowRepository(context: Context) {
         driverId: String,
         latitude: Double,
         longitude: Double,
-        updatedAt: Long = System.currentTimeMillis()
+        updatedAt: Long = System.currentTimeMillis(),
+        speedKmh: Int = 0,
+        tripDistanceKm: Double = 0.0,
+        gpsTotalKm: Double = 0.0,
+        isParkMode: Boolean = false,
+        parkDurationSeconds: Long = 0L
     ) {
         require(driverId == "1" || driverId == "2") { "Geçersiz sürücü kimliği." }
         require(latitude in -90.0..90.0 && longitude in -180.0..180.0) {
@@ -73,7 +83,12 @@ class FirebaseLiveFollowRepository(context: Context) {
                 // Keep short aliases for clients/data created by the earlier schema.
                 "lat" to latitude,
                 "lon" to longitude,
-                "updatedAt" to updatedAt
+                "updatedAt" to updatedAt,
+                "speedKmh" to speedKmh.coerceAtLeast(0),
+                "tripDistanceKm" to tripDistanceKm.coerceAtLeast(0.0),
+                "gpsTotalKm" to gpsTotalKm.coerceAtLeast(0.0),
+                "isParkMode" to isParkMode,
+                "parkDurationSeconds" to parkDurationSeconds.coerceAtLeast(0L)
             )
         ).await()
     }
@@ -102,7 +117,16 @@ class FirebaseLiveFollowRepository(context: Context) {
                     onLocation(null)
                     return
                 }
-                onLocation(RemoteLocation(driver, lat, lon, timestamp))
+                onLocation(
+                    RemoteLocation(
+                        driver, lat, lon, timestamp,
+                        speedKmh = snapshot.numberAsLong("speedKmh")?.toInt(),
+                        tripDistanceKm = snapshot.numberAsDouble("tripDistanceKm"),
+                        gpsTotalKm = snapshot.numberAsDouble("gpsTotalKm"),
+                        isParkMode = snapshot.child("isParkMode").getValue(Boolean::class.java),
+                        parkDurationSeconds = snapshot.numberAsLong("parkDurationSeconds")
+                    )
+                )
             }
 
             override fun onCancelled(error: DatabaseError) {
