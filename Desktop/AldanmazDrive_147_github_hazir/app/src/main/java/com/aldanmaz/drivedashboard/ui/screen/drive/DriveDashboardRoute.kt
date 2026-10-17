@@ -614,43 +614,17 @@ fun DriveDashboardRoute(
             viewModel::startTrip,
 
         onTripStop =
-            viewModel::stopTrip
-    )
-        val pulseTransition = rememberInfiniteTransition(label = "liveFollowPulse")
-        val pulse by pulseTransition.animateFloat(
-            initialValue = 0f,
-            targetValue = 1f,
-            animationSpec = infiniteRepeatable(animation = tween(1600)),
-            label = "liveFollowPulseProgress"
-        )
-        FloatingActionButton(
-            onClick = {
-                if (pairedFirebaseUid.isBlank()) {
-                    pairingUidInput = pairedFirebaseUid
-                    showLiveFollowDialog = true
-                } else {
-                    showLiveFollowInfoDialog = true
-                }
-            },
-            modifier = Modifier.align(Alignment.BottomEnd).padding(18.dp).zIndex(2f).size(56.dp),
-            containerColor = if (remoteDriverLive) Color(0xFF168A52) else Color(0xFF526170)
-        ) {
-            Canvas(modifier = Modifier.size(34.dp)) {
-                val center = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f)
-                if (remoteDriverLive) {
-                    val r1 = size.minDimension * (0.18f + pulse * 0.30f)
-                    val r2 = size.minDimension * (0.18f + ((pulse + 0.5f) % 1f) * 0.30f)
-                    drawCircle(Color.White.copy(alpha = 1f - pulse * 0.75f), r1, center,
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx()))
-                    drawCircle(Color.White.copy(alpha = 1f - ((pulse + 0.5f) % 1f) * 0.75f), r2, center,
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx()))
-                } else {
-                    drawCircle(Color.White.copy(alpha = 0.65f), size.minDimension * 0.28f, center,
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx()))
-                }
-                drawCircle(Color.White, size.minDimension * 0.10f, center)
+            viewModel::stopTrip,
+        onLiveFollowClick = {
+            if (pairedFirebaseUid.isBlank()) {
+                pairingUidInput = pairedFirebaseUid
+                showLiveFollowDialog = true
+            } else {
+                showLiveFollowInfoDialog = true
             }
-        }
+        },
+        liveFollowActive = remoteDriverLive
+    )
     }
     if (showLiveFollowInfoDialog) {
         AlertDialog(
