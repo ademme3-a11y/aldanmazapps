@@ -218,10 +218,14 @@ fun DriveDashboardRoute(
                     if (location != null) {
                         remoteDriverName = loadDrivers(context)
                             .firstOrNull { it.id == location.driverId }?.name ?: "Sürücü"
-                        liveFollowStatus = "Canlı konum alınıyor"
+                        liveFollowStatus =
+                            if (location.updatedAt > 0L &&
+                                System.currentTimeMillis() - location.updatedAt in -120_000L..60_000L
+                            ) "Canlı konum alınıyor"
+                            else "Son konum mevcut; güncel değil"
                     } else {
                         remoteDriverName = "---"
-                        liveFollowStatus = "Karşı cihaz çevrimdışı veya eski konum"
+                        liveFollowStatus = "Konum koordinatları alınamadı"
                     }
                 },
                 onError = { message ->
