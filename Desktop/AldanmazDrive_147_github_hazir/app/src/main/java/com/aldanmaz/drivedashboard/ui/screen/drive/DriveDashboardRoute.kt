@@ -184,6 +184,11 @@ fun DriveDashboardRoute(
     var remoteLocationUpdatedAt by remember { mutableStateOf(0L) }
     var remoteLatitude by remember { mutableStateOf<Double?>(null) }
     var remoteLongitude by remember { mutableStateOf<Double?>(null) }
+    var remoteSpeedKmh by remember { mutableStateOf<Int?>(null) }
+    var remoteTripDistanceKm by remember { mutableStateOf<Double?>(null) }
+    var remoteGpsTotalKm by remember { mutableStateOf<Double?>(null) }
+    var remoteIsParkMode by remember { mutableStateOf<Boolean?>(null) }
+    var remoteParkDurationSeconds by remember { mutableStateOf<Long?>(null) }
     var showLiveFollowDialog by remember { mutableStateOf(false) }
     var showLiveFollowInfoDialog by remember { mutableStateOf(false) }
     var liveFollowStatus by remember { mutableStateOf("Eşleştirme bekleniyor") }
@@ -201,6 +206,11 @@ fun DriveDashboardRoute(
             remoteLocationUpdatedAt = 0L
             remoteLatitude = null
             remoteLongitude = null
+            remoteSpeedKmh = null
+            remoteTripDistanceKm = null
+            remoteGpsTotalKm = null
+            remoteIsParkMode = null
+            remoteParkDurationSeconds = null
             remoteDriverName = "---"
             liveFollowStatus = if (targetUid.isNotBlank() && targetUid == localFirebaseUid) {
                 "Kendi cihaz UID'si eşleştirilemez"
@@ -213,6 +223,11 @@ fun DriveDashboardRoute(
                     remoteLocationUpdatedAt = location?.updatedAt ?: 0L
                     remoteLatitude = location?.latitude
                     remoteLongitude = location?.longitude
+                    remoteSpeedKmh = location?.speedKmh
+                    remoteTripDistanceKm = location?.tripDistanceKm
+                    remoteGpsTotalKm = location?.gpsTotalKm
+                    remoteIsParkMode = location?.isParkMode
+                    remoteParkDurationSeconds = location?.parkDurationSeconds
                     remoteDriverLive = location != null &&
                         System.currentTimeMillis() - location.updatedAt in -120_000L..60_000L
                     if (location != null) {
@@ -260,7 +275,16 @@ fun DriveDashboardRoute(
                         it.name.equals(selectedDriverName, ignoreCase = true)
                     }
                     if (driver != null) {
-                        liveFollowRepository.publishLocation(driver.id, lat, lon)
+                        liveFollowRepository.publishLocation(
+                            driverId = driver.id,
+                            latitude = lat,
+                            longitude = lon,
+                            speedKmh = uiState.speedKmh,
+                            tripDistanceKm = uiState.tripDistanceKm,
+                            gpsTotalKm = uiState.vehicleGpsTotalDistanceKm,
+                            isParkMode = uiState.isParkMode,
+                            parkDurationSeconds = uiState.parkDurationSeconds
+                        )
                     } else {
                         liveFollowStatus = "Konum gönderilmedi; önce sürücü seçin"
                     }
@@ -643,9 +667,17 @@ fun DriveDashboardRoute(
                     Text("Son güncelleme: " + if (remoteLocationUpdatedAt > 0L)
                         java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(remoteLocationUpdatedAt))
                         else "Yok")
-                    Text("Hız: Bu sürümde karşı cihazdan gönderilmiyor")
-                    Text("Park süresi: Bu sürümde karşı cihazdan gönderilmiyor")
-                    Text("Araç KM / GPS KM: Bu sürümde karşı cihazdan gönderilmiyor")
+                    Text("Hız: " + (remoteSpeedKmh?.let { "$it km/sa" } ?: "Veri bekleniyor"))
+                    Text("Durum: " + when (remoteIsParkMode) {
+                        true -> "PARK"
+                        false -> "SÜRÜŞ"
+                        null -> "Veri bekleniyor"
+                    })
+                    Text("Park süresi: " + (remoteParkDurationSeconds?.let { seconds ->
+                        "%02d:%02d".format(seconds / 3600, (seconds % 3600) / 60)
+                    } ?: "Veri bekleniyor"))
+                    Text("Yolculuk KM: " + (remoteTripDistanceKm?.let { "%.1f km".format(it) } ?: "Veri bekleniyor"))
+                    Text("GPS toplam KM: " + (remoteGpsTotalKm?.let { "%.1f km".format(it) } ?: "Veri bekleniyor"))
                     TextButton(onClick = {
                         val lat = remoteLatitude
                         val lon = remoteLongitude
