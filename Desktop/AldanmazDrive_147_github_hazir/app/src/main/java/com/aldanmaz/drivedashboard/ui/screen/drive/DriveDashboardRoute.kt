@@ -16,12 +16,17 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Button
 import com.aldanmaz.drivedashboard.ui.screen.driver.loadDrivers
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -180,6 +185,7 @@ fun DriveDashboardRoute(
     var remoteLatitude by remember { mutableStateOf<Double?>(null) }
     var remoteLongitude by remember { mutableStateOf<Double?>(null) }
     var showLiveFollowDialog by remember { mutableStateOf(false) }
+    var showLiveFollowInfoDialog by remember { mutableStateOf(false) }
     var liveFollowStatus by remember { mutableStateOf("Eşleştirme bekleniyor") }
 
     LaunchedEffect(Unit) {
@@ -610,31 +616,78 @@ fun DriveDashboardRoute(
         onTripStop =
             viewModel::stopTrip
     )
+        val pulseTransition = rememberInfiniteTransition(label = "liveFollowPulse")
+        val pulse by pulseTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(animation = tween(1600)),
+            label = "liveFollowPulseProgress"
+        )
         FloatingActionButton(
             onClick = {
-                val lat = remoteLatitude
-                val lon = remoteLongitude
-                if (remoteDriverLive && lat != null && lon != null) {
-                    val label = android.net.Uri.encode(remoteDriverName)
-                    val geoUri = android.net.Uri.parse("geo:$lat,$lon?q=$lat,$lon($label)")
-                    runCatching {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, geoUri))
-                    }.onFailure {
-                        runCatching {
-                            context.startActivity(Intent(Intent.ACTION_VIEW,
-                                android.net.Uri.parse("https://maps.google.com/?q=$lat,$lon")))
-                        }
-                    }
-                } else {
+                if (pairedFirebaseUid.isBlank()) {
                     pairingUidInput = pairedFirebaseUid
                     showLiveFollowDialog = true
+                } else {
+                    showLiveFollowInfoDialog = true
                 }
             },
-            modifier = Modifier.align(Alignment.BottomEnd).padding(18.dp).zIndex(2f),
+            modifier = Modifier.align(Alignment.BottomEnd).padding(18.dp).zIndex(2f).size(56.dp),
             containerColor = if (remoteDriverLive) Color(0xFF168A52) else Color(0xFF526170)
         ) {
-            Text(if (remoteDriverLive) "HARİTADA" else "TAKİP", fontSize = 11.sp)
+            Canvas(modifier = Modifier.size(34.dp)) {
+                val center = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f)
+                if (remoteDriverLive) {
+                    val r1 = size.minDimension * (0.18f + pulse * 0.30f)
+                    val r2 = size.minDimension * (0.18f + ((pulse + 0.5f) % 1f) * 0.30f)
+                    drawCircle(Color.White.copy(alpha = 1f - pulse * 0.75f), r1, center,
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx()))
+                    drawCircle(Color.White.copy(alpha = 1f - ((pulse + 0.5f) % 1f) * 0.75f), r2, center,
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx()))
+                } else {
+                    drawCircle(Color.White.copy(alpha = 0.65f), size.minDimension * 0.28f, center,
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx()))
+                }
+                drawCircle(Color.White, size.minDimension * 0.10f, center)
+            }
         }
+    }
+    if (showLiveFollowInfoDialog) {
+        AlertDialog(
+            onDismissRequest = { showLiveFollowInfoDialog = false },
+            title = { Text("Canlı takip • $remoteDriverName") },
+            text = {
+                androidx.compose.foundation.layout.Column {
+                    Text(if (remoteDriverLive) "Durum: CANLI" else "Durum: Çevrimdışı / eski konum")
+                    Text("Konum: " + if (remoteLatitude != null && remoteLongitude != null)
+                        String.format(java.util.Locale.US, "%.5f, %.5f", remoteLatitude, remoteLongitude)
+                        else "Henüz alınmadı")
+                    Text("Son güncelleme: " + if (remoteLocationUpdatedAt > 0L)
+                        java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(remoteLocationUpdatedAt))
+                        else "Yok")
+                    Text("Hız: Bu sürümde karşı cihazdan gönderilmiyor")
+                    Text("Park süresi: Bu sürümde karşı cihazdan gönderilmiyor")
+                    Text("Araç KM / GPS KM: Bu sürümde karşı cihazdan gönderilmiyor")
+                    TextButton(onClick = {
+                        val lat = remoteLatitude
+                        val lon = remoteLongitude
+                        if (lat != null && lon != null) {
+                            val label = android.net.Uri.encode(remoteDriverName)
+                            val geoUri = android.net.Uri.parse("geo:$lat,$lon?q=$lat,$lon($label)")
+                            runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, geoUri)) }
+                        }
+                    }, enabled = remoteLatitude != null && remoteLongitude != null) { Text("Haritada göster") }
+                    TextButton(onClick = {
+                        pairingUidInput = pairedFirebaseUid
+                        showLiveFollowInfoDialog = false
+                        showLiveFollowDialog = true
+                    }) { Text("Eşleştirme ayarları") }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showLiveFollowInfoDialog = false }) { Text("Kapat") }
+            }
+        )
     }
     if (showLiveFollowDialog) {
         AlertDialog(
