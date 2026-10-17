@@ -90,11 +90,14 @@ class FirebaseLiveFollowRepository(context: Context) {
                 val lat = snapshot.numberAsDouble("latitude") ?: snapshot.numberAsDouble("lat")
                 val lon = snapshot.numberAsDouble("longitude") ?: snapshot.numberAsDouble("lon")
                 // Realtime Database can expose driverId as either a string or a number.
-                val driver = snapshot.child("driverId").value?.toString()?.trim()
-                val timestamp = snapshot.numberAsLong("updatedAt")
-                if (lat == null || lon == null || driver == null || timestamp == null ||
-                    driver !in setOf("1", "2") ||
-                    System.currentTimeMillis() - timestamp !in -120_000L..60_000L
+                val rawDriver = snapshot.child("driverId").value?.toString()?.trim()
+                val driver = rawDriver?.takeIf { it == "1" || it == "2" } ?: "unknown"
+                val timestamp = snapshot.numberAsLong("updatedAt") ?: 0L
+
+                // Map display must depend on valid coordinates only. A missing/legacy
+                // driverId or stale/missing timestamp must not disable "Haritada göster".
+                if (lat == null || lon == null ||
+                    lat !in -90.0..90.0 || lon !in -180.0..180.0
                 ) {
                     onLocation(null)
                     return
