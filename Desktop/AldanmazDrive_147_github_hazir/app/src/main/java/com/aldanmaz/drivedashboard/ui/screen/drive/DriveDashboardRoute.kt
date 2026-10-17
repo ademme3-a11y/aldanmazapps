@@ -177,6 +177,8 @@ fun DriveDashboardRoute(
     var remoteDriverName by remember { mutableStateOf("---") }
     var remoteDriverLive by remember { mutableStateOf(false) }
     var remoteLocationUpdatedAt by remember { mutableStateOf(0L) }
+    var remoteLatitude by remember { mutableStateOf<Double?>(null) }
+    var remoteLongitude by remember { mutableStateOf<Double?>(null)
     var showLiveFollowDialog by remember { mutableStateOf(false) }
     var liveFollowStatus by remember { mutableStateOf("Eşleştirme bekleniyor") }
 
@@ -191,6 +193,8 @@ fun DriveDashboardRoute(
         if (targetUid.isBlank() || localFirebaseUid.isBlank() || targetUid == localFirebaseUid) {
             remoteDriverLive = false
             remoteLocationUpdatedAt = 0L
+            remoteLatitude = null
+            remoteLongitude = null
             remoteDriverName = "---"
             liveFollowStatus = if (targetUid.isNotBlank() && targetUid == localFirebaseUid) {
                 "Kendi cihaz UID'si eşleştirilemez"
@@ -201,6 +205,8 @@ fun DriveDashboardRoute(
                 pairedFirebaseUid = targetUid,
                 onLocation = { location ->
                     remoteLocationUpdatedAt = location?.updatedAt ?: 0L
+                    remoteLatitude = location?.latitude
+                    remoteLongitude = location?.longitude
                     remoteDriverLive = location != null &&
                         System.currentTimeMillis() - location.updatedAt in -120_000L..60_000L
                     if (location != null) {
@@ -606,13 +612,28 @@ fun DriveDashboardRoute(
     )
         FloatingActionButton(
             onClick = {
-                pairingUidInput = pairedFirebaseUid
-                showLiveFollowDialog = true
+                val lat = remoteLatitude
+                val lon = remoteLongitude
+                if (remoteDriverLive && lat != null && lon != null) {
+                    val label = android.net.Uri.encode(remoteDriverName)
+                    val geoUri = android.net.Uri.parse("geo:$lat,$lon?q=$lat,$lon($label)")
+                    runCatching {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, geoUri))
+                    }.onFailure {
+                        runCatching {
+                            context.startActivity(Intent(Intent.ACTION_VIEW,
+                                android.net.Uri.parse("https://maps.google.com/?q=$lat,$lon")))
+                        }
+                    }
+                } else {
+                    pairingUidInput = pairedFirebaseUid
+                    showLiveFollowDialog = true
+                }
             },
             modifier = Modifier.align(Alignment.BottomEnd).padding(18.dp).zIndex(2f),
             containerColor = if (remoteDriverLive) Color(0xFF168A52) else Color(0xFF526170)
         ) {
-            Text(if (remoteDriverLive) "CANLI" else "TAKİP", fontSize = 11.sp)
+            Text(if (remoteDriverLive) "HARİTADA" else "TAKİP", fontSize = 11.sp)
         }
     }
     if (showLiveFollowDialog) {
