@@ -429,7 +429,8 @@ private fun MediaShortcutTile(
                     compact = true,
                 )
             } else if (item.id == "livefollow") {
-                LiveFollowSignalIcon(isActive = liveFollowActive, modifier = Modifier.size(54.dp))
+                // Enlarge the primary tracking icon so the radar fills the tile.
+                LiveFollowSignalIcon(isActive = liveFollowActive, modifier = Modifier.size(66.dp))
             } else if (item.id == "radio") {
                 // 141: Ekolayzer kaldırıldı. Radyo aktifken ikon hafifçe sola-sağa
                 // döner; radyo kapalıyken herhangi bir animasyon oynatılmaz.
@@ -467,7 +468,7 @@ private fun LiveFollowSignalIcon(isActive: Boolean, modifier: Modifier = Modifie
         // Premium dark-glass medallion with a crisp metallic rim.
         drawCircle(
             color = Color.Black.copy(alpha = .48f),
-            radius = u * .475f,
+            radius = u * .495f,
             center = androidx.compose.ui.geometry.Offset(c.x, c.y + u * .025f)
         )
         drawCircle(
@@ -476,17 +477,17 @@ private fun LiveFollowSignalIcon(isActive: Boolean, modifier: Modifier = Modifie
                 start = androidx.compose.ui.geometry.Offset(u * .12f, u * .08f),
                 end = androidx.compose.ui.geometry.Offset(u * .9f, u * .95f)
             ),
-            radius = u * .455f,
+            radius = u * .485f,
             center = c
         )
-        drawCircle(color = Color(0xFF02070C), radius = u * .405f, center = c)
+        drawCircle(color = Color(0xFF02070C), radius = u * .435f, center = c)
         drawCircle(
             brush = Brush.radialGradient(
                 colors = listOf(Color(0xFF173747), dark, Color(0xFF03080E)),
                 center = androidx.compose.ui.geometry.Offset(c.x - u * .10f, c.y - u * .16f),
                 radius = u * .64f
             ),
-            radius = u * .39f,
+            radius = u * .42f,
             center = c
         )
 
@@ -513,8 +514,8 @@ private fun LiveFollowSignalIcon(isActive: Boolean, modifier: Modifier = Modifie
             rotate(angle, pivot = c) {
                 drawLine(
                     color = accent.copy(alpha = if (isActive) .9f else .55f),
-                    start = androidx.compose.ui.geometry.Offset(c.x, c.y - u * .345f),
-                    end = androidx.compose.ui.geometry.Offset(c.x, c.y - u * .305f),
+                    start = androidx.compose.ui.geometry.Offset(c.x, c.y - u * .375f),
+                    end = androidx.compose.ui.geometry.Offset(c.x, c.y - u * .335f),
                     strokeWidth = u * .022f,
                     cap = androidx.compose.ui.graphics.StrokeCap.Round
                 )
@@ -523,7 +524,7 @@ private fun LiveFollowSignalIcon(isActive: Boolean, modifier: Modifier = Modifie
 
         // Top-down vehicle silhouette: body, shadow, glass roof and headlamps.
         val carW = u * .255f
-        val carH = u * .405f
+        val carH = u * .435f
         val carLeft = c.x - carW / 2f
         val carTop = c.y - carH / 2f
         drawRoundRect(
