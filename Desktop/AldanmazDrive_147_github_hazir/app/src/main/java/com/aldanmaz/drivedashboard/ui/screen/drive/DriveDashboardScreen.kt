@@ -578,7 +578,9 @@ fun DriveDashboardScreen(
                                     onWeatherDetailsClick = onWeatherDetailsClick,
                                     onVehicleModeChange = onVehicleModeChange,
                                     onTripStart = onTripStart,
-                                    onTripStop = onTripStop
+                                    onTripStop = onTripStop,
+                                    onLiveFollowClick = onLiveFollowClick,
+                                    liveFollowActive = liveFollowActive
                                 )
                                 if (showDashboardRouteProfile && dashboardRouteProfile != null) {
                                     RouteDashboardHalfProfile(
@@ -689,7 +691,9 @@ fun DriveDashboardScreen(
                             onWeatherDetailsClick = onWeatherDetailsClick,
                             onVehicleModeChange = onVehicleModeChange,
                             onTripStart = onTripStart,
-                            onTripStop = onTripStop
+                            onTripStop = onTripStop,
+                                    onLiveFollowClick = onLiveFollowClick,
+                                    liveFollowActive = liveFollowActive
                         )
                     }
                 }
@@ -2628,7 +2632,9 @@ private fun LandscapeDashboard(
     onWeatherDetailsClick: () -> Unit,
     onVehicleModeChange: (String) -> Unit,
     onTripStart: () -> Unit,
-    onTripStop: () -> Unit
+    onTripStop: () -> Unit,
+    onLiveFollowClick: () -> Unit,
+    liveFollowActive: Boolean
 ) {
     var isWeatherExpanded by remember {
         mutableStateOf(false)
@@ -2823,7 +2829,9 @@ private fun PortraitDashboard(
     onWeatherDetailsClick: () -> Unit,
     onVehicleModeChange: (String) -> Unit,
     onTripStart: () -> Unit,
-    onTripStop: () -> Unit
+    onTripStop: () -> Unit,
+    onLiveFollowClick: () -> Unit,
+    liveFollowActive: Boolean
 ) {
     var isWeatherExpanded by remember {
         mutableStateOf(false)
