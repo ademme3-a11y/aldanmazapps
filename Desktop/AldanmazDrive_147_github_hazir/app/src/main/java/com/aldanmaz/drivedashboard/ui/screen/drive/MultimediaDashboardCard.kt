@@ -447,23 +447,69 @@ private fun MediaShortcutTile(
 
 @Composable
 private fun LiveFollowSignalIcon(isActive: Boolean, modifier: Modifier = Modifier) {
-    val transition = rememberInfiniteTransition(label = "liveFollowSignal")
+    val transition = rememberInfiniteTransition(label = "liveFollow3D")
     val progress = transition.animateFloat(
         initialValue = 0f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(animation = tween(1600, easing = LinearEasing)),
-        label = "liveFollowSignalProgress"
+        animationSpec = infiniteRepeatable(animation = tween(1700, easing = LinearEasing)),
+        label = "liveFollow3DProgress"
     ).value
     Canvas(modifier = modifier) {
-        val center = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f)
+        val cx = size.width / 2f
+        val cy = size.height / 2f
+        val unit = size.minDimension
+        val center = androidx.compose.ui.geometry.Offset(cx, cy)
+        val accent = if (isActive) Color(0xFF36F2B0) else Color(0xFF92A2B4)
         if (isActive) {
             for (phase in listOf(progress, (progress + 0.5f) % 1f)) {
-                val radius = size.minDimension * (0.12f + phase * 0.38f)
-                drawCircle(Color(0xFF31E39A).copy(alpha = 1f - phase), radius, center,
-                    style = Stroke(width = 2.dp.toPx()))
+                val radius = unit * (0.22f + phase * 0.29f)
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(accent.copy(alpha = 0.30f * (1f - phase)), Color.Transparent),
+                        center = center,
+                        radius = radius * 1.35f
+                    ),
+                    radius = radius * 1.35f,
+                    center = center
+                )
+                drawCircle(accent.copy(alpha = 0.88f * (1f - phase)), radius, center,
+                    style = Stroke(width = unit * 0.025f))
             }
         }
-        drawCircle(if (isActive) Color(0xFF31E39A) else Color(0xFF8A98A8),
-            size.minDimension * 0.12f, center)
+        // Layered metallic locator puck with a raised edge and a glossy highlight.
+        drawCircle(Color(0xFF02080D).copy(alpha = 0.7f), unit * 0.255f,
+            androidx.compose.ui.geometry.Offset(cx, cy + unit * 0.045f))
+        drawCircle(
+            brush = Brush.linearGradient(
+                colors = listOf(Color(0xFFECFFFF), if (isActive) Color(0xFF1DCB9A) else Color(0xFF66788C), Color(0xFF142531)),
+                start = androidx.compose.ui.geometry.Offset(cx - unit * 0.25f, cy - unit * 0.24f),
+                end = androidx.compose.ui.geometry.Offset(cx + unit * 0.22f, cy + unit * 0.25f)
+            ),
+            radius = unit * 0.235f,
+            center = center
+        )
+        drawCircle(Color(0xFF0A1923), unit * 0.178f, center)
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(if (isActive) Color(0xFF7DFFE0) else Color(0xFFD6E0E8), accent.copy(alpha = 0.9f), Color(0xFF123342)),
+                center = androidx.compose.ui.geometry.Offset(cx - unit * 0.055f, cy - unit * 0.065f),
+                radius = unit * 0.23f
+            ),
+            radius = unit * 0.17f,
+            center = center
+        )
+        // Map pin silhouette and center dot.
+        val pin = Path().apply {
+            moveTo(cx, cy + unit * 0.115f)
+            cubicTo(cx - unit * 0.045f, cy + unit * 0.055f, cx - unit * 0.105f, cy - unit * 0.005f, cx - unit * 0.105f, cy - unit * 0.075f)
+            cubicTo(cx - unit * 0.105f, cy - unit * 0.19f, cx + unit * 0.105f, cy - unit * 0.19f, cx + unit * 0.105f, cy - unit * 0.075f)
+            cubicTo(cx + unit * 0.105f, cy - unit * 0.005f, cx + unit * 0.045f, cy + unit * 0.055f, cx, cy + unit * 0.115f)
+            close()
+        }
+        drawPath(pin, Color(0xFF071A25))
+        drawCircle(Color.White, unit * 0.034f, androidx.compose.ui.geometry.Offset(cx, cy - unit * 0.075f))
+        drawCircle(Color.White.copy(alpha = 0.55f), unit * 0.10f,
+            androidx.compose.ui.geometry.Offset(cx - unit * 0.075f, cy - unit * 0.13f),
+            style = Stroke(width = unit * 0.018f))
     }
 }
 
