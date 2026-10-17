@@ -89,7 +89,8 @@ class FirebaseLiveFollowRepository(context: Context) {
                 // Older records may use lat/lon; newer records use latitude/longitude.
                 val lat = snapshot.numberAsDouble("latitude") ?: snapshot.numberAsDouble("lat")
                 val lon = snapshot.numberAsDouble("longitude") ?: snapshot.numberAsDouble("lon")
-                val driver = snapshot.child("driverId").getValue(String::class.java)
+                // Realtime Database can expose driverId as either a string or a number.
+                val driver = snapshot.child("driverId").value?.toString()?.trim()
                 val timestamp = snapshot.numberAsLong("updatedAt")
                 if (lat == null || lon == null || driver == null || timestamp == null ||
                     driver !in setOf("1", "2") ||
