@@ -265,6 +265,7 @@ internal fun EnhancedMultimediaCard(
                                 geminiLiveState = if (item.id == "gemini") geminiLiveState else null,
                                 isMusicPlaying = item.id == "music" && musicPlaying,
                                 isRadioPlaying = item.id == "radio" && radioPlaying,
+                                liveFollowActive = item.id == "livefollow" && liveFollowActive,
                                 modifier = Modifier.weight(1f).fillMaxHeight(),
                                 onSingleTap = {
                                     if (locked) {
@@ -396,6 +397,7 @@ private fun MediaShortcutTile(
     geminiLiveState: GeminiLiveState? = null,
     isMusicPlaying: Boolean = false,
     isRadioPlaying: Boolean = false,
+    liveFollowActive: Boolean = false,
     modifier: Modifier,
     onSingleTap: () -> Unit,
     onDoubleTap: () -> Unit
