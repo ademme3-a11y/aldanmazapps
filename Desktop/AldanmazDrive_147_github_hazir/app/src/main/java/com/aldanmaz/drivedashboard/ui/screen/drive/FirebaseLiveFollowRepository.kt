@@ -11,8 +11,7 @@ import java.util.UUID
 
 /**
  * Secure paired-device live-follow transport.
- * Database rules must only allow an authenticated UID to write its own liveFollow/{uid}
- * node, and to read another UID after an administrator creates a pairedDevices mapping.
+ * Supports both legacy lat/lon keys and latitude/longitude keys in RTDB.
  */
 class FirebaseLiveFollowRepository(context: Context) {
     private val prefs = context.applicationContext.getSharedPreferences(
@@ -49,8 +48,6 @@ class FirebaseLiveFollowRepository(context: Context) {
         require(otherFirebaseUid.isNotBlank() && otherFirebaseUid != ownUid) {
             "Geçerli diğer cihaz UID'sini girin."
         }
-        // Each device grants pairing consent only for its own UID.
-        // Both devices must pair with each other before either can read location.
         database.child("pairedDevices").child(ownUid).child(otherFirebaseUid)
             .setValue(true).await()
         prefs.edit().putString("paired_uid", otherFirebaseUid).apply()
@@ -73,6 +70,9 @@ class FirebaseLiveFollowRepository(context: Context) {
                 "deviceId" to localDeviceId(),
                 "latitude" to latitude,
                 "longitude" to longitude,
+                // Keep short aliases for clients/data created by the earlier schema.
+                "lat" to latitude,
+                "lon" to longitude,
                 "updatedAt" to updatedAt
             )
         ).await()
@@ -86,10 +86,11 @@ class FirebaseLiveFollowRepository(context: Context) {
         require(pairedFirebaseUid.isNotBlank()) { "Eşleştirilmiş cihaz UID'si gerekli." }
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val lat = snapshot.child("latitude").getValue(Double::class.java)
-                val lon = snapshot.child("longitude").getValue(Double::class.java)
+                // Older records may use lat/lon; newer records use latitude/longitude.
+                val lat = snapshot.numberAsDouble("latitude") ?: snapshot.numberAsDouble("lat")
+                val lon = snapshot.numberAsDouble("longitude") ?: snapshot.numberAsDouble("lon")
                 val driver = snapshot.child("driverId").getValue(String::class.java)
-                val timestamp = snapshot.child("updatedAt").getValue(Long::class.java)
+                val timestamp = snapshot.numberAsLong("updatedAt")
                 if (lat == null || lon == null || driver == null || timestamp == null ||
                     driver !in setOf("1", "2") ||
                     System.currentTimeMillis() - timestamp !in -120_000L..60_000L
@@ -101,8 +102,6 @@ class FirebaseLiveFollowRepository(context: Context) {
             }
 
             override fun onCancelled(error: DatabaseError) {
-                // Preserve the real Firebase error; calling onLocation(null) here
-                // would immediately overwrite it with the generic offline message.
                 onError(error.message)
             }
         }
@@ -112,5 +111,24 @@ class FirebaseLiveFollowRepository(context: Context) {
 
     fun removeListener(pairedFirebaseUid: String, listener: ValueEventListener) {
         database.child("liveFollow").child(pairedFirebaseUid).removeEventListener(listener)
+    }
+}
+
+private fun DataSnapshot.numberAsDouble(vararg keys: String): Double? {
+    for (key in keys) {
+        val value = child(key).value
+        when (value) {
+            is Number -> return value.toDouble()
+            is String -> value.toDoubleOrNull()?.let { return it }
+        }
+    }
+    return null
+}
+
+private fun DataSnapshot.numberAsLong(key: String): Long? {
+    return when (val value = child(key).value) {
+        is Number -> value.toLong()
+        is String -> value.toLongOrNull()
+        else -> null
     }
 }
