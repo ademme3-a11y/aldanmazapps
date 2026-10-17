@@ -178,7 +178,7 @@ fun DriveDashboardRoute(
     var remoteDriverLive by remember { mutableStateOf(false) }
     var remoteLocationUpdatedAt by remember { mutableStateOf(0L) }
     var remoteLatitude by remember { mutableStateOf<Double?>(null) }
-    var remoteLongitude by remember { mutableStateOf<Double?>(null)
+    var remoteLongitude by remember { mutableStateOf<Double?>(null) }
     var showLiveFollowDialog by remember { mutableStateOf(false) }
     var liveFollowStatus by remember { mutableStateOf("Eşleştirme bekleniyor") }
 
