@@ -264,35 +264,58 @@ fun DriveDashboardRoute(
         }
     }
 
-    LaunchedEffect(localFirebaseUid, isInternetAvailable, selectedDriverName, uiState.isGpsActive) {
+    // Canlı takip uygulama çalışırken otomatik başlar. rememberUpdatedState,
+    // döngünün eski koordinat/hız değerlerinde takılı kalmasını önler.
+    val liveUiState by androidx.compose.runtime.rememberUpdatedState(uiState)
+    val liveSelectedDriverName by androidx.compose.runtime.rememberUpdatedState(selectedDriverName)
+    val liveLocalFirebaseUid by androidx.compose.runtime.rememberUpdatedState(localFirebaseUid)
+    val liveInternetFlag by androidx.compose.runtime.rememberUpdatedState(isInternetAvailable)
+
+    LaunchedEffect(Unit) {
         while (true) {
-            val lat = uiState.latitude
-            val lon = uiState.longitude
-            if (lat != null && lon != null && uiState.isGpsActive &&
-                localFirebaseUid.isNotBlank() && isInternetAvailable) {
-                runCatching {
+            val current = liveUiState
+            val hasInternetNow = liveInternetFlag && hasInternetConnection(context)
+            if (hasInternetNow) {
+                // Firebase oturumu açılışta başarısız olsa bile otomatik tekrar dene.
+                if (liveLocalFirebaseUid.isBlank()) {
+                    runCatching { liveFollowRepository.signInAnonymously() }
+                        .onSuccess { localFirebaseUid = it }
+                        .onFailure { liveFollowStatus = "Canlı takip: Firebase bağlantısı bekleniyor" }
+                }
+
+                val lat = current.latitude
+                val lon = current.longitude
+                if (lat != null && lon != null && current.isGpsActive &&
+                    liveLocalFirebaseUid.isNotBlank()) {
                     val driver = loadDrivers(context).firstOrNull {
-                        it.name.equals(selectedDriverName, ignoreCase = true)
+                        it.name.equals(liveSelectedDriverName, ignoreCase = true)
                     }
                     if (driver != null) {
-                        liveFollowRepository.publishLocation(
-                            driverId = driver.id,
-                            latitude = lat,
-                            longitude = lon,
-                            speedKmh = uiState.speedKmh,
-                            tripDistanceKm = uiState.tripDistanceKm,
-                            gpsTotalKm = uiState.vehicleGpsTotalDistanceKm,
-                            isParkMode = uiState.isParkMode,
-                            parkDurationSeconds = uiState.parkDurationSeconds
-                        )
+                        runCatching {
+                            liveFollowRepository.publishLocation(
+                                driverId = driver.id,
+                                latitude = lat,
+                                longitude = lon,
+                                updatedAt = System.currentTimeMillis(),
+                                speedKmh = current.speedKmh,
+                                tripDistanceKm = current.tripDistanceKm,
+                                gpsTotalKm = current.vehicleGpsTotalDistanceKm,
+                                isParkMode = current.isParkMode,
+                                parkDurationSeconds = current.parkDurationSeconds
+                            )
+                        }.onFailure {
+                            liveFollowStatus = "Canlı takip bağlantısı yenileniyor"
+                            localFirebaseUid = ""
+                        }
                     } else {
-                        liveFollowStatus = "Konum gönderilmedi; önce sürücü seçin"
+                        liveFollowStatus = "Canlı takip için sürücü seçilmeli"
                     }
-                }.onFailure {
-                    liveFollowStatus = "Konum gönderilemedi; eşleştirme/izin kontrol edilmeli"
                 }
+            } else {
+                liveFollowStatus = "Canlı takip: internet bekleniyor"
             }
-            delay(5_000L)
+            // Sabit 10 saniyelik güncelleme; hız/km/park değerleri de güncel state'ten alınır.
+            delay(10_000L)
         }
     }
 
