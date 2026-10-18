@@ -491,6 +491,38 @@ private fun LiveFollowSignalIcon(isActive: Boolean, modifier: Modifier = Modifie
             center = c
         )
 
+        // Connected state gets a moving radar sweep, with a soft 3D glow behind it.
+        if (isActive) {
+            val sweep = Path().apply {
+                moveTo(c.x, c.y)
+                lineTo(c.x - u * .40f, c.y - u * .14f)
+                quadraticTo(c.x - u * .28f, c.y, c.x - u * .40f, c.y + u * .14f)
+                close()
+            }
+            rotate(degrees = pulse * 360f, pivot = c) {
+                drawPath(
+                    path = sweep,
+                    brush = Brush.linearGradient(
+                        colors = listOf(accent.copy(alpha = .02f), accent.copy(alpha = .25f)),
+                        start = c,
+                        end = androidx.compose.ui.geometry.Offset(c.x - u * .40f, c.y)
+                    )
+                )
+                drawLine(
+                    color = accent.copy(alpha = .92f),
+                    start = c,
+                    end = androidx.compose.ui.geometry.Offset(c.x, c.y - u * .39f),
+                    strokeWidth = u * .018f,
+                    cap = androidx.compose.ui.graphics.StrokeCap.Round
+                )
+            }
+            drawCircle(
+                color = accent.copy(alpha = .12f + pulse * .10f),
+                radius = u * .10f,
+                center = c
+            )
+        }
+
         // Radar rings remain visible when idle; active mode emits two clean pulses.
         drawCircle(accent.copy(alpha = if (isActive) .35f else .24f), u * .285f, c,
             style = Stroke(width = u * .018f))
