@@ -69,7 +69,7 @@ class FirebaseLiveFollowRepository(context: Context) {
         isParkMode: Boolean = false,
         parkDurationSeconds: Long = 0L
     ) {
-        require(driverId == "1" || driverId == "2") { "Geçersiz sürücü kimliği." }
+        require(driverId == "1" || driverId == "2" || driverId == "unknown") { "Geçersiz sürücü kimliği." }
         require(latitude in -90.0..90.0 && longitude in -180.0..180.0) {
             "Geçersiz GPS koordinatı."
         }
