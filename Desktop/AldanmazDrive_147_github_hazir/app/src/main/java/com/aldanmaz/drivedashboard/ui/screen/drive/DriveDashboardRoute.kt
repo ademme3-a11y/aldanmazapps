@@ -685,7 +685,7 @@ fun DriveDashboardRoute(
                 showLiveFollowInfoDialog = true
             }
         },
-        liveFollowActive = remoteDriverLive
+        liveFollowActive = remoteDriverLive || liveFollowStatus == "Canlı takip aktif"
     )
     }
     if (showLiveFollowInfoDialog) {
