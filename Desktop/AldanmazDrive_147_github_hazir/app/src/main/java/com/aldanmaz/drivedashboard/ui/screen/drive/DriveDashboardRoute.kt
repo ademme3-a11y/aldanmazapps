@@ -274,47 +274,58 @@ fun DriveDashboardRoute(
     LaunchedEffect(Unit) {
         while (true) {
             val current = liveUiState
-            val hasInternetNow = liveInternetFlag && hasInternetConnection(context)
+            val hasInternetNow = hasInternetConnection(context)
             if (hasInternetNow) {
-                // Firebase oturumu açılışta başarısız olsa bile otomatik tekrar dene.
-                if (liveLocalFirebaseUid.isBlank()) {
-                    runCatching { liveFollowRepository.signInAnonymously() }
+                // Use the UID returned by sign-in in THIS cycle. Do not wait for Compose
+                // state to recompose before the first publish.
+                var publishUid = liveLocalFirebaseUid
+                if (publishUid.isBlank()) {
+                    publishUid = runCatching { liveFollowRepository.signInAnonymously() }
                         .onSuccess { localFirebaseUid = it }
-                        .onFailure { liveFollowStatus = "Canlı takip: Firebase bağlantısı bekleniyor" }
+                        .getOrElse {
+                            liveFollowStatus = "Canlı takip: Firebase bağlantısı bekleniyor"
+                            ""
+                        }
                 }
 
                 val lat = current.latitude
                 val lon = current.longitude
-                if (lat != null && lon != null && current.isGpsActive &&
-                    liveLocalFirebaseUid.isNotBlank()) {
-                    val driver = loadDrivers(context).firstOrNull {
+                if (publishUid.isNotBlank() && lat != null && lon != null) {
+                    val drivers = loadDrivers(context)
+                    val driver = drivers.firstOrNull {
                         it.name.equals(liveSelectedDriverName, ignoreCase = true)
                     }
-                    if (driver != null) {
-                        runCatching {
-                            liveFollowRepository.publishLocation(
-                                driverId = driver.id,
-                                latitude = lat,
-                                longitude = lon,
-                                updatedAt = System.currentTimeMillis(),
-                                speedKmh = current.speedKmh,
-                                tripDistanceKm = current.tripDistanceKm,
-                                gpsTotalKm = current.vehicleGpsTotalDistanceKm,
-                                isParkMode = current.isParkMode,
-                                parkDurationSeconds = current.parkDurationSeconds
-                            )
-                        }.onFailure {
-                            liveFollowStatus = "Canlı takip bağlantısı yenileniyor"
-                            localFirebaseUid = ""
-                        }
-                    } else {
-                        liveFollowStatus = "Canlı takip için sürücü seçilmeli"
+                    // Location sharing must not silently stop just because the driver
+                    // selector has not initialized yet. Unknown is explicit, not a false
+                    // attribution to another driver.
+                    val driverId = driver?.id
+                        ?: viewModel.currentDriverSessionIdOrNull()
+                        ?: "unknown"
+                    runCatching {
+                        liveFollowRepository.publishLocation(
+                            driverId = driverId,
+                            latitude = lat,
+                            longitude = lon,
+                            updatedAt = System.currentTimeMillis(),
+                            speedKmh = current.speedKmh,
+                            tripDistanceKm = current.tripDistanceKm,
+                            gpsTotalKm = current.vehicleGpsTotalDistanceKm,
+                            isParkMode = current.isParkMode,
+                            parkDurationSeconds = current.parkDurationSeconds
+                        )
+                    }.onSuccess {
+                        liveFollowStatus = "Canlı takip aktif"
+                    }.onFailure {
+                        liveFollowStatus = "Canlı takip bağlantısı yenileniyor"
+                        localFirebaseUid = ""
                     }
+                } else if (lat == null || lon == null) {
+                    liveFollowStatus = "Canlı takip: güncel GPS konumu bekleniyor"
                 }
             } else {
                 liveFollowStatus = "Canlı takip: internet bekleniyor"
             }
-            // Sabit 10 saniyelik güncelleme; hız/km/park değerleri de güncel state'ten alınır.
+            // Keep publishing every 10 seconds, including speed, trip km and park telemetry.
             delay(10_000L)
         }
     }
