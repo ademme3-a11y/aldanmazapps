@@ -453,7 +453,7 @@ private fun LiveFollowSignalIcon(isActive: Boolean, modifier: Modifier = Modifie
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1850, easing = LinearEasing),
+            animation = tween(1700, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "liveFollowRadarPulse"
