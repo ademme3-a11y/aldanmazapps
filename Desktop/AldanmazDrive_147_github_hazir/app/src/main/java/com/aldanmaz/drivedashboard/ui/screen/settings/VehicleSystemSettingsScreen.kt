@@ -1,5 +1,7 @@
 package com.aldanmaz.drivedashboard.ui.screen.settings
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -26,7 +28,9 @@ import com.aldanmaz.drivedashboard.ui.theme.DashboardPaletteRuntime
 import com.aldanmaz.drivedashboard.ui.screen.driver.DriverAvatar
 import com.aldanmaz.drivedashboard.data.trip.AldanmazDriveDatabase
 import com.aldanmaz.drivedashboard.data.trip.TripEntity
+import com.aldanmaz.drivedashboard.data.tracking.LiveTrackingRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
@@ -45,6 +49,8 @@ private const val PREF_HEY_CAR = "hey_car_voice"
 private const val PREF_ROAD_SIGN_TEST = "road_sign_test_mode"
 private const val PREF_DRIVERS = "driver_profiles"
 private const val PREF_CALIBRATION = "drive_calibration"
+// 170: Canlı Takip harita sayfasının GitHub Pages adresi (bkz. docs/takip/index.html).
+private const val LIVE_TRACKING_VIEWER_BASE_URL = "https://ademme3-a11y.github.io/aldanmazapps/takip/"
 
 private data class MaintenanceItem(
     val id: String,
@@ -90,6 +96,17 @@ fun VehicleSystemSettingsScreen(
     var roadSignTestMode by remember { mutableStateOf(roadSignTestPrefs.getString("mode", "sequence") ?: "sequence") }
     var speedOffsetKmh by remember { mutableIntStateOf(calibrationPrefs.getInt("speed_offset_kmh", 4)) }
     var altitudeOffsetMeters by remember { mutableIntStateOf(calibrationPrefs.getInt("altitude_offset_m", -25)) }
+
+    val liveTrackingRepository = remember { LiveTrackingRepository(context) }
+    val coroutineScope = rememberCoroutineScope()
+    var liveTrackingEnabled by remember { mutableStateOf(false) }
+    var liveTrackingVehicleId by remember { mutableStateOf("") }
+    LaunchedEffect(Unit) {
+        liveTrackingRepository.settings.collect { settings ->
+            liveTrackingEnabled = settings.enabled
+            liveTrackingVehicleId = settings.vehicleId
+        }
+    }
     var microphoneMode by remember {
         mutableStateOf(
             heyCarPrefs.getString(
@@ -297,6 +314,40 @@ fun VehicleSystemSettingsScreen(
                             newTitle = ""; newKm = ""; newDate = ""
                         }
                     }) { Text("BAKIM EKLE") }
+                }
+            }
+
+            SystemCard("170 • CANLI TAKİP", "Uygulama açık ve internete bağlıyken aracın konumunu telefonundan canlı izle.", accent) {
+                SettingSwitch("Canlı takibi aç", liveTrackingEnabled, true) { checked ->
+                    liveTrackingEnabled = checked
+                    coroutineScope.launch {
+                        if (liveTrackingVehicleId.isBlank()) {
+                            liveTrackingVehicleId = liveTrackingRepository.ensureVehicleId()
+                        }
+                        liveTrackingRepository.setEnabled(checked)
+                    }
+                }
+                if (liveTrackingEnabled) {
+                    val trackingLink = LIVE_TRACKING_VIEWER_BASE_URL + "?id=" + liveTrackingVehicleId
+                    Text(
+                        "Bu linki telefonunda bir tarayıcıda aç. Linki bilen herkes konumu görebilir, yalnızca güvendiğin kişilerle paylaş.",
+                        color = Color(0xFF8FA6BA),
+                        fontSize = 10.sp
+                    )
+                    Text(trackingLink, color = Color.White, fontSize = 11.sp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Button(onClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                            clipboard?.setPrimaryClip(ClipData.newPlainText("Canlı Takip Linki", trackingLink))
+                            Toast.makeText(context, "Link kopyalandı", Toast.LENGTH_SHORT).show()
+                        }, modifier = Modifier.weight(1f)) { Text("LİNKİ KOPYALA") }
+                        OutlinedButton(onClick = {
+                            coroutineScope.launch {
+                                liveTrackingVehicleId = liveTrackingRepository.regenerateVehicleId()
+                            }
+                            Toast.makeText(context, "Yeni link oluşturuldu, eski link artık çalışmıyor", Toast.LENGTH_SHORT).show()
+                        }, modifier = Modifier.weight(1f)) { Text("YENİ LİNK OLUŞTUR") }
+                    }
                 }
             }
 

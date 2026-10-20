@@ -36,6 +36,8 @@ import com.aldanmaz.drivedashboard.data.trip.AldanmazDriveDatabase
 import com.aldanmaz.drivedashboard.data.trip.TripEntity
 import com.aldanmaz.drivedashboard.data.trip.VehicleOdometerRepository
 import com.aldanmaz.drivedashboard.data.trip.TripRepository
+import com.aldanmaz.drivedashboard.data.tracking.LiveTrackingRepository
+import com.aldanmaz.drivedashboard.data.tracking.LiveTrackingSettings
 import com.aldanmaz.drivedashboard.data.vehicle.VehicleCatalog
 import com.aldanmaz.drivedashboard.data.vehicle.VehicleType
 import com.aldanmaz.drivedashboard.data.vehicle.VehiclePreferencesRepository
@@ -45,6 +47,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -132,6 +135,9 @@ class DriveDashboardViewModel(
     private val upcomingRoadSignRepository = UpcomingRoadSignRepository()
     private val trafficAgentRepository = TrafficAgentRepository()
     private val vehicleOdometerRepository = VehicleOdometerRepository(application)
+    private val liveTrackingRepository = LiveTrackingRepository(application)
+    private var liveTrackingSettings = LiveTrackingSettings()
+    private var lastLiveTrackingPushElapsedMs = 0L
     private val tripRepository = TripRepository(
         AldanmazDriveDatabase.getInstance(application).tripDao()
     )
@@ -295,6 +301,7 @@ class DriveDashboardViewModel(
         trafficPrefs.edit().putBoolean("active", false).apply()
         observeFuelSettings()
         observeVehiclePreferences()
+        observeLiveTracking()
         viewModelScope.launch {
             while (true) {
                 ensureDailyState()
@@ -531,6 +538,17 @@ class DriveDashboardViewModel(
         }
     }
 
+    private fun observeLiveTracking() {
+        viewModelScope.launch {
+            if (liveTrackingRepository.settings.first().vehicleId.isBlank()) {
+                liveTrackingRepository.ensureVehicleId()
+            }
+            liveTrackingRepository.settings.collect { settings ->
+                liveTrackingSettings = settings
+            }
+        }
+    }
+
     private fun observeFuelSettings() {
         fuelSettingsJob?.cancel()
 
@@ -689,6 +707,23 @@ class DriveDashboardViewModel(
         val speedDisplayOffsetKmh = calibrationPrefs.getInt("speed_offset_kmh", 4).coerceIn(-10, 10)
         val effectiveSpeedKmh = safeSpeedKmh
         val displaySpeedKmh = if (safeSpeedKmh == 0) 0 else (safeSpeedKmh + speedDisplayOffsetKmh).coerceAtLeast(0)
+
+        // 170: Canlı Takip — açıksa konumu Firebase'e yazar. Her GPS fix'inde
+        // değil, en fazla 5 saniyede bir (throttled) gönderilir.
+        if (liveTrackingSettings.enabled) {
+            val nowElapsed = SystemClock.elapsedRealtime()
+            if (nowElapsed - lastLiveTrackingPushElapsedMs >= 5_000L) {
+                lastLiveTrackingPushElapsedMs = nowElapsed
+                liveTrackingRepository.pushLocationIfEnabled(
+                    enabled = liveTrackingSettings.enabled,
+                    vehicleId = liveTrackingSettings.vehicleId,
+                    latitude = location.latitude,
+                    longitude = location.longitude,
+                    speedKmh = effectiveSpeedKmh,
+                    headingDeg = if (location.hasBearing()) location.bearing else 0f
+                )
+            }
+        }
 
         updateAutomaticTripLifecycle(
             speedKmh = effectiveSpeedKmh

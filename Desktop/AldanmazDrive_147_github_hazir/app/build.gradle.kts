@@ -71,6 +71,8 @@ dependencies {
     implementation("com.google.firebase:firebase-ai")
     implementation("com.google.firebase:firebase-appcheck-debug")
     implementation("com.google.firebase:firebase-appcheck-playintegrity")
+    // Canlı Takip: araç konumunu Firebase Realtime Database'e yazmak için.
+    implementation("com.google.firebase:firebase-database-ktx")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
     implementation(libs.androidx.activity.compose)
     implementation("com.google.android.gms:play-services-location:21.4.0")
