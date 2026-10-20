@@ -1,0 +1,10 @@
+{
+  "rules": {
+    "liveTracking": {
+      "$vehicleId": {
+        ".read": true,
+        ".write": true
+      }
+    }
+  }
+}

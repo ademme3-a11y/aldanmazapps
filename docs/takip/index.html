@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Aldanmaz Drive — Canlı Takip</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  :root {
+    --bg: #07121e;
+    --panel: #0b1a2a;
+    --line: rgba(34, 215, 243, 0.28);
+    --accent: #22d7f3;
+    --fg: #f2f8fb;
+    --muted: #8fa6ba;
+    --ok: #39e68a;
+    --warn: #ffb648;
+    --bad: #ff6b6b;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: "Segoe UI", Roboto, -apple-system, sans-serif;
+    display: flex;
+    flex-direction: column;
+  }
+  #map { flex: 1 1 auto; width: 100%; background: #0a1420; }
+  .leaflet-container { background: #0a1420; }
+
+  header {
+    padding: 14px max(16px, env(safe-area-inset-left, 0px)) 10px max(16px, env(safe-area-inset-right, 0px));
+    border-bottom: 1px solid var(--line);
+    background: var(--panel);
+  }
+  header h1 {
+    margin: 0;
+    font-size: 15px;
+    letter-spacing: .04em;
+    color: var(--accent);
+    font-weight: 800;
+  }
+  header p { margin: 2px 0 0; font-size: 11px; color: var(--muted); }
+
+  #panel {
+    position: relative;
+    z-index: 400;
+    margin: -46px 12px 12px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px 14px;
+    box-shadow: 0 10px 24px rgba(0,0,0,.35);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .stat { display: flex; flex-direction: column; gap: 2px; }
+  .stat .v { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .stat .k { font-size: 10px; color: var(--muted); letter-spacing: .03em; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .dot.ok { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+  .dot.warn { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
+  .dot.bad { background: var(--bad); }
+  #statusRow { display: flex; align-items: center; gap: 8px; margin-left: auto; font-size: 11px; color: var(--muted); }
+
+  #center {
+    position: fixed; inset: 0; display: none;
+    align-items: center; justify-content: center; text-align: center;
+    padding: 24px max(16px, env(safe-area-inset-left, 0px));
+    background: var(--bg);
+  }
+  #center.show { display: flex; }
+  #center .box { max-width: 360px; }
+  #center h2 { color: var(--accent); font-size: 17px; margin: 0 0 8px; }
+  #center p { color: var(--muted); font-size: 13px; line-height: 1.5; margin: 0; }
+  #center code {
+    display: block; margin-top: 12px; padding: 8px 10px; border-radius: 8px;
+    background: #0b1a2a; border: 1px solid var(--line); color: var(--fg); font-size: 11px; word-break: break-all;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>ALDANMAZ DRIVE · CANLI TAKİP</h1>
+  <p>Araç ekranı açık ve internete bağlıyken konum burada canlı güncellenir.</p>
+</header>
+
+<div id="map"></div>
+
+<div id="panel" hidden>
+  <div class="stat">
+    <div class="v" id="speedVal">—</div>
+    <div class="k">KM/SA</div>
+  </div>
+  <div id="statusRow">
+    <span class="dot" id="statusDot"></span>
+    <span id="statusText">bağlanıyor…</span>
+  </div>
+</div>
+
+<div id="center">
+  <div class="box">
+    <h2>Takip linki eksik</h2>
+    <p>Bu sayfa, Aldanmaz Drive uygulamasının ayarlarındaki "Canlı Takip" bölümünden kopyalanan linkle açılmalıdır. Adresin sonunda <strong>?id=...</strong> kısmı yok.</p>
+    <code>https://ademme3-a11y.github.io/aldanmazapps/takip/?id=ARAC_KIMLIGI</code>
+  </div>
+</div>
+
+<script>
+(function () {
+  var params = new URLSearchParams(location.search);
+  var vehicleId = (params.get('id') || '').trim();
+
+  if (!vehicleId) {
+    document.getElementById('center').classList.add('show');
+    return;
+  }
+
+  var DB_URL = 'https://aldanmaz-drive-default-rtdb.firebaseio.com';
+  var dataUrl = DB_URL + '/liveTracking/' + encodeURIComponent(vehicleId) + '/location.json';
+  var POLL_MS = 5000;
+  var STALE_MS = 30000;
+  var LOST_MS = 90000;
+
+  var map = L.map('map', { zoomControl: true, attributionControl: true }).setView([39.0, 35.0], 6);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap katkıda bulunanlar'
+  }).addTo(map);
+
+  var icon = L.divIcon({
+    className: '',
+    html: '<div style="width:16px;height:16px;border-radius:50%;background:#22d7f3;border:3px solid #07121e;box-shadow:0 0 10px rgba(34,215,243,.9)"></div>',
+    iconSize: [16, 16],
+    iconAnchor: [8, 8]
+  });
+  var marker = null;
+  var hasCentered = false;
+
+  var panel = document.getElementById('panel');
+  var speedVal = document.getElementById('speedVal');
+  var statusDot = document.getElementById('statusDot');
+  var statusText = document.getElementById('statusText');
+
+  function timeAgoLabel(ms) {
+    var s = Math.round(ms / 1000);
+    if (s < 60) return s + ' sn önce';
+    var m = Math.round(s / 60);
+    if (m < 60) return m + ' dk önce';
+    var h = Math.round(m / 60);
+    return h + ' sa önce';
+  }
+
+  var lastTs = null;
+
+  function render() {
+    if (lastTs == null) return;
+    var age = Date.now() - lastTs;
+    if (age < STALE_MS) {
+      statusDot.className = 'dot ok';
+      statusText.textContent = 'canlı · ' + timeAgoLabel(age);
+    } else if (age < LOST_MS) {
+      statusDot.className = 'dot warn';
+      statusText.textContent = 'bekleniyor · son görülme ' + timeAgoLabel(age);
+    } else {
+      statusDot.className = 'dot bad';
+      statusText.textContent = 'bağlantı kesildi · son görülme ' + timeAgoLabel(age);
+    }
+  }
+  setInterval(render, 1000);
+
+  function poll() {
+    fetch(dataUrl, { cache: 'no-store' })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (!data || typeof data.lat !== 'number' || typeof data.lon !== 'number') {
+          statusDot.className = 'dot warn';
+          statusText.textContent = 'henüz konum verisi yok';
+          return;
+        }
+        panel.hidden = false;
+        lastTs = typeof data.ts === 'number' ? data.ts : Date.now();
+        var pos = [data.lat, data.lon];
+        if (!marker) {
+          marker = L.marker(pos, { icon: icon }).addTo(map);
+        } else {
+          marker.setLatLng(pos);
+        }
+        if (!hasCentered) {
+          map.setView(pos, 16);
+          hasCentered = true;
+        }
+        speedVal.textContent = typeof data.speedKmh === 'number' ? Math.round(data.speedKmh) : '—';
+        render();
+      })
+      .catch(function () {
+        statusDot.className = 'dot bad';
+        statusText.textContent = 'sunucuya ulaşılamıyor';
+      });
+  }
+
+  panel.hidden = false;
+  statusDot.className = 'dot warn';
+  statusText.textContent = 'bağlanıyor…';
+  poll();
+  setInterval(poll, POLL_MS);
+})();
+</script>
+</body>
+</html>
