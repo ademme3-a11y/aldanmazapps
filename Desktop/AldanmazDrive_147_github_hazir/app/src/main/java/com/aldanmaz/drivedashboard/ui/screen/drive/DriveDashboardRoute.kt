@@ -264,25 +264,22 @@ fun DriveDashboardRoute(
         }
     }
 
-    // Canlı takip uygulama çalışırken otomatik başlar. rememberUpdatedState,
-    // döngünün eski koordinat/hız değerlerinde takılı kalmasını önler.
+    // Live-follow publisher: automatically authenticate, publish and retry while online.
     val liveUiState by androidx.compose.runtime.rememberUpdatedState(uiState)
     val liveSelectedDriverName by androidx.compose.runtime.rememberUpdatedState(selectedDriverName)
     val liveLocalFirebaseUid by androidx.compose.runtime.rememberUpdatedState(localFirebaseUid)
-    val liveInternetFlag by androidx.compose.runtime.rememberUpdatedState(isInternetAvailable)
 
     LaunchedEffect(Unit) {
         while (true) {
+            var retrySoon = false
             val current = liveUiState
-            val hasInternetNow = hasInternetConnection(context)
-            if (hasInternetNow) {
-                // Use the UID returned by sign-in in THIS cycle. Do not wait for Compose
-                // state to recompose before the first publish.
+            if (hasInternetConnection(context)) {
                 var publishUid = liveLocalFirebaseUid
                 if (publishUid.isBlank()) {
                     publishUid = runCatching { liveFollowRepository.signInAnonymously() }
                         .onSuccess { localFirebaseUid = it }
                         .getOrElse {
+                            retrySoon = true
                             liveFollowStatus = "Canlı takip: Firebase bağlantısı bekleniyor"
                             ""
                         }
@@ -290,14 +287,12 @@ fun DriveDashboardRoute(
 
                 val lat = current.latitude
                 val lon = current.longitude
-                if (publishUid.isNotBlank() && lat != null && lon != null) {
-                    val drivers = loadDrivers(context)
-                    val driver = drivers.firstOrNull {
+                if (publishUid.isBlank()) {
+                    retrySoon = true
+                } else if (lat != null && lon != null) {
+                    val driver = loadDrivers(context).firstOrNull {
                         it.name.equals(liveSelectedDriverName, ignoreCase = true)
                     }
-                    // Location sharing must not silently stop just because the driver
-                    // selector has not initialized yet. Unknown is explicit, not a false
-                    // attribution to another driver.
                     val driverId = driver?.id
                         ?: viewModel.currentDriverSessionIdOrNull()
                         ?: "unknown"
@@ -315,18 +310,22 @@ fun DriveDashboardRoute(
                         )
                     }.onSuccess {
                         liveFollowStatus = "Canlı takip aktif"
-                    }.onFailure {
-                        liveFollowStatus = "Canlı takip bağlantısı yenileniyor"
+                    }.onFailure { error ->
+                        retrySoon = true
+                        liveFollowStatus = "Canlı takip gönderim hatası: " +
+                            (error.message ?: "Firebase erişimi reddedildi")
                         localFirebaseUid = ""
                     }
-                } else if (lat == null || lon == null) {
+                } else {
+                    retrySoon = true
                     liveFollowStatus = "Canlı takip: güncel GPS konumu bekleniyor"
                 }
             } else {
+                retrySoon = true
                 liveFollowStatus = "Canlı takip: internet bekleniyor"
             }
-            // Keep publishing every 10 seconds, including speed, trip km and park telemetry.
-            delay(10_000L)
+            // Retry connection/GPS errors quickly; normal telemetry remains 10 seconds.
+            delay(if (retrySoon) 3_000L else 10_000L)
         }
     }
 
@@ -753,7 +752,7 @@ fun DriveDashboardRoute(
                         singleLine = true
                     )
                     Text(liveFollowStatus, fontSize = 12.sp)
-                    Text("Firebase Console'da iki UID karşılıklı eşleştirilmeden konum okunamaz.", fontSize = 11.sp)
+                    Text("Bir cihazın UID'sini diğerine kaydetmek iki yönlü eşleştirmeyi başlatır.", fontSize = 11.sp)
                 }
             },
             confirmButton = {
@@ -765,7 +764,7 @@ fun DriveDashboardRoute(
                             runCatching { liveFollowRepository.pairWith(other) }
                                 .onSuccess {
                                     pairedFirebaseUid = other
-                                    liveFollowStatus = "Eşleştirme kaydedildi; diğer cihazın da bu cihazı eşleştirmesi gerekiyor."
+                                    liveFollowStatus = "Karşılıklı eşleştirme kaydedildi; bağlantı otomatik kuruluyor."
                                     showLiveFollowDialog = false
                                 }
                                 .onFailure { error ->

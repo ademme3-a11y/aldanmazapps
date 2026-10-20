@@ -1423,10 +1423,9 @@ class MainActivity : ComponentActivity() {
                 val automaticDay = if (sunriseLocalTime != null && sunsetLocalTime != null) {
                     !currentLocalTime.isBefore(sunriseLocalTime) &&
                         currentLocalTime.isBefore(sunsetLocalTime)
-                } else if (weatherUiState.hasData) {
-                    weatherUiState.isDay
                 } else {
-                    currentLocalTime.hour in 7..18
+                    // The weather API's isDay flag can flip during refresh; use a stable clock fallback.
+                    currentLocalTime.hour in 7..17
                 }
                 val effectiveDay = when (appearance.dayNightMode) {
                     "GUNDUZ" -> true

@@ -448,193 +448,114 @@ private fun MediaShortcutTile(
 
 @Composable
 private fun LiveFollowSignalIcon(isActive: Boolean, modifier: Modifier = Modifier) {
-    val transition = rememberInfiniteTransition(label = "liveFollowRadarPremium")
-    val pulse = transition.animateFloat(
+    val transition = rememberInfiniteTransition(label = "liveFollowMapPulse")
+    val phase = transition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1700, easing = LinearEasing),
+            animation = tween(durationMillis = 1900, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
-        label = "liveFollowRadarPulse"
+        label = "liveFollowMapPulsePhase"
     ).value
 
     Canvas(modifier = modifier) {
         val u = size.minDimension
         val c = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f)
-        val accent = if (isActive) Color(0xFF32F5B5) else Color(0xFF8196A8)
-        val dark = Color(0xFF07131E)
+        val accent = if (isActive) Color(0xFF37F5C0) else Color(0xFF8A9CAC)
+        val muted = Color(0xFF18394B)
 
-        // Premium dark-glass medallion with a crisp metallic rim.
-        drawCircle(
-            color = Color.Black.copy(alpha = .48f),
-            radius = u * .495f,
-            center = androidx.compose.ui.geometry.Offset(c.x, c.y + u * .025f)
-        )
+        drawCircle(Color.Black.copy(alpha = .55f), u * .49f,
+            androidx.compose.ui.geometry.Offset(c.x, c.y + u * .025f))
         drawCircle(
             brush = Brush.linearGradient(
-                colors = listOf(Color(0xFF405A6B), Color(0xFF0B1C2A), Color(0xFF263D4E)),
+                colors = listOf(Color(0xFF55798A), Color(0xFF102C3D), Color(0xFF29485A)),
                 start = androidx.compose.ui.geometry.Offset(u * .12f, u * .08f),
-                end = androidx.compose.ui.geometry.Offset(u * .9f, u * .95f)
+                end = androidx.compose.ui.geometry.Offset(u * .9f, u * .92f)
             ),
-            radius = u * .485f,
+            radius = u * .475f,
             center = c
         )
-        drawCircle(color = Color(0xFF02070C), radius = u * .435f, center = c)
+        drawCircle(Color(0xFF06131D), u * .425f, c)
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(Color(0xFF173747), dark, Color(0xFF03080E)),
-                center = androidx.compose.ui.geometry.Offset(c.x - u * .10f, c.y - u * .16f),
-                radius = u * .64f
+                colors = listOf(Color(0xFF1D5260), Color(0xFF0A1C29), Color(0xFF030A11)),
+                center = androidx.compose.ui.geometry.Offset(c.x - u * .13f, c.y - u * .18f),
+                radius = u * .62f
             ),
-            radius = u * .42f,
+            radius = u * .405f,
             center = c
         )
 
-        // Connected state gets a moving radar sweep, with a soft 3D glow behind it.
+        val route = Path().apply {
+            moveTo(c.x - u * .22f, c.y + u * .22f)
+            cubicTo(
+                c.x - u * .06f, c.y + u * .12f,
+                c.x + u * .04f, c.y - u * .10f,
+                c.x + u * .22f, c.y - u * .22f
+            )
+        }
+        drawPath(
+            path = route,
+            color = muted.copy(alpha = .95f),
+            style = Stroke(width = u * .105f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+        )
+        drawPath(
+            path = route,
+            color = accent.copy(alpha = if (isActive) .95f else .58f),
+            style = Stroke(width = u * .026f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+        )
+
         if (isActive) {
-            val sweep = Path().apply {
+            val beam = Path().apply {
                 moveTo(c.x, c.y)
-                lineTo(c.x - u * .40f, c.y - u * .14f)
-                quadraticTo(c.x - u * .28f, c.y, c.x - u * .40f, c.y + u * .14f)
+                lineTo(c.x + u * .39f, c.y - u * .10f)
+                quadraticTo(c.x + u * .27f, c.y + u * .01f, c.x + u * .39f, c.y + u * .12f)
                 close()
             }
-            rotate(degrees = pulse * 360f, pivot = c) {
+            rotate(degrees = phase * 360f, pivot = c) {
                 drawPath(
-                    path = sweep,
+                    beam,
                     brush = Brush.linearGradient(
                         colors = listOf(accent.copy(alpha = .02f), accent.copy(alpha = .25f)),
                         start = c,
-                        end = androidx.compose.ui.geometry.Offset(c.x - u * .40f, c.y)
+                        end = androidx.compose.ui.geometry.Offset(c.x + u * .40f, c.y)
                     )
                 )
                 drawLine(
-                    color = accent.copy(alpha = .92f),
+                    color = accent.copy(alpha = .95f),
                     start = c,
-                    end = androidx.compose.ui.geometry.Offset(c.x, c.y - u * .39f),
+                    end = androidx.compose.ui.geometry.Offset(c.x + u * .38f, c.y),
                     strokeWidth = u * .018f,
                     cap = androidx.compose.ui.graphics.StrokeCap.Round
                 )
             }
-            drawCircle(
-                color = accent.copy(alpha = .12f + pulse * .10f),
-                radius = u * .10f,
-                center = c
-            )
         }
 
-        // Radar rings remain visible when idle; active mode emits two clean pulses.
-        drawCircle(accent.copy(alpha = if (isActive) .35f else .24f), u * .285f, c,
-            style = Stroke(width = u * .018f))
-        drawCircle(accent.copy(alpha = if (isActive) .62f else .30f), u * .215f, c,
-            style = Stroke(width = u * .014f))
-        if (isActive) {
-            repeat(2) { index ->
-                val phase = (pulse + index * .5f) % 1f
-                val radius = u * (.22f + phase * .20f)
-                drawCircle(
-                    color = accent.copy(alpha = (1f - phase) * .58f),
-                    radius = radius,
-                    center = c,
-                    style = Stroke(width = u * .018f)
-                )
-            }
-        }
-
-        // Four short compass ticks give the radar a precise instrument-panel feel.
-        for (angle in listOf(0f, 90f, 180f, 270f)) {
-            rotate(angle, pivot = c) {
-                drawLine(
-                    color = accent.copy(alpha = if (isActive) .9f else .55f),
-                    start = androidx.compose.ui.geometry.Offset(c.x, c.y - u * .375f),
-                    end = androidx.compose.ui.geometry.Offset(c.x, c.y - u * .335f),
-                    strokeWidth = u * .022f,
-                    cap = androidx.compose.ui.graphics.StrokeCap.Round
-                )
-            }
-        }
-
-        // Top-down vehicle silhouette: body, shadow, glass roof and headlamps.
-        val carW = u * .255f
-        val carH = u * .435f
-        val carLeft = c.x - carW / 2f
-        val carTop = c.y - carH / 2f
-        drawRoundRect(
-            color = Color.Black.copy(alpha = .72f),
-            topLeft = androidx.compose.ui.geometry.Offset(carLeft + u * .018f, carTop + u * .025f),
-            size = androidx.compose.ui.geometry.Size(carW, carH),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(u * .075f, u * .075f)
-        )
-        // Wheels sit just outside the body for a readable silhouette at 54 dp.
-        val wheelW = u * .045f
-        val wheelH = u * .105f
         listOf(
-            androidx.compose.ui.geometry.Offset(carLeft - wheelW * .45f, carTop + carH * .19f),
-            androidx.compose.ui.geometry.Offset(carLeft + carW - wheelW * .55f, carTop + carH * .19f),
-            androidx.compose.ui.geometry.Offset(carLeft - wheelW * .45f, carTop + carH * .68f),
-            androidx.compose.ui.geometry.Offset(carLeft + carW - wheelW * .55f, carTop + carH * .68f)
-        ).forEach { p ->
-            drawRoundRect(
-                color = Color(0xFF02060A),
-                topLeft = p,
-                size = androidx.compose.ui.geometry.Size(wheelW, wheelH),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(u * .018f, u * .018f)
+            androidx.compose.ui.geometry.Offset(c.x - u * .22f, c.y + u * .22f),
+            androidx.compose.ui.geometry.Offset(c.x + u * .22f, c.y - u * .22f)
+        ).forEachIndexed { index, point ->
+            drawCircle(
+                accent.copy(alpha = if (isActive) .18f + phase * .12f else .10f),
+                u * (if (index == 0) .12f else .14f), point
             )
+            drawCircle(Color(0xFF06131D), u * .075f, point)
+            drawCircle(
+                color = accent.copy(alpha = if (isActive) 1f else .7f),
+                radius = u * .055f,
+                center = point,
+                style = Stroke(width = u * .018f)
+            )
+            drawCircle(Color.White.copy(alpha = if (isActive) .96f else .72f), u * .022f, point)
         }
-        drawRoundRect(
-            brush = Brush.linearGradient(
-                colors = listOf(Color(0xFFFFFFFF), Color(0xFFD8EAF2), Color(0xFF6F8D9E)),
-                start = androidx.compose.ui.geometry.Offset(carLeft, carTop),
-                end = androidx.compose.ui.geometry.Offset(carLeft + carW, carTop + carH)
-            ),
-            topLeft = androidx.compose.ui.geometry.Offset(carLeft, carTop),
-            size = androidx.compose.ui.geometry.Size(carW, carH),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(u * .065f, u * .065f)
-        )
-        drawRoundRect(
-            brush = Brush.linearGradient(
-                colors = listOf(Color(0xFF5CE8FF), Color(0xFF153F59), Color(0xFF081D2C)),
-                start = androidx.compose.ui.geometry.Offset(carLeft + u * .025f, carTop + u * .07f),
-                end = androidx.compose.ui.geometry.Offset(carLeft + carW - u * .025f, carTop + carH * .53f)
-            ),
-            topLeft = androidx.compose.ui.geometry.Offset(carLeft + u * .035f, carTop + u * .075f),
-            size = androidx.compose.ui.geometry.Size(carW - u * .07f, carH * .39f),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(u * .035f, u * .035f)
-        )
-        drawRoundRect(
-            color = Color(0xFF183344),
-            topLeft = androidx.compose.ui.geometry.Offset(carLeft + u * .045f, carTop + carH * .52f),
-            size = androidx.compose.ui.geometry.Size(carW - u * .09f, carH * .12f),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(u * .018f, u * .018f)
-        )
-        drawRoundRect(
-            color = Color(0xFFBDEFFF),
-            topLeft = androidx.compose.ui.geometry.Offset(carLeft + u * .035f, carTop + u * .035f),
-            size = androidx.compose.ui.geometry.Size(carW * .25f, u * .025f),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(u * .012f, u * .012f)
-        )
-        drawRoundRect(
-            color = if (isActive) Color(0xFFB9FFE8) else Color(0xFFD4DEE5),
-            topLeft = androidx.compose.ui.geometry.Offset(carLeft + u * .035f, carTop + carH - u * .055f),
-            size = androidx.compose.ui.geometry.Size(u * .045f, u * .025f),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(u * .01f, u * .01f)
-        )
-        drawRoundRect(
-            color = if (isActive) Color(0xFFB9FFE8) else Color(0xFFD4DEE5),
-            topLeft = androidx.compose.ui.geometry.Offset(carLeft + carW - u * .08f, carTop + carH - u * .055f),
-            size = androidx.compose.ui.geometry.Size(u * .045f, u * .025f),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(u * .01f, u * .01f)
-        )
-        // Small live-status jewel at the lower edge.
+
+        drawCircle(Color(0xFF02070C), u * .07f, c)
+        drawCircle(accent, u * .035f, c)
         drawCircle(
-            color = accent.copy(alpha = .22f),
-            radius = u * .065f,
-            center = androidx.compose.ui.geometry.Offset(c.x, c.y + u * .32f)
+            Color.White.copy(alpha = .9f), u * .012f,
+            androidx.compose.ui.geometry.Offset(c.x - u * .01f, c.y - u * .01f)
         )
-        drawCircle(color = accent, radius = u * .028f,
-            center = androidx.compose.ui.geometry.Offset(c.x, c.y + u * .32f))
-        drawCircle(color = Color.White.copy(alpha = .8f), radius = u * .010f,
-            center = androidx.compose.ui.geometry.Offset(c.x - u * .009f, c.y + u * .311f))
     }
 }
 

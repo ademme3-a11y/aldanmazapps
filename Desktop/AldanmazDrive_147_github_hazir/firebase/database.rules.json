@@ -8,7 +8,7 @@
         ".write": "auth != null && auth.uid == $uid",
         ".validate": "newData.hasChildren(['driverId', 'deviceId', 'latitude', 'longitude', 'updatedAt'])",
         "driverId": {
-          ".validate": "newData.isString() && (newData.val() == '1' || newData.val() == '2')"
+          ".validate": "newData.isString() && (newData.val() == '1' || newData.val() == '2' || newData.val() == 'unknown')"
         },
         "deviceId": {
           ".validate": "newData.isString() && newData.val().length <= 64"
@@ -18,6 +18,27 @@
         },
         "longitude": {
           ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180"
+        },
+        "lat": {
+          ".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90"
+        },
+        "lon": {
+          ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180"
+        },
+        "speedKmh": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        "tripDistanceKm": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        "gpsTotalKm": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        "isParkMode": {
+          ".validate": "newData.isBoolean()"
+        },
+        "parkDurationSeconds": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
         },
         "updatedAt": {
           ".validate": "newData.isNumber() && newData.val() <= now + 10000"
@@ -31,7 +52,7 @@
       "$uid": {
         ".read": false,
         "$otherUid": {
-          ".write": "auth != null && auth.uid == $uid && newData.val() == true",
+          ".write": "auth != null && (auth.uid == $uid || auth.uid == $otherUid) && newData.val() == true",
           ".validate": "newData.isBoolean() && newData.val() == true"
         }
       }

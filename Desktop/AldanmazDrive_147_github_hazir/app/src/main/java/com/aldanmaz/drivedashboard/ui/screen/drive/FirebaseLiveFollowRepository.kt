@@ -53,7 +53,10 @@ class FirebaseLiveFollowRepository(context: Context) {
         require(otherFirebaseUid.isNotBlank() && otherFirebaseUid != ownUid) {
             "Geçerli diğer cihaz UID'sini girin."
         }
+        // Write both directions so the remote device can read our location immediately.
         database.child("pairedDevices").child(ownUid).child(otherFirebaseUid)
+            .setValue(true).await()
+        database.child("pairedDevices").child(otherFirebaseUid).child(ownUid)
             .setValue(true).await()
         prefs.edit().putString("paired_uid", otherFirebaseUid).apply()
     }
