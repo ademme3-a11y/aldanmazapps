@@ -1,40 +1,61 @@
 package com.aldfinans.app
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.*
-import com.aldfinans.app.domain.estimateMonthEnd
+import com.aldfinans.app.data.AlDFinansDatabase
+import com.aldfinans.app.data.IncomeEntity
+import com.aldfinans.app.data.TransactionEntity
+import com.aldfinans.app.data.sms.MessageImportResult
+import com.aldfinans.app.data.sms.MessageImportService
+import kotlinx.coroutines.launch
+import java.math.BigDecimal
 import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 private enum class Screen(val route: String, val label: String) {
-    HOME("home", "Ana Sayfa"), DETAILS("details", "Detay"),
+    HOME("home", "Ana Sayfa"), DETAILS("details", "İşlemler"),
     INCOME("income", "Gelir"), SUMMARY("summary", "Özet"), SETTINGS("settings", "Ayarlar")
 }
-
-private data class DemoTransaction(
-    val date: String, val time: String, val bank: String, val merchant: String,
-    val category: String, val amount: Double, val source: String, val type: String = "EXPENSE"
-)
-
-private val demoTransactions = listOf(
-    DemoTransaction("08.10.2026", "14:32", "Yapı Kredi", "Migros", "Gıda", -850.0, "SMS"),
-    DemoTransaction("08.10.2026", "16:10", "Akbank", "Shell", "Akaryakıt", -1200.0, "Push"),
-    DemoTransaction("08.10.2026", "18:05", "Manuel", "Diğer Harcama", "Diğer", -300.0, "Manuel", "EXTRA"),
-    DemoTransaction("08.10.2026", "17:45", "İş Bankası", "Maaş", "Gelir", 45000.0, "Manuel", "INCOME")
-)
-
 private val currency = NumberFormat.getCurrencyInstance(Locale("tr", "TR"))
+private val dateFormat = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale("tr", "TR"))
+
+private fun money(kurus: Long): String = currency.format(kurus / 100.0)
+
+private fun parseKurus(input: String): Long? {
+    val raw = input.trim().replace("₺", "").replace("TL", "", ignoreCase = true).replace(" ", "")
+    if (raw.isBlank()) return null
+    val normalized = when {
+        raw.contains(",") && raw.contains(".") ->
+            if (raw.lastIndexOf(',') > raw.lastIndexOf('.')) raw.replace(".", "").replace(",", ".")
+            else raw.replace(",", "")
+        raw.contains(",") -> raw.replace(",", ".")
+        raw.contains(".") && raw.substringAfterLast(".").length == 3 -> raw.replace(".", "")
+        else -> raw
+    }
+    return runCatching { BigDecimal(normalized).movePointRight(2).longValueExact().takeIf { it > 0 } }.getOrNull()
+}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,82 +66,168 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun ALDFinansApp() {
-    MaterialTheme(colorScheme = lightColorScheme(
-        primary = Color(0xFF155EEF),
-        secondary = Color(0xFF0F766E),
-        surface = Color(0xFFF8FAFC)
-    )) {
-        val nav = rememberNavController()
-        val backStack by nav.currentBackStackEntryAsState()
-        val currentRoute = backStack?.destination?.route
-        Scaffold(bottomBar = {
-            NavigationBar {
-                Screen.entries.forEach { s ->
-                    NavigationBarItem(
-                        selected = currentRoute == s.route,
-                        onClick = {
-                            nav.navigate(s.route) {
-                                popUpTo(Screen.HOME.route) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                        icon = { Text(s.label.take(1)) },
-                        label = { Text(s.label) }
-                    )
-                }
+    val context = LocalContext.current
+    val db = remember { AlDFinansDatabase.get(context) }
+    val scope = rememberCoroutineScope()
+    val transactions by db.financialDao().observeTransactions().collectAsState(initial = emptyList())
+    val incomes by db.financialDao().observeIncomes().collectAsState(initial = emptyList())
+    var scanResult by remember { mutableStateOf<MessageImportResult?>(null) }
+    var scanMessage by remember { mutableStateOf("SMS taraması henüz yapılmadı.") }
+    var showExpenseDialog by remember { mutableStateOf(false) }
+
+    fun scanSms() {
+        scope.launch {
+            scanMessage = "SMS mesajları taranıyor…"
+            scanResult = runCatching { MessageImportService.importInbox(context) }.getOrElse {
+                scanMessage = "Tarama başarısız: SMS iznini ve cihaz ayarlarını kontrol edin."
+                null
             }
-        }) { padding ->
-            NavHost(nav, startDestination = Screen.HOME.route, modifier = Modifier.padding(padding)) {
-                composable(Screen.HOME.route) { HomeScreen() }
-                composable(Screen.DETAILS.route) { DetailsScreen() }
-                composable(Screen.INCOME.route) { IncomeScreen() }
-                composable(Screen.SUMMARY.route) { SummaryScreen() }
-                composable(Screen.SETTINGS.route) { SettingsScreen() }
+            scanResult?.let {
+                scanMessage = "Tarandı: ${it.scanned} SMS • ${it.matched} işlem eşleşti • ${it.inserted} yeni kayıt"
             }
         }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { result ->
+        if (result[Manifest.permission.READ_SMS] == true) scanSms()
+        else scanMessage = "SMS okuma izni verilmedi. Manuel kayıtlar kullanılabilir."
+    }
+
+    val nav = rememberNavController()
+    val backStack by nav.currentBackStackEntryAsState()
+    val currentRoute = backStack?.destination?.route
+    val expenseTypes = setOf("EXPENSE", "CASH_WITHDRAWAL", "BILL")
+    val grossExpenses = transactions.filter { it.transactionType in expenseTypes }.sumOf { it.amountKurus }
+    val refunds = transactions.filter { it.transactionType == "REFUND" }.sumOf { it.amountKurus }
+    val totalExpenses = (grossExpenses - refunds).coerceAtLeast(0L)
+    val totalIncome = incomes.sumOf { it.amountKurus }
+    val net = totalIncome - totalExpenses
+
+    MaterialTheme(colorScheme = lightColorScheme(
+        primary = androidx.compose.ui.graphics.Color(0xFF155EEF),
+        secondary = androidx.compose.ui.graphics.Color(0xFF0F766E),
+        surface = androidx.compose.ui.graphics.Color(0xFFF8FAFC)
+    )) {
+        Scaffold(
+            floatingActionButton = {
+                if (currentRoute == Screen.HOME.route || currentRoute == Screen.DETAILS.route) {
+                    FloatingActionButton(onClick = { showExpenseDialog = true }) { Text("+") }
+                }
+            },
+            bottomBar = {
+                NavigationBar {
+                    Screen.entries.forEach { screen ->
+                        NavigationBarItem(
+                            selected = currentRoute == screen.route,
+                            onClick = {
+                                nav.navigate(screen.route) {
+                                    popUpTo(Screen.HOME.route) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            icon = { Text(screen.label.take(1)) },
+                            label = { Text(screen.label) }
+                        )
+                    }
+                }
+            }
+        ) { padding ->
+            NavHost(nav, startDestination = Screen.HOME.route, modifier = Modifier.padding(padding)) {
+                composable(Screen.HOME.route) {
+                    HomeScreen(transactions, totalIncome, totalExpenses, net, onScan = {
+                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED) scanSms()
+                        else permissionLauncher.launch(arrayOf(Manifest.permission.READ_SMS, Manifest.permission.RECEIVE_SMS))
+                    }, scanMessage = scanMessage)
+                }
+                composable(Screen.DETAILS.route) {
+                    DetailsScreen(transactions, onDelete = { id -> scope.launch { db.financialDao().deleteTransaction(id) } })
+                }
+                composable(Screen.INCOME.route) {
+                    IncomeScreen(onSave = { amount, type, bank, description ->
+                        scope.launch {
+                            db.financialDao().insertIncome(IncomeEntity(
+                                dateTime = System.currentTimeMillis(),
+                                amountKurus = amount,
+                                incomeType = type,
+                                bank = bank.ifBlank { null },
+                                description = description.ifBlank { null }
+                            ))
+                        }
+                    }, incomes = incomes)
+                }
+                composable(Screen.SUMMARY.route) {
+                    SummaryScreen(totalIncome, totalExpenses, refunds, net, transactions.size, incomes.size)
+                }
+                composable(Screen.SETTINGS.route) {
+                    SettingsScreen(scanMessage, onScan = {
+                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED) scanSms()
+                        else permissionLauncher.launch(arrayOf(Manifest.permission.READ_SMS, Manifest.permission.RECEIVE_SMS))
+                    })
+                }
+            }
+        }
+    }
+
+    if (showExpenseDialog) {
+        ManualExpenseDialog(
+            onDismiss = { showExpenseDialog = false },
+            onSave = { amount, merchant, category, note ->
+                scope.launch {
+                    db.financialDao().insertTransaction(TransactionEntity(
+                        dateTime = System.currentTimeMillis(),
+                        bank = "Manuel",
+                        amountKurus = amount,
+                        category = category,
+                        merchant = merchant.ifBlank { "Diğer Harcama" },
+                        cardLast4 = null,
+                        source = "Manuel",
+                        rawData = null,
+                        transactionType = "EXPENSE",
+                        note = note.ifBlank { null },
+                        fingerprint = null
+                    ))
+                    showExpenseDialog = false
+                }
+            }
+        )
     }
 }
 
 @Composable
-private fun HomeScreen() {
-    val income = 45000.0
-    val bankExpenses = 2050.0
-    val extraExpenses = 300.0
-    val totalExpense = bankExpenses + extraExpenses
-    val net = income - totalExpense
-    val forecast = estimateMonthEnd(totalExpense, 8, 31, 11800.0)
-
-    LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
+private fun HomeScreen(
+    transactions: List<TransactionEntity>, income: Long, expenses: Long, net: Long,
+    onScan: () -> Unit, scanMessage: String
+) {
+    LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(bottom = 24.dp)) {
         item {
             Text("ALDFİNANS", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
             Text("Kişisel finans merkezi", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                MetricCard("Toplam Gelir", currency.format(income), Modifier.weight(1f))
-                MetricCard("Toplam Harcama", currency.format(totalExpense), Modifier.weight(1f))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                MetricCard("Toplam Gelir", money(income), Modifier.weight(1f))
+                MetricCard("Toplam Harcama", money(expenses), Modifier.weight(1f))
             }
         }
-        item { MetricCard("Net Durum", currency.format(net), Modifier.fillMaxWidth()) }
+        item { MetricCard("Net Durum", money(net), Modifier.fillMaxWidth()) }
         item {
-            ElevatedCard(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp)) {
-                    Text("Ekim 2026 • Tahmini Harcama", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(8.dp))
-                    Text("Şu ana kadar: " + currency.format(forecast.actual))
-                    Text("Ay sonu tahmini: " + currency.format(forecast.estimatedMonthEnd), fontWeight = FontWeight.Bold)
-                    Text("Kalan tahmini: " + currency.format(forecast.remaining))
-                    Text("Geçmiş ortalamaya fark: " + currency.format(forecast.differenceVsAverage),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+            OutlinedCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("SMS banka işlemleri", fontWeight = FontWeight.Bold)
+                    Text(scanMessage, style = MaterialTheme.typography.bodySmall)
+                    Button(onClick = onScan, modifier = Modifier.fillMaxWidth()) { Text("SMS'LERİ TARA") }
                 }
             }
         }
         item { Text("Son İşlemler", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
-        items(demoTransactions) { TransactionRow(it) }
+        if (transactions.isEmpty()) {
+            item { EmptyState("Henüz işlem yok. SMS'leri tara veya + düğmesiyle harcama ekle.") }
+        } else {
+            items(transactions.take(8), key = { it.id }) { TransactionRow(it) }
+        }
     }
 }
 
@@ -136,78 +243,132 @@ private fun MetricCard(title: String, value: String, modifier: Modifier) {
 }
 
 @Composable
-private fun DetailsScreen() {
+private fun DetailsScreen(transactions: List<TransactionEntity>, onDelete: (Long) -> Unit) {
     Column(Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
-        Text("Detaylı İşlemler", style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 16.dp))
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(demoTransactions) { TransactionRow(it) }
-        }
-    }
-}
-
-@Composable
-private fun TransactionRow(t: DemoTransaction) {
-    ElevatedCard(Modifier.fillMaxWidth()) {
-        Row(Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            Column(Modifier.weight(1f)) {
-                Text(t.merchant, fontWeight = FontWeight.Bold)
-                Text(t.date + " • " + t.time + " • " + t.bank, style = MaterialTheme.typography.bodySmall)
-                Text(t.category + " • " + t.source, style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("İşlem Geçmişi", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 16.dp))
+        if (transactions.isEmpty()) EmptyState("Kayıtlı işlem yok.")
+        else LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(transactions, key = { it.id }) { item ->
+                TransactionRow(item)
+                TextButton(onClick = { onDelete(item.id) }) { Text("Kaydı sil") }
             }
-            Text(currency.format(t.amount), fontWeight = FontWeight.Bold)
         }
     }
 }
 
 @Composable
-private fun IncomeScreen() {
+private fun TransactionRow(t: TransactionEntity) {
+    val sign = when (t.transactionType) {
+        "REFUND" -> "+"
+        "CANCELLED" -> "±"
+        else -> "−"
+    }
+    ElevatedCard(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.weight(1f)) {
+                Text(t.merchant ?: t.category, fontWeight = FontWeight.Bold)
+                Text("${dateFormat.format(Date(t.dateTime))} • ${t.bank}", style = MaterialTheme.typography.bodySmall)
+                Text("${t.category} • ${t.source} • ${typeLabel(t.transactionType)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Text("$sign ${money(t.amountKurus)}", fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+private fun typeLabel(type: String) = when (type) {
+    "REFUND" -> "İade"
+    "CASH_WITHDRAWAL" -> "Nakit çekim"
+    "BILL" -> "Fatura"
+    "CANCELLED" -> "İptal"
+    else -> "Harcama"
+}
+
+@Composable
+private fun IncomeScreen(onSave: (Long, String, String, String) -> Unit, incomes: List<IncomeEntity>) {
     var amount by remember { mutableStateOf("") }
-    Column(Modifier.fillMaxSize().padding(20.dp)) {
+    var type by remember { mutableStateOf("Maaş") }
+    var bank by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Gelir Ekle", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(16.dp))
         OutlinedTextField(amount, { amount = it }, label = { Text("Tutar (TL)") }, modifier = Modifier.fillMaxWidth())
-        Spacer(Modifier.height(12.dp))
-        Button(onClick = {}, modifier = Modifier.fillMaxWidth()) { Text("Geliri Kaydet") }
-        Spacer(Modifier.height(24.dp))
-        Text("Gelir kaydı bir sonraki adımda Room'a bağlanacak.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        OutlinedTextField(type, { type = it }, label = { Text("Gelir türü") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(bank, { bank = it }, label = { Text("Banka (isteğe bağlı)") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(description, { description = it }, label = { Text("Açıklama") }, modifier = Modifier.fillMaxWidth())
+        Button(onClick = {
+            val parsed = parseKurus(amount)
+            if (parsed != null) { onSave(parsed, type.ifBlank { "Diğer Gelir" }, bank, description); amount = ""; description = "" }
+        }, modifier = Modifier.fillMaxWidth()) { Text("GELİRİ KAYDET") }
+        Text("Gelir geçmişi", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        incomes.take(30).forEach { Text("${dateFormat.format(Date(it.dateTime))} • ${it.incomeType}: ${money(it.amountKurus)}") }
     }
 }
 
 @Composable
-private fun SummaryScreen() {
-    Column(Modifier.fillMaxSize().padding(20.dp)) {
+private fun SummaryScreen(income: Long, expenses: Long, refunds: Long, net: Long, transactionCount: Int, incomeCount: Int) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Finans Özeti", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(16.dp))
-        SummaryRow("Banka harcamaları", 2050.0)
-        SummaryRow("Extra / Diğer harcama", 300.0)
-        SummaryRow("Toplam harcama", 2350.0)
-        SummaryRow("Gelir", 45000.0)
-        SummaryRow("Net", 42650.0)
-        Spacer(Modifier.height(20.dp))
-        Text("Tahmini Harcama", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-        Text("Geçmiş ay ortalaması ve mevcut ay temposu birlikte değerlendirilecek.")
+        SummaryRow("Banka ve manuel harcamalar", money(expenses + refunds))
+        SummaryRow("İadeler", money(refunds))
+        SummaryRow("Net harcama", money(expenses))
+        SummaryRow("Gelir", money(income))
+        SummaryRow("Net durum", money(net))
+        Divider()
+        SummaryRow("İşlem kaydı", transactionCount.toString())
+        SummaryRow("Gelir kaydı", incomeCount.toString())
     }
 }
 
 @Composable
-private fun SummaryRow(title: String, amount: Double) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 7.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+private fun SummaryRow(title: String, value: String) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 5.dp), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(title)
-        Text(currency.format(amount), fontWeight = FontWeight.SemiBold)
+        Text(value, fontWeight = FontWeight.SemiBold)
     }
 }
 
 @Composable
-private fun SettingsScreen() {
-    Column(Modifier.fillMaxSize().padding(20.dp)) {
+private fun SettingsScreen(scanMessage: String, onScan: () -> Unit) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Ayarlar", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(16.dp))
-        Text("Bankalar: Yapı Kredi • İş Bankası • Akbank")
-        Spacer(Modifier.height(8.dp))
-        Text("Kaynaklar: SMS • Push • E-posta • Ekstre")
-        Spacer(Modifier.height(8.dp))
-        Text("Dışa aktarma: Excel • PDF • CSV")
+        Text("SMS banka mesajları cihazda işlenir. Belirsiz veya tamamlanmamış işlemler otomatik kaydedilmez.")
+        Text("Bankalar: Yapı Kredi • İş Bankası • Akbank • Garanti BBVA • diğer tanınan bankalar")
+        Text("Kaynak: SMS geçmişi ve gelen SMS")
+        Text(scanMessage, style = MaterialTheme.typography.bodySmall)
+        Button(onClick = onScan, modifier = Modifier.fillMaxWidth()) { Text("ESKİ SMS'LERİ TEKRAR TARA") }
+    }
+}
+
+@Composable
+private fun ManualExpenseDialog(
+    onDismiss: () -> Unit,
+    onSave: (Long, String, String, String) -> Unit
+) {
+    var amount by remember { mutableStateOf("") }
+    var merchant by remember { mutableStateOf("") }
+    var category by remember { mutableStateOf("Diğer") }
+    var note by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Yeni harcama") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(amount, { amount = it }, label = { Text("Tutar (TL)") })
+                OutlinedTextField(merchant, { merchant = it }, label = { Text("İşyeri / açıklama") })
+                OutlinedTextField(category, { category = it }, label = { Text("Kategori") })
+                OutlinedTextField(note, { note = it }, label = { Text("Not (isteğe bağlı)") })
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { parseKurus(amount)?.let { onSave(it, merchant, category, note) } }) { Text("KAYDET") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("İPTAL") } }
+    )
+}
+
+@Composable
+private fun EmptyState(text: String) {
+    ElevatedCard(Modifier.fillMaxWidth()) {
+        Text(text, Modifier.padding(18.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
