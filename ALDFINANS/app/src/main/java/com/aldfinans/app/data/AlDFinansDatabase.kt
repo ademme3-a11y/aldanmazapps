@@ -1,6 +1,8 @@
 package com.aldfinans.app.data
 
+import android.content.Context
 import androidx.room.Database
+import androidx.room.Room
 import androidx.room.RoomDatabase
 
 @Database(
@@ -10,4 +12,17 @@ import androidx.room.RoomDatabase
 )
 abstract class AlDFinansDatabase : RoomDatabase() {
     abstract fun financialDao(): FinancialDao
+
+    companion object {
+        @Volatile private var INSTANCE: AlDFinansDatabase? = null
+
+        fun get(context: Context): AlDFinansDatabase =
+            INSTANCE ?: synchronized(this) {
+                INSTANCE ?: Room.databaseBuilder(
+                    context.applicationContext,
+                    AlDFinansDatabase::class.java,
+                    "ald_finans_v2.db"
+                ).build().also { INSTANCE = it }
+            }
+    }
 }
