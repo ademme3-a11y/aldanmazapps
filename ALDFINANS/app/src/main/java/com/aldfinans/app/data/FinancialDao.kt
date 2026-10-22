@@ -8,8 +8,14 @@ interface FinancialDao {
     @Query("SELECT * FROM transactions ORDER BY dateTime DESC")
     fun observeTransactions(): Flow<List<TransactionEntity>>
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertTransaction(item: TransactionEntity): Long
+
+    @Update
+    suspend fun updateTransaction(item: TransactionEntity)
+
+    @Query("DELETE FROM transactions WHERE id = :id")
+    suspend fun deleteTransaction(id: Long)
 
     @Insert
     suspend fun insertIncome(item: IncomeEntity): Long
