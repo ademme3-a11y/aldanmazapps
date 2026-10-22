@@ -5,12 +5,12 @@ plugins {
 }
 android {
     namespace = "com.aldfinans.app"
-    compileSdk = 37
+    compileSdk = 35
     defaultConfig {
         // Distinct applicationId allows installing alongside the existing ALDFİNANS APK.
         applicationId = "com.aldfinans.app.v2"
         minSdk = 29
-        targetSdk = 37
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
     }
