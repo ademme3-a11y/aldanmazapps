@@ -1,14 +1,15 @@
 package com.aldfinans.app.data
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "transactions")
+@Entity(tableName = "transactions", indices = [Index(value = ["fingerprint"], unique = true)])
 data class TransactionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val dateTime: Long,
     val bank: String,
-    val amount: Double,
+    val amountKurus: Long,
     val category: String,
     val merchant: String?,
     val cardLast4: String?,
@@ -23,7 +24,7 @@ data class TransactionEntity(
 data class IncomeEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val dateTime: Long,
-    val amount: Double,
+    val amountKurus: Long,
     val incomeType: String,
     val bank: String?,
     val description: String?,
