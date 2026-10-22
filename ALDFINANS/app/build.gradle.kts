@@ -7,11 +7,13 @@ android {
     namespace = "com.aldfinans.app"
     compileSdk = 37
     defaultConfig {
-        applicationId = "com.aldfinans.app"
+        // Distinct applicationId allows installing alongside the existing ALDFİNANS APK.
+        applicationId = "com.aldfinans.app.v2"
         minSdk = 29
         targetSdk = 37
         versionCode = 1
-        versionName = "0.1.0"
+        versionName = "1.0.0"
+        testOptions { unitTests.isIncludeAndroidResources = true }
     }
     buildFeatures { compose = true }
     compileOptions {
@@ -33,4 +35,5 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
+    testImplementation("junit:junit:4.13.2")
 }
