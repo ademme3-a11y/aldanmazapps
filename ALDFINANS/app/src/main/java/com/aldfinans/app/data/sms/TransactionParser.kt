@@ -33,7 +33,7 @@ object TransactionParser {
         "GELEN FAST", "GELEN EFT", "HESABINIZA PARA GELDI"
     )
     private val moneyRegex = Regex(
-        """(?<![\\d.,])((?:\\d{1,3}(?:[.,]\\d{3})+|\\d+)(?:[.,]\\d{1,2})?)\\s*(?:TL|TRY)\\b"""
+        """(?<![\d.,])((?:\d{1,3}(?:[.,]\d{3})+|\d+)(?:[.,]\d{1,2})?)\s*(?:TL|TRY)\b"""
     )
 
     private fun normalized(value: String): String =
@@ -51,7 +51,7 @@ object TransactionParser {
             senderCompact == key ||
                 (key.length >= 4 && senderCompact.contains(key)) ||
                 (key in listOf("TEB", "QNB", "ING") &&
-                    Regex("""(?:^|\\W)${Regex.escape(key)}(?:$|\\W)""").containsMatchIn(senderNorm))
+                    Regex("""(?:^|\W)${Regex.escape(key)}(?:$|\W)""").containsMatchIn(senderNorm))
         }
         if (bySender != null) return bySender.second
 
@@ -60,7 +60,7 @@ object TransactionParser {
         return bankAliases.firstOrNull { (alias, _) ->
             val key = normalized(alias)
             opening.startsWith(key) ||
-                Regex("""^\\s*(?:DEGERLI\\s+)?${Regex.escape(key)}(?:\\s|[:,.!-])""")
+                Regex("""^\s*(?:DEGERLI\s+)?${Regex.escape(key)}(?:\s|[:,.!-])""")
                     .containsMatchIn(opening)
         }?.second
     }
@@ -88,7 +88,7 @@ object TransactionParser {
     }
 
     fun fingerprint(sender: String, body: String, timestamp: Long): String {
-        val canonical = "$timestamp|${compact(sender)}|${normalized(body).trim().replace(Regex("""\\s+"""), " ")}"
+        val canonical = "$timestamp|${compact(sender)}|${normalized(body).trim().replace(Regex("""\s+"""), " ")}"
         val digest = MessageDigest.getInstance("SHA-256").digest(canonical.toByteArray(Charsets.UTF_8))
         return digest.joinToString("") { "%02x".format(it) }
     }
@@ -119,8 +119,8 @@ object TransactionParser {
             else -> "EXPENSE"
         }
         val merchant = listOf(
-            Regex("""(?:ISYERI|FIRMA|MAGAZA|UYE ISYERI)\\s*[:=-]?\\s*([^,.;\\n]+)"""),
-            Regex("""ISYERINDE\\s+([^,.;\\n]+)""")
+            Regex("""(?:ISYERI|FIRMA|MAGAZA|UYE ISYERI)\s*[:=-]?\s*([^,.;\n]+)"""),
+            Regex("""ISYERINDE\s+([^,.;\n]+)""")
         ).firstNotNullOfOrNull { it.find(text)?.groupValues?.get(1)?.trim()?.takeIf(String::isNotBlank) }.orEmpty()
         val category = when {
             listOf("SHELL", "OPET", "PETROL", "AKARYAKIT", "YAKIT").any(text::contains) -> "Akaryakıt"
@@ -129,7 +129,7 @@ object TransactionParser {
             "FATURA" in text -> "Fatura"
             else -> "Diğer"
         }
-        val cardLast4 = Regex("""(?:KART|CARD)[^\\d]{0,16}(\\d{4})\\b""")
+        val cardLast4 = Regex("""(?:KART|CARD)[^\d]{0,16}(\d{4})\b""")
             .find(text)?.groupValues?.get(1)
 
         return TransactionEntity(
