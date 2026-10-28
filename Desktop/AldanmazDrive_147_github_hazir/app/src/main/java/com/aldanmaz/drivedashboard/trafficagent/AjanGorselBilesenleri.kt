@@ -1,10 +1,8 @@
 package com.aldanmaz.drivedashboard.trafficagent
 
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -34,7 +32,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -59,30 +56,36 @@ fun AjanRadar(
 ) {
     val gecis = rememberInfiniteTransition(label = "ajan_rakam_buyume")
     val rakamBuyume by gecis.animateFloat(
-        initialValue = 0.12f,
+        initialValue = 0.10f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = androidx.compose.animation.core.keyframes {
                 durationMillis = 6_500
-                0.12f at 0
+                0.10f at 0
                 1f at 1_500
                 1f at 6_500
             }
         ),
         label = "ajan_rakam_buyume_degeri"
     )
+
     val guvenliTrafikPuani = trafikPuani?.coerceIn(1, 10)
-    val radarRengi = when {
+    val puanBilgisi = guvenliTrafikPuani?.let { TrafikPuanlayici.puanBilgisiOlustur(it) }
+    val radarRengi: Color = when {
         guvenliTrafikPuani != null && guvenliTrafikPuani in 1..3 -> AjanYesil
         guvenliTrafikPuani != null && guvenliTrafikPuani in 4..7 -> AjanTuruncu
         guvenliTrafikPuani != null && guvenliTrafikPuani in 8..10 -> AjanKirmizi
-        else -> if (takipAktif) AjanCyan else AjanSolukYazi
+        !takipAktif -> AjanSolukYazi
+        else -> AjanCyan
     }
+
     BoxWithConstraints(
         modifier = modifier.fillMaxWidth().aspectRatio(1f),
         contentAlignment = Alignment.Center
     ) {
-        Canvas(Modifier.fillMaxSize().padding(12.dp)) {
+        Canvas(
+            modifier = Modifier.fillMaxSize().padding(12.dp)
+        ) {
             val yaricap = size.minDimension / 2f
             val merkez = Offset(size.width / 2f, size.height / 2f)
             drawCircle(color = AjanPanelRengi, radius = yaricap, center = merkez)
@@ -94,12 +97,23 @@ fun AjanRadar(
                     style = Stroke(width = 1.dp.toPx())
                 )
             }
-            drawLine(radarRengi.copy(alpha = 0.12f), Offset(merkez.x, 0f), Offset(merkez.x, size.height), 1.dp.toPx())
-            drawLine(radarRengi.copy(alpha = 0.12f), Offset(0f, merkez.y), Offset(size.width, merkez.y), 1.dp.toPx())
+            drawLine(
+                color = radarRengi.copy(alpha = 0.12f),
+                start = Offset(merkez.x, 0f),
+                end = Offset(merkez.x, size.height),
+                strokeWidth = 1.dp.toPx()
+            )
+            drawLine(
+                color = radarRengi.copy(alpha = 0.12f),
+                start = Offset(0f, merkez.y),
+                end = Offset(size.width, merkez.y),
+                strokeWidth = 1.dp.toPx()
+            )
         }
+
         val rakam = guvenliTrafikPuani?.toString() ?: "--"
         val alan = minOf(maxWidth.value, maxHeight.value)
-        val yaziBoyutu = alan * if (guvenliTrafikPuani == 10) 0.76f else 1.20f
+        val yaziBoyutu = alan * if (guvenliTrafikPuani == 10) 0.82f else 1.08f
         Text(
             text = rakam,
             color = radarRengi,
@@ -107,11 +121,205 @@ fun AjanRadar(
             fontWeight = FontWeight.Black,
             textAlign = TextAlign.Center,
             maxLines = 1,
-            modifier = Modifier.graphicsLayer(scaleX = rakamBuyume, scaleY = rakamBuyume)
+            modifier = Modifier
+                .fillMaxWidth(0.94f)
+                .graphicsLayer(scaleX = rakamBuyume, scaleY = rakamBuyume)
         )
     }
 }
 
+@Composable
+fun AjanDurumRozeti(
+    takipAktif: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val durumRengi =
+        if (takipAktif) {
+            AjanYesil
+        } else {
+            AjanKirmizi
+        }
+
+    Surface(
+        modifier = modifier,
+
+        color =
+            durumRengi.copy(
+                alpha = 0.12f
+            ),
+
+        shape =
+            RoundedCornerShape(50),
+
+        border =
+            BorderStroke(
+                width = 1.dp,
+                color =
+                    durumRengi.copy(
+                        alpha = 0.7f
+                    )
+            )
+    ) {
+        Row(
+            modifier =
+                Modifier.padding(
+                    horizontal = 12.dp,
+                    vertical = 7.dp
+                ),
+
+            verticalAlignment =
+                Alignment.CenterVertically,
+
+            horizontalArrangement =
+                Arrangement.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .background(
+                        color = durumRengi,
+                        shape = CircleShape
+                    )
+            )
+
+            Spacer(
+                modifier = Modifier.width(8.dp)
+            )
+
+            Text(
+                text = if (takipAktif) {
+                    "AJAN AKTİF"
+                } else {
+                    "AJAN KAPALI"
+                },
+
+                color = durumRengi,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp
+            )
+        }
+    }
+}
+
+@Composable
+fun AjanPanel(
+    baslik: String,
+    modifier: Modifier = Modifier,
+    vurguRengi: Color = AjanCyan,
+    icerik: @Composable ColumnScope.() -> Unit
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+
+        color = AjanPanelRengi,
+
+        shape =
+            RoundedCornerShape(18.dp),
+
+        border =
+            BorderStroke(
+                width = 1.dp,
+                color =
+                    vurguRengi.copy(
+                        alpha = 0.28f
+                    )
+            )
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp)
+        ) {
+            Row(
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(4.dp)
+                        .height(22.dp)
+                        .background(
+                            color = vurguRengi,
+                            shape =
+                                RoundedCornerShape(4.dp)
+                        )
+                )
+
+                Spacer(
+                    modifier = Modifier.width(10.dp)
+                )
+
+                Text(
+                    text = baslik.uppercase(),
+                    color = AjanYazi,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.1.sp
+                )
+            }
+
+            Spacer(
+                modifier = Modifier.height(14.dp)
+            )
+
+            icerik()
+        }
+    }
+}
+
+@Composable
+fun AjanMesafeDurumSatiri(
+    mesafe: String,
+    durum: String,
+    durumRengi: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+
+        color = AjanPanelIkinciRenk,
+
+        shape =
+            RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier =
+                Modifier.padding(
+                    horizontal = 14.dp,
+                    vertical = 12.dp
+                ),
+
+            verticalAlignment =
+                Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(11.dp)
+                    .background(
+                        color = durumRengi,
+                        shape = CircleShape
+                    )
+            )
+
+            Spacer(
+                modifier = Modifier.width(12.dp)
+            )
+
+            Text(
+                text = mesafe,
+                modifier = Modifier.weight(1f),
+                color = AjanYazi,
+                fontWeight = FontWeight.Bold
+            )
+
+            Text(
+                text = durum,
+                color = durumRengi,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.End
+            )
+        }
+    }
+}
 fun ajanTrafikRengi(
     puan: Int
 ): Color {
