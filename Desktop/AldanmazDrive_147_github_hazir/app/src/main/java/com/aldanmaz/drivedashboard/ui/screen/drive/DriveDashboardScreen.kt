@@ -2748,8 +2748,7 @@ private fun LandscapeDashboard(
                 EnhancedMultimediaCard(
                     speedKmh = speedKmh,
                     onLiveFollowClick = onLiveFollowClick,
-                    liveFollowActive = liveFollowActive,
-                    modifier = Modifier.weight(1f)
+                                        modifier = Modifier.weight(1f)
                 )
 
                 VehicleModeCard(
@@ -2925,8 +2924,7 @@ private fun PortraitDashboard(
             EnhancedMultimediaCard(
                 speedKmh = speedKmh,
                 onLiveFollowClick = onLiveFollowClick,
-                liveFollowActive = liveFollowActive,
-                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f)
             )
 
             VehicleModeCard(
