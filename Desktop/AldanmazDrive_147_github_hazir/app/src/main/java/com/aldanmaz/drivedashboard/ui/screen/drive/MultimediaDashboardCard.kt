@@ -101,7 +101,6 @@ private data class DashboardMediaItem(
 internal fun EnhancedMultimediaCard(
     speedKmh: Int,
     onLiveFollowClick: () -> Unit = {},
-    liveFollowActive: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -171,7 +170,7 @@ internal fun EnhancedMultimediaCard(
             DashboardMediaItem("radio", "Radyo", "▤", Color(0xFFFFA43A)),
             DashboardMediaItem("chrome", "Chrome", "◎", Color(0xFF4D9DFF), listOf("com.android.chrome")),
             DashboardMediaItem("gemini", "Gemini Live", "✦", Color(0xFF8F8CFF), listOf("com.google.android.apps.bard")),
-            DashboardMediaItem("livefollow", "Canlı Takip", "◎", Color(0xFF31E39A))
+            DashboardMediaItem("livetv", "Canlı TV", "📺", Color(0xFF31E39A))
         )
     }
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -265,7 +264,7 @@ internal fun EnhancedMultimediaCard(
                                 geminiLiveState = if (item.id == "gemini") geminiLiveState else null,
                                 isMusicPlaying = item.id == "music" && musicPlaying,
                                 isRadioPlaying = item.id == "radio" && radioPlaying,
-                                liveFollowActive = item.id == "livefollow" && liveFollowActive,
+                                
                                 modifier = Modifier.weight(1f).fillMaxHeight(),
                                 onSingleTap = {
                                     if (locked) {
@@ -287,7 +286,7 @@ internal fun EnhancedMultimediaCard(
                                         if (!geminiLiveState.occupiesMicrophone && geminiLiveState.status != GeminiLiveStatus.LISTENING) {
                                             toggleGeminiLive()
                                         }
-                                    } else if (item.id == "livefollow") {
+                                    } else if (item.id == "livetv") {
                                         onLiveFollowClick()
                                     } else {
                                         selectedId = item.id
@@ -428,9 +427,8 @@ private fun MediaShortcutTile(
                     modifier = Modifier.size(54.dp),
                     compact = true,
                 )
-            } else if (item.id == "livefollow") {
-                // Enlarge the primary tracking icon so the radar fills the tile.
-                LiveFollowSignalIcon(isActive = liveFollowActive, modifier = Modifier.size(66.dp))
+            } else if (item.id == "livetv") {
+                Text("📺", fontSize = 42.sp)
             } else if (item.id == "radio") {
                 // 141: Ekolayzer kaldırıldı. Radyo aktifken ikon hafifçe sola-sağa
                 // döner; radyo kapalıyken herhangi bir animasyon oynatılmaz.
@@ -445,119 +443,6 @@ private fun MediaShortcutTile(
     }
 }
 
-
-@Composable
-private fun LiveFollowSignalIcon(isActive: Boolean, modifier: Modifier = Modifier) {
-    val transition = rememberInfiniteTransition(label = "liveFollowMapPulse")
-    val phase = transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1900, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "liveFollowMapPulsePhase"
-    ).value
-
-    Canvas(modifier = modifier) {
-        val u = size.minDimension
-        val c = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f)
-        val accent = if (isActive) Color(0xFF37F5C0) else Color(0xFF8A9CAC)
-        val muted = Color(0xFF18394B)
-
-        drawCircle(Color.Black.copy(alpha = .55f), u * .49f,
-            androidx.compose.ui.geometry.Offset(c.x, c.y + u * .025f))
-        drawCircle(
-            brush = Brush.linearGradient(
-                colors = listOf(Color(0xFF55798A), Color(0xFF102C3D), Color(0xFF29485A)),
-                start = androidx.compose.ui.geometry.Offset(u * .12f, u * .08f),
-                end = androidx.compose.ui.geometry.Offset(u * .9f, u * .92f)
-            ),
-            radius = u * .475f,
-            center = c
-        )
-        drawCircle(Color(0xFF06131D), u * .425f, c)
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(Color(0xFF1D5260), Color(0xFF0A1C29), Color(0xFF030A11)),
-                center = androidx.compose.ui.geometry.Offset(c.x - u * .13f, c.y - u * .18f),
-                radius = u * .62f
-            ),
-            radius = u * .405f,
-            center = c
-        )
-
-        val route = Path().apply {
-            moveTo(c.x - u * .22f, c.y + u * .22f)
-            cubicTo(
-                c.x - u * .06f, c.y + u * .12f,
-                c.x + u * .04f, c.y - u * .10f,
-                c.x + u * .22f, c.y - u * .22f
-            )
-        }
-        drawPath(
-            path = route,
-            color = muted.copy(alpha = .95f),
-            style = Stroke(width = u * .105f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
-        )
-        drawPath(
-            path = route,
-            color = accent.copy(alpha = if (isActive) .95f else .58f),
-            style = Stroke(width = u * .026f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
-        )
-
-        if (isActive) {
-            val beam = Path().apply {
-                moveTo(c.x, c.y)
-                lineTo(c.x + u * .39f, c.y - u * .10f)
-                quadraticTo(c.x + u * .27f, c.y + u * .01f, c.x + u * .39f, c.y + u * .12f)
-                close()
-            }
-            rotate(degrees = phase * 360f, pivot = c) {
-                drawPath(
-                    beam,
-                    brush = Brush.linearGradient(
-                        colors = listOf(accent.copy(alpha = .02f), accent.copy(alpha = .25f)),
-                        start = c,
-                        end = androidx.compose.ui.geometry.Offset(c.x + u * .40f, c.y)
-                    )
-                )
-                drawLine(
-                    color = accent.copy(alpha = .95f),
-                    start = c,
-                    end = androidx.compose.ui.geometry.Offset(c.x + u * .38f, c.y),
-                    strokeWidth = u * .018f,
-                    cap = androidx.compose.ui.graphics.StrokeCap.Round
-                )
-            }
-        }
-
-        listOf(
-            androidx.compose.ui.geometry.Offset(c.x - u * .22f, c.y + u * .22f),
-            androidx.compose.ui.geometry.Offset(c.x + u * .22f, c.y - u * .22f)
-        ).forEachIndexed { index, point ->
-            drawCircle(
-                accent.copy(alpha = if (isActive) .18f + phase * .12f else .10f),
-                u * (if (index == 0) .12f else .14f), point
-            )
-            drawCircle(Color(0xFF06131D), u * .075f, point)
-            drawCircle(
-                color = accent.copy(alpha = if (isActive) 1f else .7f),
-                radius = u * .055f,
-                center = point,
-                style = Stroke(width = u * .018f)
-            )
-            drawCircle(Color.White.copy(alpha = if (isActive) .96f else .72f), u * .022f, point)
-        }
-
-        drawCircle(Color(0xFF02070C), u * .07f, c)
-        drawCircle(accent, u * .035f, c)
-        drawCircle(
-            Color.White.copy(alpha = .9f), u * .012f,
-            androidx.compose.ui.geometry.Offset(c.x - u * .01f, c.y - u * .01f)
-        )
-    }
-}
 
 @Composable
 private fun RadioGentleSpinIcon(isActive: Boolean, modifier: Modifier = Modifier) {
