@@ -19,6 +19,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.keyframes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -2143,25 +2144,30 @@ private fun TrafficAgentHeaderButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val transition = rememberInfiniteTransition(label = "header_traffic_radar")
-    val sweepAngle by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 3_200, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "header_traffic_radar_sweep"
-    )
-    val score = status.substringAfter("PUAN:", "").substringBefore(' ').toIntOrNull()?.coerceIn(0, 10)
+    val transition = rememberInfiniteTransition(label = "header_traffic_number")
+    val score = status.substringAfter("PUAN:", "").substringBefore(' ').toIntOrNull()
+        ?.coerceIn(1, 10)
     val radarColor = when {
         !isActive -> SecondaryText.copy(alpha = .86f)
         score == null -> CyanAccent
-        score <= 2 -> SafeGreen
-        score <= 4 -> WarningYellow
-        score <= 6 -> Color(0xFFFF8A3D)
+        score <= 3 -> SafeGreen
+        score <= 7 -> Color(0xFFFF8A3D)
         else -> DangerRed
     }
+    val numberScale by transition.animateFloat(
+        initialValue = 0.10f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = keyframes {
+                durationMillis = 6_500
+                0.10f at 0
+                1f at 1_500
+                1f at 6_500
+            },
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "header_traffic_number_growth"
+    )
 
     HeaderStandardCard(modifier = modifier, isActive = isActive, onClick = onClick) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -2177,40 +2183,22 @@ private fun TrafficAgentHeaderButton(
                         style = Stroke(width = 1.7.dp.toPx())
                     )
                 }
-                drawLine(radarColor.copy(alpha = .32f), Offset(center.x, center.y - radius), Offset(center.x, center.y + radius), 1.2.dp.toPx())
-                drawLine(radarColor.copy(alpha = .32f), Offset(center.x - radius, center.y), Offset(center.x + radius, center.y), 1.2.dp.toPx())
-                rotate(degrees = if (isActive) sweepAngle else -90f, pivot = center) {
-                    drawArc(
-                        color = radarColor.copy(alpha = if (isActive) .30f else .08f),
-                        startAngle = -42f,
-                        sweepAngle = 42f,
-                        useCenter = true,
-                        topLeft = Offset(center.x - radius, center.y - radius),
-                        size = Size(radius * 2f, radius * 2f)
-                    )
-                    drawLine(
-                        radarColor.copy(alpha = if (isActive) .98f else .40f),
-                        center,
-                        Offset(center.x + radius, center.y),
-                        strokeWidth = 3.2.dp.toPx(),
-                        cap = StrokeCap.Round
-                    )
-                }
-                drawCircle(radarColor, 2.5.dp.toPx(), center)
             }
-            if (score != null || isActive) {
-                Text(
-                    text = score?.let { "$it/10" } ?: "…",
-                    color = radarColor,
-                    fontSize = if (score != null) 9.sp else 13.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 1.dp)
-                        .background(Color(0xD906111B), RoundedCornerShape(4.dp))
-                        .padding(horizontal = 3.dp)
-                )
-            }
+            Text(
+                text = score?.toString() ?: if (isActive) "…" else "—",
+                color = radarColor,
+                fontSize = if (score != null && score >= 10) 34.sp else 43.sp,
+                fontWeight = FontWeight.Black,
+                maxLines = 1,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .graphicsLayer {
+                        val scale = if (isActive && score != null) numberScale else 1f
+                        scaleX = scale
+                        scaleY = scale
+                    }
+            )
         }
     }
 }
