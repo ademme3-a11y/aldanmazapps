@@ -321,7 +321,7 @@ internal fun EnhancedMultimediaCard(
                                             toggleGeminiLive()
                                         }
                                     }
-                                    else if (item.id == "livefollow") onLiveFollowClick()
+                                    else if (item.id == "livetv") onLiveFollowClick()
                                     else fullScreenId = item.id
                                 }
                             )
@@ -396,7 +396,6 @@ private fun MediaShortcutTile(
     geminiLiveState: GeminiLiveState? = null,
     isMusicPlaying: Boolean = false,
     isRadioPlaying: Boolean = false,
-    liveFollowActive: Boolean = false,
     modifier: Modifier,
     onSingleTap: () -> Unit,
     onDoubleTap: () -> Unit
