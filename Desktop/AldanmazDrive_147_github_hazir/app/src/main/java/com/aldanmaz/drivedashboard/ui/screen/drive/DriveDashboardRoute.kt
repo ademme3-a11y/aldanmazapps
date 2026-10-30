@@ -111,6 +111,7 @@ fun DriveDashboardRoute(
         mutableStateOf(TrafikDurumDeposu.servisAktifMi(context))
     }
     var fullTrafficAgentStatus by remember { mutableStateOf("Kapalı") }
+    var fullTrafficAgentScore by remember { mutableStateOf<Int?>(null) }
     var fullTrafficAgentSeverity by remember { mutableStateOf(0) }
 
 
@@ -147,6 +148,7 @@ fun DriveDashboardRoute(
             val trafficSnapshot = TrafikDurumDeposu.trafikDurumunuAl(context)
             if (fullTrafficAgentActive) {
                 val score = trafficSnapshot?.ilk20KmPuani?.coerceIn(0, 10)
+                fullTrafficAgentScore = score
                 fullTrafficAgentStatus = if (score != null) {
                     "PUAN:$score"
                 } else {
@@ -162,6 +164,7 @@ fun DriveDashboardRoute(
                 }
             } else {
                 fullTrafficAgentStatus = "Kapalı"
+                fullTrafficAgentScore = null
                 fullTrafficAgentSeverity = 0
             }
             delay(2_000L)
@@ -325,6 +328,7 @@ fun DriveDashboardRoute(
         currentLongitude = uiState.longitude,
         isTrafficAgentActive = fullTrafficAgentActive,
         trafficAgentStatus = fullTrafficAgentStatus,
+        trafficAgentScore = fullTrafficAgentScore,
         trafficDelaySeconds = 0,
         trafficIncidentCount = 0,
         trafficSeverity = fullTrafficAgentSeverity,

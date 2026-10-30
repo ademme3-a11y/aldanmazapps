@@ -189,6 +189,7 @@ fun DriveDashboardScreen(
     currentLongitude: Double? = null,
     isTrafficAgentActive: Boolean = false,
     trafficAgentStatus: String = "Kapalı",
+    trafficAgentScore: Int? = null,
     trafficDelaySeconds: Int = 0,
     trafficIncidentCount: Int = 0,
     trafficSeverity: Int = 0,
@@ -823,10 +824,22 @@ private fun SpeedCorridorMiniBar(
     modifier: Modifier = Modifier
 ) {
     val strokeScale = LocalDashboardStrokeScale.current
-    val revealProgress by animateFloatAsState(
-        targetValue = if (isActive) 1f else 0f,
-        animationSpec = tween(durationMillis = 280),
-        label = "speedCorridorTextReveal"
+    val pulseTransition = rememberInfiniteTransition(label = "average_speed_value_pulse")
+    val averageScale by pulseTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = keyframes {
+                durationMillis = 56_000
+                1f at 0
+                1f at 50_000
+                3f at 50_500
+                3f at 55_500
+                1f at 56_000
+            },
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "average_speed_value_growth"
     )
     val averageText = String.format(Locale.getDefault(), "A%02d", averageSpeedKmh.roundToInt().coerceIn(0, 99))
 
@@ -839,35 +852,37 @@ private fun SpeedCorridorMiniBar(
             if (isActive) SafeGreen else Color.White.copy(alpha = .72f)
         )
     ) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = if (isActive) {
-                    androidx.compose.ui.text.buildAnnotatedString {
-                        append("-----ORT HIZ (")
-                        withStyle(androidx.compose.ui.text.SpanStyle(color = Color(0xFFFF8A00))) {
-                            append(averageText)
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            if (isActive) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text("-----ORT HIZ (", color = LightText, fontSize = 11.sp, fontWeight = FontWeight.Black, maxLines = 1)
+                    Text(
+                        text = averageText,
+                        color = Color(0xFFFF8A00),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Black,
+                        maxLines = 1,
+                        modifier = Modifier.graphicsLayer {
+                            scaleX = averageScale
+                            scaleY = averageScale
+                            transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 0.5f)
                         }
-                        append(") KORİDORU-----")
-                    }
-                } else {
-                    androidx.compose.ui.text.buildAnnotatedString {
-                        append("-----ORT HIZ KORİDORU-----")
-                    }
-                },
-                color = LightText,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Black,
-                maxLines = 1,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                modifier = Modifier.graphicsLayer {
-                    val scale = if (isActive) revealProgress else 1f
-                    scaleX = scale
-                    transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 0.5f)
+                    )
+                    Text(") KORİDORU-----", color = LightText, fontSize = 11.sp, fontWeight = FontWeight.Black, maxLines = 1)
                 }
-            )
+            } else {
+                Text(
+                    text = "-----ORT HIZ KORİDORU-----",
+                    color = LightText,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Black,
+                    maxLines = 1,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
         }
     }
 }
@@ -1196,7 +1211,7 @@ private fun DashboardHeader(
                                 modifier = Modifier.fillMaxSize(),
                                 onClickOverride = if (isEditing) ({ hideItem(id) }) else null
                             )
-                            "AGENT" -> TrafficAgentHeaderButton(isTrafficAgentActive, trafficDelaySeconds, trafficIncidentCount, trafficSeverity, trafficAgentStatus, if (isEditing) ({ hideItem(id) }) else onTrafficAgentClick, Modifier.fillMaxSize())
+                            "AGENT" -> TrafficAgentHeaderButton(isTrafficAgentActive, trafficAgentScore, trafficDelaySeconds, trafficIncidentCount, trafficSeverity, trafficAgentStatus, if (isEditing) ({ hideItem(id) }) else onTrafficAgentClick, Modifier.fillMaxSize())
                             "MAP" -> GlobeHeaderButton(isActive = navigationActive, onClick = if (isEditing) ({ hideItem(id) }) else ({ if (!navigationActive) navigationActive = true }), modifier = Modifier.fillMaxSize())
                             "SETTINGS" -> SettingsHeaderButton(if (isEditing) ({ hideItem(id) }) else onSettingsClick, Modifier.fillMaxSize())
                         }
@@ -2137,6 +2152,7 @@ private fun ObdHeaderButton(
 @Composable
 private fun TrafficAgentHeaderButton(
     isActive: Boolean,
+    score: Int?,
     delaySeconds: Int,
     incidentCount: Int,
     severity: Int,
@@ -2145,13 +2161,12 @@ private fun TrafficAgentHeaderButton(
     modifier: Modifier = Modifier
 ) {
     val transition = rememberInfiniteTransition(label = "header_traffic_number")
-    val score = status.substringAfter("PUAN:", "").substringBefore(' ').toIntOrNull()
-        ?.coerceIn(1, 10)
+    val displayedScore = score?.coerceIn(0, 10)
     val radarColor = when {
         !isActive -> SecondaryText.copy(alpha = .86f)
-        score == null -> CyanAccent
-        score <= 3 -> SafeGreen
-        score <= 7 -> Color(0xFFFF8A3D)
+        displayedScore == null -> CyanAccent
+        displayedScore <= 3 -> SafeGreen
+        displayedScore <= 7 -> Color(0xFFFF8A3D)
         else -> DangerRed
     }
     val numberScale by transition.animateFloat(
@@ -2185,16 +2200,16 @@ private fun TrafficAgentHeaderButton(
                 }
             }
             Text(
-                text = score?.toString() ?: if (isActive) "…" else "—",
+                text = displayedScore?.toString() ?: if (isActive) "…" else "—",
                 color = radarColor,
-                fontSize = if (score != null && score >= 10) 34.sp else 43.sp,
+                fontSize = if (displayedScore != null && displayedScore >= 10) 34.sp else 43.sp,
                 fontWeight = FontWeight.Black,
                 maxLines = 1,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 modifier = Modifier
                     .align(Alignment.Center)
                     .graphicsLayer {
-                        val scale = if (isActive && score != null) numberScale else 1f
+                        val scale = if (isActive && displayedScore != null) numberScale else 1f
                         scaleX = scale
                         scaleY = scale
                     }
@@ -3622,7 +3637,11 @@ private fun SpeedometerGauge(
                     Text(
                         text = speedLimitKmh?.toString() ?: "--",
                         color = Color(0xFF111111),
-                        fontSize = if (compact) 18.sp else 22.sp,
+                        fontSize = when {
+                            (speedLimitKmh?.toString()?.length ?: 0) >= 3 -> if (compact) 14.sp else 17.sp
+                            compact -> 18.sp
+                            else -> 22.sp
+                        },
                         fontWeight = FontWeight.ExtraBold,
                         maxLines = 1
                     )
