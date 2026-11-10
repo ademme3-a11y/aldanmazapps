@@ -97,6 +97,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import com.aldanmaz.drivedashboard.ui.screen.specialdays.SpecialDayRepository
 import com.aldanmaz.drivedashboard.data.weather.WeatherCondition
 import com.aldanmaz.drivedashboard.ui.screen.weather.WeatherUiState
 import com.aldanmaz.drivedashboard.ui.screen.weather.WeatherTemperatureScene
@@ -273,6 +274,26 @@ fun DriveDashboardScreen(
     liveFollowActive: Boolean = false
 ) {
     val context = LocalContext.current
+    var activeSpecialDayMessage by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(isParkMode) {
+        if (!isParkMode) {
+            activeSpecialDayMessage = null
+        } else {
+            val today = java.time.LocalDate.now()
+            val events = SpecialDayRepository.matching(context, today)
+            if (events.isNotEmpty() && !SpecialDayRepository.wasShown(context, today)) {
+                SpecialDayRepository.markShown(context, today)
+                events.forEach { event ->
+                    activeSpecialDayMessage = event.title + "\\n" + event.message
+                    val tone = android.media.ToneGenerator(android.media.AudioManager.STREAM_NOTIFICATION, 78)
+                    tone.startTone(android.media.ToneGenerator.TONE_PROP_BEEP, 650)
+                    delay(15_000L)
+                    tone.release()
+                }
+                activeSpecialDayMessage = null
+            }
+        }
+    }
     val odometerPrefs = remember { context.getSharedPreferences("vehicle_odometer", Context.MODE_PRIVATE) }
     val enteredOdometerKm = java.lang.Double.longBitsToDouble(
         odometerPrefs.getLong("realKm", java.lang.Double.doubleToRawLongBits(0.0))
@@ -3114,10 +3135,12 @@ private fun SpeedPanel(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "P",
+                                text = activeSpecialDayMessage ?: "P",
                                 color = if (DayTheme) Color.White else CyanAccent,
-                                fontSize = if (compact) 78.sp else 104.sp,
-                                fontWeight = FontWeight.ExtraBold
+                                fontSize = if (activeSpecialDayMessage != null) { if (compact) 14.sp else 18.sp } else if (compact) 78.sp else 104.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                maxLines = 5,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             )
                         }
 
