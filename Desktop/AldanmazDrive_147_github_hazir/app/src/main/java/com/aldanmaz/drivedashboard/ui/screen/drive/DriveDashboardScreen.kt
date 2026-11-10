@@ -717,7 +717,8 @@ fun DriveDashboardScreen(
                             onTripStart = onTripStart,
                             onTripStop = onTripStop,
                                     onLiveFollowClick = onLiveFollowClick,
-                                    liveFollowActive = liveFollowActive
+                                    liveFollowActive = liveFollowActive,
+                                    activeSpecialDayMessage = activeSpecialDayMessage
                         )
                     }
                 }
@@ -2618,6 +2619,7 @@ private fun LandscapeDashboard(
     transientVehicleAlertMessage: String?,
     obdAlertMessage: String?,
     isParkMode: Boolean,
+    activeSpecialDayMessage: String?,
     parkDurationSeconds: Long,
     isCompassPanelVisible: Boolean,
     isCompassSensorAvailable: Boolean,
@@ -2744,6 +2746,7 @@ private fun LandscapeDashboard(
             speedLimitSource = speedLimitSource,
             speedWarningState = speedWarningState,
             isParkMode = isParkMode,
+            activeSpecialDayMessage = activeSpecialDayMessage,
             parkDurationSeconds = parkDurationSeconds,
             dailyFuelCost = todayEstimatedFuelCost,
             dailyFuelLiters = todayEstimatedFuelConsumedLiters,
@@ -2988,6 +2991,7 @@ private fun SpeedPanel(
     speedLimitSource: SpeedLimitSource,
     speedWarningState: SpeedWarningState,
     isParkMode: Boolean,
+    activeSpecialDayMessage: String? = null,
     parkDurationSeconds: Long,
     dailyFuelCost: Double,
     dailyFuelLiters: Double,
