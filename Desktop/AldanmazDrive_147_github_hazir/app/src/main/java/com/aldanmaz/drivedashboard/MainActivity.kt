@@ -103,6 +103,7 @@ import com.aldanmaz.drivedashboard.ui.screen.settings.AppearanceSettingsScreen
 import com.aldanmaz.drivedashboard.ui.screen.settings.HeaderLayoutSettingsScreen
 import com.aldanmaz.drivedashboard.ui.screen.settings.VehicleSystemSettingsScreen
 import com.aldanmaz.drivedashboard.ui.screen.settings.ProgramSettingsScreen
+import com.aldanmaz.drivedashboard.ui.screen.specialdays.SpecialDaysSettingsScreen
 import com.aldanmaz.drivedashboard.ui.screen.help.HelpScreen
 import com.aldanmaz.drivedashboard.ui.call.IncomingCallController
 import com.aldanmaz.drivedashboard.ui.call.IncomingCallOverlay
@@ -1767,11 +1768,16 @@ class MainActivity : ComponentActivity() {
                             onObd = { navController.navigate(ROUTE_OBD) { launchSingleTop = true } },
                             onNavigation = { navController.navigate(ROUTE_NAVIGATION) { launchSingleTop = true } },
                             onTrafficAgent = { navController.navigate(ROUTE_TRAFFIC_AGENT) { launchSingleTop = true } },
+                            onSpecialDays = { navController.navigate(ROUTE_SPECIAL_DAYS) { launchSingleTop = true } },
                             onHelp = { navController.navigate(ROUTE_HELP) { launchSingleTop = true } },
                             onBack = { safeBack() }
                         )
                     }
 
+
+                    composable(ROUTE_SPECIAL_DAYS) {
+                        SpecialDaysSettingsScreen(onBack = { safeBack() })
+                    }
 
                     composable(ROUTE_HELP) {
                         HelpScreen(onBack = { safeBack() })
@@ -2388,6 +2394,9 @@ class MainActivity : ComponentActivity() {
 
         const val ROUTE_PROGRAM_SETTINGS =
             "program_settings"
+
+        const val ROUTE_SPECIAL_DAYS =
+            "special_days"
 
         const val ROUTE_APPEARANCE_SETTINGS =
             "appearance_settings"
