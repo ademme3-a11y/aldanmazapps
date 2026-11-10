@@ -2243,17 +2243,26 @@ private fun TrafficAgentHeaderButton(
 
     HeaderStandardCard(modifier = modifier, isActive = isActive, onClick = onClick) {
         if (!isActive) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    text = "⛔",
-                    color = Color(0xFFFF3030),
-                    fontSize = 52.sp,
-                    lineHeight = 56.sp,
-                    fontWeight = FontWeight.Black,
-                    maxLines = 1,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    modifier = Modifier.fillMaxSize(.90f)
-                )
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                val iconFrameSize = minOf(maxWidth, maxHeight) * .90f
+                Box(
+                    modifier = Modifier.size(iconFrameSize),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "⛔",
+                        color = Color(0xFFFF3030),
+                        fontSize = (iconFrameSize.value * .78f).sp,
+                        lineHeight = (iconFrameSize.value * .82f).sp,
+                        fontWeight = FontWeight.Black,
+                        maxLines = 1,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
         } else {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
