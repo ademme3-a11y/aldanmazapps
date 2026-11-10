@@ -2186,7 +2186,6 @@ private fun ObdHeaderButton(
 }
 
 @Composable
-@Composable
 private fun SpecialDayConfetti(modifier: Modifier = Modifier) {
     val transition = rememberInfiniteTransition(label = "special_day_confetti")
     val progress by transition.animateFloat(
@@ -2207,6 +2206,7 @@ private fun SpecialDayConfetti(modifier: Modifier = Modifier) {
     }
 }
 
+@Composable
 private fun TrafficAgentHeaderButton(
     isActive: Boolean,
     score: Int?,
