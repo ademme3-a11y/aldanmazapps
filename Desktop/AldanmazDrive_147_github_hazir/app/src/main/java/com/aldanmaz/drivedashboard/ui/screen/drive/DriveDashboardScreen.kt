@@ -279,18 +279,29 @@ fun DriveDashboardScreen(
         if (!isParkMode) {
             activeSpecialDayMessage = null
         } else {
-            val today = java.time.LocalDate.now()
-            val events = SpecialDayRepository.matching(context, today)
-            if (events.isNotEmpty() && !SpecialDayRepository.wasShown(context, today)) {
-                SpecialDayRepository.markShown(context, today)
-                events.forEach { event ->
-                    activeSpecialDayMessage = event.title + "\n" + event.message
-                    val tone = android.media.ToneGenerator(android.media.AudioManager.STREAM_NOTIFICATION, 78)
-                    tone.startTone(android.media.ToneGenerator.TONE_PROP_BEEP, 650)
-                    delay(15_000L)
-                    tone.release()
+            val schedulePrefs = context.getSharedPreferences("aldanmaz_special_days_alert_schedule", Context.MODE_PRIVATE)
+            while (true) {
+                val now = LocalDateTime.now()
+                val slot = when {
+                    now.hour == 9 && now.minute < 30 -> "morning"
+                    now.hour == 15 && now.minute < 30 -> "afternoon"
+                    else -> null
                 }
-                activeSpecialDayMessage = null
+                if (slot != null) {
+                    val today = now.toLocalDate()
+                    val key = "${today}_${slot}"
+                    val events = SpecialDayRepository.matching(context, today)
+                    if (events.isNotEmpty() && !schedulePrefs.getBoolean(key, false)) {
+                        schedulePrefs.edit().putBoolean(key, true).apply()
+                        activeSpecialDayMessage = events.joinToString("\\n") { it.title + "\\n" + it.message }
+                        val tone = android.media.ToneGenerator(android.media.AudioManager.STREAM_NOTIFICATION, 78)
+                        tone.startTone(android.media.ToneGenerator.TONE_PROP_BEEP, 650)
+                        delay(15_000L)
+                        tone.release()
+                        activeSpecialDayMessage = null
+                    }
+                }
+                delay(10_000L)
             }
         }
     }
@@ -2175,6 +2186,27 @@ private fun ObdHeaderButton(
 }
 
 @Composable
+@Composable
+private fun SpecialDayConfetti(modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "special_day_confetti")
+    val progress by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(1_800, easing = LinearEasing), RepeatMode.Restart),
+        label = "special_day_confetti_fall"
+    )
+    val colors = listOf(Color(0xFFFFD43B), Color(0xFF40D9FF), Color(0xFFFF4F81), Color(0xFF70E080), Color.White)
+    Canvas(modifier) {
+        for (i in 0 until 34) {
+            val x = ((i * 47) % 100) / 100f * size.width
+            val startY = ((i * 29) % 100) / 100f
+            val y = ((startY + progress * (0.75f + (i % 4) * 0.08f)) % 1f) * size.height
+            val radius = (2.2f + (i % 3) * 1.1f).dp.toPx()
+            drawCircle(colors[i % colors.size].copy(alpha = .88f), radius, Offset(x, y))
+        }
+    }
+}
+
 private fun TrafficAgentHeaderButton(
     isActive: Boolean,
     score: Int?,
@@ -2211,13 +2243,18 @@ private fun TrafficAgentHeaderButton(
 
     HeaderStandardCard(modifier = modifier, isActive = isActive, onClick = onClick) {
         if (!isActive) {
-            Text(
-                text = "⛔",
-                color = Color(0xFFFF3030),
-                fontSize = 34.sp,
-                fontWeight = FontWeight.Black,
-                maxLines = 1
-            )
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = "⛔",
+                    color = Color(0xFFFF3030),
+                    fontSize = 52.sp,
+                    lineHeight = 56.sp,
+                    fontWeight = FontWeight.Black,
+                    maxLines = 1,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.fillMaxSize(.90f)
+                )
+            }
         } else {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Canvas(modifier = Modifier.size(56.dp).padding(2.dp)) {
@@ -3140,9 +3177,12 @@ private fun SpeedPanel(
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
+                            if (activeSpecialDayMessage != null) {
+                                SpecialDayConfetti(Modifier.fillMaxSize())
+                            }
                             Text(
                                 text = activeSpecialDayMessage ?: "P",
-                                color = if (DayTheme) Color.White else CyanAccent,
+                                color = if (activeSpecialDayMessage != null) Color(0xFFFF2020) else if (DayTheme) Color.White else CyanAccent,
                                 fontSize = if (activeSpecialDayMessage != null) { if (compact) 14.sp else 18.sp } else if (compact) 78.sp else 104.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 maxLines = 5,
