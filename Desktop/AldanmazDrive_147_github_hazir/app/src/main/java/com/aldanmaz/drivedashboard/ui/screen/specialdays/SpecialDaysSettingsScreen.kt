@@ -102,7 +102,11 @@ fun SpecialDaysSettingsScreen(onBack: () -> Unit) {
         }
         Text("Doğum günü, evlilik yıldönümü ve diğer özel günleri sınırsız sayıda ekleyebilirsin. Tarih her yıl tekrarlanır.", color = Color(0xFF9CB0C5), fontSize = 12.sp)
         OutlinedTextField(title, { title = it; error = "" }, Modifier.fillMaxWidth(), label = { Text("Kişi / özel gün adı") }, singleLine = true)
-        OutlinedTextField(date, { input ->\n            val digits = input.filter { ch -> ch.isDigit() }.take(4)\n            date = if (digits.length > 2) digits.take(2) + "/" + digits.drop(2) else digits\n            error = ""\n        }, Modifier.fillMaxWidth(), label = { Text("Tarih (GG/AA) – sadece 4 rakam yaz") }, placeholder = { Text("Örn. 0505") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+        OutlinedTextField(date, { input ->
+            val digits = input.filter { ch -> ch.isDigit() }.take(4)
+            date = if (digits.length > 2) digits.take(2) + "/" + digits.drop(2) else digits
+            error = ""
+        }, Modifier.fillMaxWidth(), label = { Text("Tarih (GG/AA) – sadece 4 rakam yaz") }, placeholder = { Text("Örn. 0505") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
         OutlinedTextField(message, { message = it; error = "" }, Modifier.fillMaxWidth(), label = { Text("Park ekranında gösterilecek mesaj") }, minLines = 2)
         if (error.isNotBlank()) Text(error, color = Color(0xFFFF7777), fontSize = 12.sp)
         Button(
