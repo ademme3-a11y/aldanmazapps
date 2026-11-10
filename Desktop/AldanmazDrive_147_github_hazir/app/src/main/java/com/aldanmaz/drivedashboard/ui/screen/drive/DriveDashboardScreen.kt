@@ -284,7 +284,7 @@ fun DriveDashboardScreen(
             if (events.isNotEmpty() && !SpecialDayRepository.wasShown(context, today)) {
                 SpecialDayRepository.markShown(context, today)
                 events.forEach { event ->
-                    activeSpecialDayMessage = event.title + "\\n" + event.message
+                    activeSpecialDayMessage = event.title + "\n" + event.message
                     val tone = android.media.ToneGenerator(android.media.AudioManager.STREAM_NOTIFICATION, 78)
                     tone.startTone(android.media.ToneGenerator.TONE_PROP_BEEP, 650)
                     delay(15_000L)
