@@ -2187,8 +2187,17 @@ private fun TrafficAgentHeaderButton(
     )
 
     HeaderStandardCard(modifier = modifier, isActive = isActive, onClick = onClick) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Canvas(modifier = Modifier.size(56.dp).padding(2.dp)) {
+        if (!isActive) {
+            Text(
+                text = "⛔",
+                color = Color(0xFFFF3030),
+                fontSize = 34.sp,
+                fontWeight = FontWeight.Black,
+                maxLines = 1
+            )
+        } else {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Canvas(modifier = Modifier.size(56.dp).padding(2.dp)) {
                 val center = Offset(size.width / 2f, size.height / 2f)
                 val radius = size.minDimension * .46f
                 drawCircle(Color(0xFF07151D), radius, center)
@@ -2216,6 +2225,7 @@ private fun TrafficAgentHeaderButton(
                         scaleY = scale
                     }
             )
+            }
         }
     }
 }

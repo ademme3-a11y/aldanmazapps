@@ -363,6 +363,19 @@ class MainActivity : ComponentActivity() {
                     viewModel()
 
                 val driverPrefs = remember { context.getSharedPreferences(DRIVER_PREFS, android.content.Context.MODE_PRIVATE) }
+                val engineWarmupPrefs = remember { context.getSharedPreferences("engine_warmup", android.content.Context.MODE_PRIVATE) }
+                val initialWarmupSeconds = remember(isColdLaunch) {
+                    val lastParkedAt = engineWarmupPrefs.getLong("last_parked_at_epoch_ms", 0L)
+                    val now = System.currentTimeMillis()
+                    if (isColdLaunch && lastParkedAt > 0L && now >= lastParkedAt && now - lastParkedAt >= 6L * 60L * 60L * 1_000L) {
+                        // Aynı park dönemi için uyarıyı yalnızca bir kez göster.
+                        engineWarmupPrefs.edit().remove("last_parked_at_epoch_ms").apply()
+                        val month = java.time.LocalDate.now().monthValue
+                        if (month == 11 || month == 12 || month == 1 || month == 2) 40 else 20
+                    } else 0
+                }
+                var startupWarmupSeconds by rememberSaveable { mutableIntStateOf(initialWarmupSeconds) }
+                var showStartupWarmup by rememberSaveable { mutableStateOf(initialWarmupSeconds > 0) }
                 var driverSelectionEnabled by remember { mutableStateOf(driverPrefs.getBoolean("selection_enabled", true)) }
                 val drivers = loadDrivers(context)
                 // 137: İlk kurulum/ilk açılış varsayılanı daima 1. kullanıcı Mehmet olsun.
@@ -398,9 +411,9 @@ class MainActivity : ComponentActivity() {
                         ?: if (!driverSelectionEnabled) configuredDefaultDriver.id
                         else recentSavedDriverId
                 }
-                var selectedDriverId by remember { mutableStateOf(initialDriverId) }
+                var selectedDriverId by remember { mutableStateOf(if (initialWarmupSeconds > 0) null else initialDriverId) }
                 var driverSelectionSeconds by remember { mutableIntStateOf(10) }
-                var driverSelectionCommitted by remember { mutableStateOf(initialDriverId != null) }
+                var driverSelectionCommitted by remember { mutableStateOf(initialWarmupSeconds == 0 && initialDriverId != null) }
                 var driverWelcomeInProgress by remember { mutableStateOf(false) }
                 var showManualDriverSelection by remember { mutableStateOf(false) }
                 val selectedDriver = drivers.firstOrNull { it.id == selectedDriverId }
@@ -424,6 +437,16 @@ class MainActivity : ComponentActivity() {
                         driverWelcomeInProgress = false
                     }
                 }
+                LaunchedEffect(showStartupWarmup) {
+                    if (showStartupWarmup) {
+                        while (startupWarmupSeconds > 0) {
+                            delay(1_000L)
+                            startupWarmupSeconds = (startupWarmupSeconds - 1).coerceAtLeast(0)
+                        }
+                        showStartupWarmup = false
+                    }
+                }
+
                 LaunchedEffect(currentRoute) {
                     driverSelectionEnabled = driverPrefs.getBoolean("selection_enabled", true)
                 }
@@ -434,8 +457,8 @@ class MainActivity : ComponentActivity() {
                         driveViewModel.setDriverSession(configuredDefaultDriver.id, configuredDefaultDriver.name)
                     }
                 }
-                LaunchedEffect(driverSelectionEnabled, selectedDriverId, currentRoute == ROUTE_SPLASH) {
-                    if (driverSelectionEnabled && selectedDriverId == null && currentRoute != ROUTE_SPLASH) {
+                LaunchedEffect(driverSelectionEnabled, selectedDriverId, currentRoute == ROUTE_SPLASH, showStartupWarmup) {
+                    if (!showStartupWarmup && driverSelectionEnabled && selectedDriverId == null && currentRoute != ROUTE_SPLASH) {
                         while (driverSelectionSeconds > 0 && selectedDriverId == null && !driverSelectionCommitted) {
                             delay(1_000L)
                             driverSelectionSeconds -= 1
@@ -1863,7 +1886,23 @@ class MainActivity : ComponentActivity() {
                             onReject = { incomingCallController.reject() }
                         )
                     }
-                    if (showManualDriverSelection || (currentRoute != ROUTE_SPLASH && driverSelectionEnabled && selectedDriver == null)) {
+                    if (showStartupWarmup) {
+                        Box(
+                            Modifier.fillMaxSize().background(Color(0xF20A0A0A)).zIndex(1100f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "DİKKAT !!!\n\nMotoru çalıştırın.\nAraç hareket etmeden $startupWarmupSeconds saniye bekleyin.\n\nHareket ettikten sonra sakin kullanın.\nMotoru zorlamayın.",
+                                modifier = Modifier.padding(28.dp),
+                                color = Color(0xFFFF2525),
+                                fontSize = 34.sp,
+                                lineHeight = 42.sp,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Black,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
+                    }
+                    if (!showStartupWarmup && (showManualDriverSelection || (currentRoute != ROUTE_SPLASH && driverSelectionEnabled && selectedDriver == null))) {
                         Box(Modifier.fillMaxSize().zIndex(1000f)) {
                             DriverSelectionOverlay(
                                 drivers = drivers,

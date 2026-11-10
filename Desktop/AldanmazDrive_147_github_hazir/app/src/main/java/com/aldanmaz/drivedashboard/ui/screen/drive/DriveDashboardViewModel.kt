@@ -248,6 +248,8 @@ class DriveDashboardViewModel(
     private var lastLocationReceivedElapsedMs: Long = 0L
     private val trafficPrefs = application.getSharedPreferences("traffic_agent", Context.MODE_PRIVATE)
     private val calibrationPrefs = application.getSharedPreferences("drive_calibration", Context.MODE_PRIVATE)
+    // Son park başlangıcını kalıcı sakla; sonraki açılışta 6 saat eşiği buradan hesaplanır.
+    private val engineWarmupPrefs = application.getSharedPreferences("engine_warmup", Context.MODE_PRIVATE)
 
     // Aynı merkezi GPS akışından yolculuk mesafesi toplamak için son güvenilir nokta.
     private var lastTripLocation: Location? = null
@@ -2166,6 +2168,7 @@ class DriveDashboardViewModel(
         restoreDailyDistanceLedger()
 
         parkStartedElapsedRealtime = SystemClock.elapsedRealtime()
+        engineWarmupPrefs.edit().putLong("last_parked_at_epoch_ms", System.currentTimeMillis()).apply()
         movementConfirmationSamples = 0
 
         if (_uiState.value.isTripActive &&
@@ -2232,6 +2235,7 @@ class DriveDashboardViewModel(
         parkTimerJob?.cancel()
         parkTimerJob = null
         parkStartedElapsedRealtime = null
+        engineWarmupPrefs.edit().remove("last_parked_at_epoch_ms").apply()
         movementConfirmationSamples = 0
 
         _uiState.value = _uiState.value.copy(
