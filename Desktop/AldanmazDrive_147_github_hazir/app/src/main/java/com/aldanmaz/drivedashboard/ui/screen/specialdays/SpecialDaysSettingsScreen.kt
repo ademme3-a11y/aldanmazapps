@@ -89,6 +89,7 @@ fun SpecialDaysSettingsScreen(onBack: () -> Unit) {
     var date by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
     var error by remember { mutableStateOf("") }
+    var editingId by remember { mutableStateOf<String?>(null) }
 
     Column(
         Modifier.fillMaxSize().background(Color(0xFF02070D)).verticalScroll(rememberScrollState()).padding(18.dp),
@@ -116,15 +117,15 @@ fun SpecialDaysSettingsScreen(onBack: () -> Unit) {
                     !valid -> error = "Tarihi GG/AA biçiminde gir. Örnek: 14/06"
                     message.isBlank() -> error = "Gösterilecek mesajı yaz."
                     else -> {
-                        val entry = SpecialDay(UUID.randomUUID().toString(), title.trim(), "%02d/%02d".format(day, month), message.trim())
-                        items = items + entry
+                        val entry = SpecialDay(editingId ?: UUID.randomUUID().toString(), title.trim(), "%02d/%02d".format(day, month), message.trim())
+                        items = if (editingId == null) items + entry else items.map { if (it.id == editingId) entry else it }
                         SpecialDayRepository.save(context, items)
-                        title = ""; date = ""; message = ""; error = ""
+                        title = ""; date = ""; message = ""; error = ""; editingId = null
                     }
                 }
             },
             Modifier.fillMaxWidth()
-        ) { Text("ÖZEL GÜN EKLE") }
+        ) { Text(if (editingId == null) "ÖZEL GÜN EKLE" else "DEĞİŞİKLİKLERİ KAYDET") }
 
         Text("KAYITLI ÖZEL GÜNLER (${items.size})", color = accent, fontWeight = FontWeight.Black, fontSize = 13.sp)
         items.forEach { item ->
@@ -140,10 +141,20 @@ fun SpecialDaysSettingsScreen(onBack: () -> Unit) {
                         Text(item.dayMonth, color = accent, fontSize = 12.sp)
                         Text(item.message, color = Color(0xFF9CB0C5), fontSize = 11.sp)
                     }
-                    TextButton(onClick = {
-                        items = items.filterNot { it.id == item.id }
-                        SpecialDayRepository.save(context, items)
-                    }) { Text("SİL", color = Color(0xFFFF7777)) }
+                    Column(horizontalAlignment = Alignment.End) {
+                        TextButton(onClick = {
+                            editingId = item.id
+                            title = item.title
+                            date = item.dayMonth
+                            message = item.message
+                            error = ""
+                        }) { Text("DÜZENLE", color = accent) }
+                        TextButton(onClick = {
+                            items = items.filterNot { it.id == item.id }
+                            SpecialDayRepository.save(context, items)
+                            if (editingId == item.id) { editingId = null; title = ""; date = ""; message = "" }
+                        }) { Text("SİL", color = Color(0xFFFF7777)) }
+                    }
                 }
             }
         }
