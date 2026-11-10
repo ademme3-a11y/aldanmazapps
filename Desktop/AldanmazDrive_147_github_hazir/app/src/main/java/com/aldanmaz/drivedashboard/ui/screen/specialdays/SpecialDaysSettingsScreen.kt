@@ -107,14 +107,16 @@ fun SpecialDaysSettingsScreen(onBack: () -> Unit) {
         Button(
             onClick = {
                 val parts = date.split("/")
-                val valid = parts.size == 2 && parts[0].toIntOrNull() in 1..31 && parts[1].toIntOrNull() in 1..12 &&
-                    runCatching { LocalDate.of(2024, parts[1].toInt(), parts[0].toInt()) }.isSuccess
+                val day = parts.getOrNull(0)?.toIntOrNull() ?: 0
+                val month = parts.getOrNull(1)?.toIntOrNull() ?: 0
+                val valid = parts.size == 2 && day in 1..31 && month in 1..12 &&
+                    runCatching { LocalDate.of(2024, month, day) }.isSuccess
                 when {
                     title.isBlank() -> error = "İsim veya özel gün adını yaz."
                     !valid -> error = "Tarihi GG/AA biçiminde gir. Örnek: 14/06"
                     message.isBlank() -> error = "Gösterilecek mesajı yaz."
                     else -> {
-                        val entry = SpecialDay(UUID.randomUUID().toString(), title.trim(), "%02d/%02d".format(parts[0].toInt(), parts[1].toInt()), message.trim())
+                        val entry = SpecialDay(UUID.randomUUID().toString(), title.trim(), "%02d/%02d".format(day, month), message.trim())
                         items = items + entry
                         SpecialDayRepository.save(context, items)
                         title = ""; date = ""; message = ""; error = ""
