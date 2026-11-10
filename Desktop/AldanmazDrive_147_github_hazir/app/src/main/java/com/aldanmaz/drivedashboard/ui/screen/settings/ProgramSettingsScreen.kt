@@ -50,6 +50,7 @@ import com.aldanmaz.drivedashboard.data.speedlimit.RoadSpeedLimitRepository
 import com.aldanmaz.drivedashboard.data.speedlimit.TomTomDiagnosticResult
 import com.aldanmaz.drivedashboard.data.speedlimit.ProviderDiagnosticResult
 import com.aldanmaz.drivedashboard.ui.theme.DashboardPaletteRuntime
+import com.aldanmaz.drivedashboard.ui.screen.specialdays.SpecialDaysSettingsScreen
 import com.google.firebase.FirebaseApp
 import com.google.firebase.appcheck.FirebaseAppCheck
 import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
@@ -68,6 +69,7 @@ fun ProgramSettingsScreen(
     onObd: () -> Unit,
     onNavigation: () -> Unit,
     onTrafficAgent: () -> Unit,
+    onSpecialDays: () -> Unit,
     onHelp: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -204,6 +206,14 @@ fun ProgramSettingsScreen(
             accent = accent,
             enabled = !isDrivingLocked,
             onClick = onNavigation
+        )
+        SettingsHubCard(
+            icon = "🎉",
+            title = "ÖZEL GÜNLER",
+            subtitle = "Doğum günleri, yıldönümleri ve kişisel mesajlar",
+            accent = accent,
+            enabled = !isDrivingLocked,
+            onClick = onSpecialDays
         )
         SettingsHubCard(
             icon = "◎",
