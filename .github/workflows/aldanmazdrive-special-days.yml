@@ -33,7 +33,7 @@ jobs:
           TOMTOM2: ${{ secrets.TOMTOM2 }}
         run: |
           test -n "$TOMTOM2" || { echo "TOMTOM2 secret is missing."; exit 1; }
-          printf 'TOMTOM_API_KEY=%s\\n' "$TOMTOM2" > local.properties
+          printf 'TOMTOM_API_KEY=%s\n' "$TOMTOM2" > local.properties
       - name: Build Debug APK
         run: ./gradlew assembleDebug --no-daemon
       - name: Verify APK exists and signing
