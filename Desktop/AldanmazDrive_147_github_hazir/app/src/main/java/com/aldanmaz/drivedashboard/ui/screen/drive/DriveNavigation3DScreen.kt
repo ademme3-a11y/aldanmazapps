@@ -63,7 +63,7 @@ internal fun DriveNavigation3DScreen(
             verticalArrangement = Arrangement.spacedBy(7.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Geri", tint = Color.White) }
+                IconButton(onClick = onBack) { Text("‹", color = Color.White, fontSize = 30.sp) }
                 Column(Modifier.weight(1f)) {
                     Text("3D SÜRÜŞ", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                     Text("Beyaz Dacia Sandero Stepway • 07 MTU 93", color = Color(0xFFCAD6E0), fontSize = 11.sp)
@@ -97,7 +97,7 @@ internal fun DriveNavigation3DScreen(
                 Button(onClick = {
                     val q = org.json.JSONObject.quote(destination.trim())
                     if (destination.isNotBlank()) mapView?.evaluateJavascript("window.findDestination($q);", null)
-                }) { Icon(Icons.Default.Search, contentDescription = "Rota ara") }
+                }) { Text("ARA", fontWeight = FontWeight.Bold) }
             }
         }
         Surface(
