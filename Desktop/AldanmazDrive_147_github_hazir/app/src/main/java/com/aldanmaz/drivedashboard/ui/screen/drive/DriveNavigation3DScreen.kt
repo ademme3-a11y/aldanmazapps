@@ -32,7 +32,7 @@ internal fun DriveNavigation3DScreen(
     var destination by remember { mutableStateOf("") }
     var mapView by remember { mutableStateOf<WebView?>(null) }
 
-    LaunchedEffect(latitude, longitude, headingDegrees, speedKmh, speedLimitKmh) {
+    LaunchedEffect(mapView, latitude, longitude, headingDegrees, speedKmh, speedLimitKmh) {
         val lat = latitude ?: return@LaunchedEffect
         val lon = longitude ?: return@LaunchedEffect
         val heading = headingDegrees ?: 0f
