@@ -1,7 +1,13 @@
 package com.aldanmaz.drivedashboard.ui.screen.drive
 
 import android.graphics.Color as AndroidColor
+import android.os.Handler
+import android.os.Looper
+import android.webkit.ConsoleMessage
+import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.background
@@ -19,6 +25,19 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.platform.LocalContext
 import java.util.Locale
 
+private class DriveMapJavascriptBridge(
+    private val onStatus: (String, Boolean?) -> Unit
+) {
+    @JavascriptInterface
+    fun onMapReady() = onStatus("3D harita hazır", true)
+
+    @JavascriptInterface
+    fun onMapStatus(message: String) = onStatus(message, null)
+
+    @JavascriptInterface
+    fun onMapError(message: String) = onStatus("Harita hatası: $message", null)
+}
+
 @Composable
 internal fun DriveNavigation3DScreen(
     latitude: Double?, longitude: Double?, speedKmh: Int, currentTime: String,
@@ -26,24 +45,29 @@ internal fun DriveNavigation3DScreen(
     locationStatus: String, speedLimitKmh: Int?, isGpsActive: Boolean, onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val mainHandler = remember { Handler(Looper.getMainLooper()) }
     var destination by remember { mutableStateOf("") }
     var pendingDestination by remember { mutableStateOf("") }
-    var webReady by remember { mutableStateOf(false) }
+    var mapReady by remember { mutableStateOf(false) }
+    var mapStatus by remember { mutableStateOf("Harita motoru başlatılıyor…") }
     var mapView by remember { mutableStateOf<WebView?>(null) }
 
-    LaunchedEffect(mapView, webReady, latitude, longitude, headingDegrees, speedKmh, speedLimitKmh) {
-        if (!webReady) return@LaunchedEffect
+    LaunchedEffect(mapView, mapReady, latitude, longitude, headingDegrees, speedKmh, speedLimitKmh) {
+        if (!mapReady) return@LaunchedEffect
         val lat = latitude ?: return@LaunchedEffect
         val lon = longitude ?: return@LaunchedEffect
         val heading = headingDegrees ?: 0f
         mapView?.evaluateJavascript(
-            "window.updateVehicle(" + lat + "," + lon + "," + heading + "," + speedKmh.coerceAtLeast(0) + "," + (speedLimitKmh ?: 0) + ");", null
+            "window.updateVehicle($lat,$lon,$heading,${speedKmh.coerceAtLeast(0)},${speedLimitKmh ?: 0});",
+            null
         )
     }
 
-    LaunchedEffect(mapView, webReady, pendingDestination) {
+    // Hedef, yalnızca MapLibre stil ve katmanları gerçekten hazır olduktan sonra gönderilir.
+    LaunchedEffect(mapView, mapReady, pendingDestination) {
         val query = pendingDestination
-        if (webReady && mapView != null && query.isNotBlank()) {
+        if (mapReady && mapView != null && query.isNotBlank()) {
+            mapStatus = "Hedef aranıyor: $query"
             val quoted = org.json.JSONObject.quote(query)
             mapView?.evaluateJavascript("window.findDestination($quoted);", null)
             pendingDestination = ""
@@ -58,19 +82,96 @@ internal fun DriveNavigation3DScreen(
                     setBackgroundColor(AndroidColor.rgb(12, 20, 29))
                     settings.javaScriptEnabled = true
                     settings.domStorageEnabled = true
-                    webChromeClient = WebChromeClient()
-                    webViewClient = object : WebViewClient() {
-                        override fun onPageFinished(view: WebView?, url: String?) {
-                            super.onPageFinished(view, url)
-                            webReady = true
+                    settings.databaseEnabled = true
+                    settings.loadsImagesAutomatically = true
+                    settings.javaScriptCanOpenWindowsAutomatically = false
+                    settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
+                    settings.cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
+                    settings.userAgentString = "${settings.userAgentString} AldanmazDrive/3D"
+                    setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
+
+                    addJavascriptInterface(
+                        DriveMapJavascriptBridge { message, ready ->
+                            mainHandler.post {
+                                mapStatus = message
+                                if (ready != null) mapReady = ready
+                            }
+                        },
+                        "AndroidMap"
+                    )
+
+                    webChromeClient = object : WebChromeClient() {
+                        override fun onConsoleMessage(message: ConsoleMessage): Boolean {
+                            if (message.messageLevel() == ConsoleMessage.MessageLevel.ERROR) {
+                                mainHandler.post {
+                                    mapStatus = "Harita betik hatası: ${message.message().take(140)}"
+                                }
+                            }
+                            return true
                         }
                     }
-                    loadDataWithBaseURL("https://tiles.openfreemap.org/", DRIVE_3D_HTML, "text/html", "UTF-8", null)
+
+                    webViewClient = object : WebViewClient() {
+                        override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
+                            super.onPageStarted(view, url, favicon)
+                            mapReady = false
+                            mapStatus = "Harita kaynakları yükleniyor…"
+                        }
+
+                        override fun onPageFinished(view: WebView?, url: String?) {
+                            super.onPageFinished(view, url)
+                            // onPageFinished yalnızca HTML'nin bittiğini söyler; haritanın hazır olduğunu söylemez.
+                            if (!mapReady) mapStatus = "Harita stili ve 3D katmanlar bekleniyor…"
+                        }
+
+                        override fun onReceivedError(
+                            view: WebView?,
+                            request: WebResourceRequest?,
+                            error: android.webkit.WebResourceError?
+                        ) {
+                            super.onReceivedError(view, request, error)
+                            if (request?.isForMainFrame == true) {
+                                val description = error?.description?.toString() ?: "Bilinmeyen bağlantı hatası"
+                                mainHandler.post {
+                                    mapReady = false
+                                    mapStatus = "Harita sayfası açılamadı: $description"
+                                }
+                            }
+                        }
+
+                        override fun onReceivedHttpError(
+                            view: WebView?,
+                            request: WebResourceRequest?,
+                            errorResponse: WebResourceResponse?
+                        ) {
+                            super.onReceivedHttpError(view, request, errorResponse)
+                            if (request?.isForMainFrame == true) {
+                                mainHandler.post {
+                                    mapReady = false
+                                    mapStatus = "Harita sunucusu HTTP ${errorResponse?.statusCode ?: "hatası"} döndürdü"
+                                }
+                            }
+                        }
+
+                        override fun onRenderProcessGone(
+                            view: WebView?,
+                            detail: android.webkit.RenderProcessGoneDetail?
+                        ): Boolean {
+                            mainHandler.post {
+                                mapReady = false
+                                mapStatus = "Harita motoru durdu. Ekranı kapatıp yeniden açın."
+                            }
+                            return true
+                        }
+                    }
+
+                    loadDataWithBaseURL("https://aldanmazdrive.local/", DRIVE_3D_HTML, "text/html", "UTF-8", null)
                     mapView = this
                 }
             },
             update = { mapView = it }
         )
+
         Column(
             Modifier.align(Alignment.TopCenter).fillMaxWidth()
                 .background(Color(0xD9162532)).padding(10.dp),
@@ -109,25 +210,43 @@ internal fun DriveNavigation3DScreen(
                     )
                 )
                 Button(onClick = {
-                    pendingDestination = destination.trim()
+                    val query = destination.trim()
+                    if (query.isNotBlank()) {
+                        if (mapReady) {
+                            mapStatus = "Hedef aranıyor: $query"
+                            mapView?.evaluateJavascript("window.findDestination(${org.json.JSONObject.quote(query)});", null)
+                        } else {
+                            pendingDestination = query
+                            mapStatus = "Harita hazır olunca hedef aranacak…"
+                        }
+                    }
                 }, enabled = destination.isNotBlank()) { Text("ARA", fontWeight = FontWeight.Bold) }
             }
         }
+
         Surface(
             Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(10.dp),
             color = Color(0xD9162532), shape = RoundedCornerShape(10.dp)
         ) {
-            Text(
-                if (latitude != null && longitude != null) "Canlı GPS izi açık • Hedef girilmezse geçtiğin yol çizilir" else locationStatus,
-                Modifier.padding(11.dp), color = Color.White, fontSize = 11.sp
-            )
+            Column(Modifier.padding(11.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    mapStatus,
+                    color = if (mapReady) Color(0xFF52E69A) else Color(0xFFFFC45C),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    if (latitude != null && longitude != null) "Canlı GPS izi açık • Hedef girilmezse geçtiğin yol çizilir" else locationStatus,
+                    color = Color.White, fontSize = 10.sp
+                )
+            }
         }
     }
 
-    DisposableEffect(Unit) {
+    DisposableEffect(mapView) {
+        val view = mapView
         onDispose {
-            mapView?.apply { stopLoading(); loadUrl("about:blank"); destroy() }
-            mapView = null
+            view?.apply { stopLoading(); loadUrl("about:blank"); removeJavascriptInterface("AndroidMap"); destroy() }
         }
     }
 }
@@ -145,24 +264,38 @@ private fun DriveInfoChip(label: String, value: String) {
 private val DRIVE_3D_HTML = """
 <!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
-<style>html,body,#map{margin:0;width:100%;height:100%;background:#101a24;overflow:hidden}.car{width:54px;height:90px;filter:drop-shadow(0 4px 5px #0009)}.car svg{width:100%;height:100%}.plate{position:absolute;bottom:7px;left:50%;transform:translateX(-50%);background:white;color:#111;font:bold 7px Arial;padding:2px 3px;border:1px solid #222;white-space:nowrap}.maplibregl-ctrl-attrib{display:none!important}</style></head><body><div id="map"></div>
+<style>html,body,#map{margin:0;width:100%;height:100%;background:#101a24;overflow:hidden}.car{width:54px;height:90px;filter:drop-shadow(0 4px 5px #0009)}.car svg{width:100%;height:100%}.plate{position:absolute;bottom:7px;left:50%;transform:translateX(-50%);background:white;color:#111;font:bold 7px Arial;padding:2px 3px;border:1px solid #222;white-space:nowrap}.maplibregl-ctrl-attrib{display:none!important}</style>
+<script>
+window.onerror=function(message,source,line){if(window.AndroidMap)AndroidMap.onMapError(String(message)+" (satır "+line+")");return false;};
+</script>
+</head><body><div id="map"></div>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script><script>
 var map,carMarker,trail=[],pos=[30.70,36.89],bearing=0;
-var car=document.createElement('div');car.className='car';car.innerHTML='<svg viewBox="0 0 60 100"><path d="M15 18 Q18 5 30 5 Q42 5 45 18 L53 76 Q52 91 30 95 Q8 91 7 76Z" fill="#f7f8f9" stroke="#65717a" stroke-width="2"/><path d="M17 24 Q30 15 43 24 L46 51 Q30 58 14 51Z" fill="#243746" stroke="#cbd4da" stroke-width="2"/><path d="M13 60 Q30 66 47 60 L49 78 Q30 88 11 78Z" fill="#e8edf0"/><rect x="9" y="29" width="5" height="12" rx="2" fill="#fff0b0"/><rect x="46" y="29" width="5" height="12" rx="2" fill="#fff0b0"/><rect x="10" y="78" width="7" height="6" fill="#e33"/><rect x="43" y="78" width="7" height="6" fill="#e33"/></svg><div class="plate">07 MTU 93</div>';
-map=new maplibregl.Map({container:'map',style:'https://tiles.openfreemap.org/styles/liberty',center:pos,zoom:15.5,pitch:62,bearing:0,antialias:true});
-map.addControl(new maplibregl.NavigationControl({showCompass:false}),'bottom-right');
-map.on('load',function(){
- var layers=map.getStyle().layers,label=null;
- for(var i=0;i<layers.length;i++){if(layers[i].type==='symbol'&&layers[i].layout&&layers[i].layout['text-field']){label=layers[i].id;break;}}
- map.addLayer({id:'3d-buildings',source:'openmaptiles','source-layer':'building',type:'fill-extrusion',minzoom:14,paint:{'fill-extrusion-color':'#8295a5','fill-extrusion-height':['coalesce',['get','render_height'],4],'fill-extrusion-base':['coalesce',['get','render_min_height'],0],'fill-extrusion-opacity':0.8}},label);
- map.addSource('gps-trail',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:trail}}});
- map.addLayer({id:'gps-trail-line',type:'line',source:'gps-trail',paint:{'line-color':'#20baff','line-width':5}});
- map.addSource('nav-route',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:[]}}});
- map.addLayer({id:'nav-route-line',type:'line',source:'nav-route',paint:{'line-color':'#25dcff','line-width':7}});
- carMarker=new maplibregl.Marker({element:car,anchor:'center',rotationAlignment:'map'}).setLngLat(pos).addTo(map);
-});
+try{
+ if(!window.maplibregl)throw new Error('MapLibre kütüphanesi indirilemedi');
+ var car=document.createElement('div');car.className='car';car.innerHTML='<svg viewBox="0 0 60 100"><path d="M15 18 Q18 5 30 5 Q42 5 45 18 L53 76 Q52 91 30 95 Q8 91 7 76Z" fill="#f7f8f9" stroke="#65717a" stroke-width="2"/><path d="M17 24 Q30 15 43 24 L46 51 Q30 58 14 51Z" fill="#243746" stroke="#cbd4da" stroke-width="2"/><path d="M13 60 Q30 66 47 60 L49 78 Q30 88 11 78Z" fill="#e8edf0"/><rect x="9" y="29" width="5" height="12" rx="2" fill="#fff0b0"/><rect x="46" y="29" width="5" height="12" rx="2" fill="#fff0b0"/><rect x="10" y="78" width="7" height="6" fill="#e33"/><rect x="43" y="78" width="7" height="6" fill="#e33"/></svg><div class="plate">07 MTU 93</div>';
+ map=new maplibregl.Map({container:'map',style:'https://tiles.openfreemap.org/styles/liberty',center:pos,zoom:15.5,pitch:62,bearing:0,antialias:true});
+ map.addControl(new maplibregl.NavigationControl({showCompass:false}),'bottom-right');
+ map.on('error',function(e){
+   var msg=(e&&e.error&&e.error.message)?e.error.message:'Harita verisi yüklenemedi';
+   if(window.AndroidMap)AndroidMap.onMapError(msg);
+ });
+ map.on('load',function(){
+  try{
+   var layers=map.getStyle().layers,label=null;
+   for(var i=0;i<layers.length;i++){if(layers[i].type==='symbol'&&layers[i].layout&&layers[i].layout['text-field']){label=layers[i].id;break;}}
+   map.addLayer({id:'3d-buildings',source:'openmaptiles','source-layer':'building',type:'fill-extrusion',minzoom:14,paint:{'fill-extrusion-color':'#8295a5','fill-extrusion-height':['coalesce',['get','render_height'],4],'fill-extrusion-base':['coalesce',['get','render_min_height'],0],'fill-extrusion-opacity':0.8}},label||undefined);
+   map.addSource('gps-trail',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:trail}}});
+   map.addLayer({id:'gps-trail-line',type:'line',source:'gps-trail',paint:{'line-color':'#20baff','line-width':5}});
+   map.addSource('nav-route',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:[]}}});
+   map.addLayer({id:'nav-route-line',type:'line',source:'nav-route',paint:{'line-color':'#25dcff','line-width':7}});
+   carMarker=new maplibregl.Marker({element:car,anchor:'center',rotationAlignment:'map'}).setLngLat(pos).addTo(map);
+   if(window.AndroidMap)AndroidMap.onMapReady();
+  }catch(e){if(window.AndroidMap)AndroidMap.onMapError('Katman kurulumu: '+e.message);}
+ });
+}catch(e){if(window.AndroidMap)AndroidMap.onMapError(e.message);}
 window.updateVehicle=function(lat,lon,head,speed,limit){
- if(!map||!isFinite(lat)||!isFinite(lon))return;
+ if(!map||!map.isStyleLoaded()||!isFinite(lat)||!isFinite(lon))return;
  pos=[lon,lat];bearing=head||0;
  if(carMarker)carMarker.setLngLat(pos).setRotation(bearing);
  trail.push(pos);if(trail.length>1800)trail.shift();
@@ -171,16 +304,21 @@ window.updateVehicle=function(lat,lon,head,speed,limit){
 };
 window.findDestination=async function(q){
  try{
-  if(!map.loaded()) await new Promise(function(resolve){map.once('load',resolve);});
+  if(!map||!map.isStyleLoaded()){if(window.AndroidMap)AndroidMap.onMapStatus('Harita henüz hazır değil');return;}
+  if(window.AndroidMap)AndroidMap.onMapStatus('Hedef konumu aranıyor…');
   var g=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q),{headers:{'Accept-Language':'tr'}});
-  var a=await g.json();if(!a.length){alert('Konum bulunamadı');return;}
+  if(!g.ok)throw new Error('Konum servisi HTTP '+g.status);
+  var a=await g.json();if(!a.length){if(window.AndroidMap)AndroidMap.onMapStatus('Bu hedef bulunamadı');return;}
   var end=[Number(a[0].lon),Number(a[0].lat)];
+  if(window.AndroidMap)AndroidMap.onMapStatus('Rota hesaplanıyor…');
   var r=await fetch('https://router.project-osrm.org/route/v1/driving/'+pos.join(',')+';'+end.join(',')+'?overview=full&geometries=geojson');
-  var d=await r.json();if(!d.routes||!d.routes.length){alert('Rota oluşturulamadı');return;}
+  if(!r.ok)throw new Error('Rota servisi HTTP '+r.status);
+  var d=await r.json();if(!d.routes||!d.routes.length){if(window.AndroidMap)AndroidMap.onMapStatus('Bu hedefe rota oluşturulamadı');return;}
   map.getSource('nav-route').setData({type:'Feature',geometry:d.routes[0].geometry});
   var b=new maplibregl.LngLatBounds();d.routes[0].geometry.coordinates.forEach(function(p){b.extend(p);});
   map.fitBounds(b,{padding:{top:190,bottom:100,left:45,right:45},duration:900});
- }catch(e){alert('Harita veya rota bağlantısı kurulamadı');}
+  if(window.AndroidMap)AndroidMap.onMapStatus('Rota hazır • '+(d.routes[0].distance/1000).toFixed(1)+' km');
+ }catch(e){if(window.AndroidMap)AndroidMap.onMapError('Arama/rota: '+e.message);}
 };
 </script></body></html>
 """.trimIndent()
