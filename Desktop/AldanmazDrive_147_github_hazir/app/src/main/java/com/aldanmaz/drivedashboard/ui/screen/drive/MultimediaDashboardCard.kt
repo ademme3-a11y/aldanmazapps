@@ -170,7 +170,7 @@ internal fun EnhancedMultimediaCard(
             DashboardMediaItem("radio", "Radyo", "▤", Color(0xFFFFA43A)),
             DashboardMediaItem("chrome", "Chrome", "◎", Color(0xFF4D9DFF), listOf("com.android.chrome")),
             DashboardMediaItem("gemini", "Gemini Live", "✦", Color(0xFF8F8CFF), listOf("com.google.android.apps.bard")),
-            DashboardMediaItem("livetv", "Canlı TV", "📺", Color(0xFF31E39A))
+            DashboardMediaItem("livetv", "3D Sürüş", "🚘", Color(0xFF31E39A))
         )
     }
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -427,7 +427,7 @@ private fun MediaShortcutTile(
                     compact = true,
                 )
             } else if (item.id == "livetv") {
-                Text("📺", fontSize = 42.sp)
+                Text("🚘", fontSize = 42.sp)
             } else if (item.id == "radio") {
                 // 141: Ekolayzer kaldırıldı. Radyo aktifken ikon hafifçe sola-sağa
                 // döner; radyo kapalıyken herhangi bir animasyon oynatılmaz.
