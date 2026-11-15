@@ -728,7 +728,7 @@ fun DriveDashboardScreen(
                             onVehicleModeChange = onVehicleModeChange,
                             onTripStart = onTripStart,
                             onTripStop = onTripStop,
-                                    onLiveFollowClick = onLiveFollowClick,
+                                    onLiveFollowClick = { show3DDriveScreen = true },
                                     liveFollowActive = liveFollowActive,
                                     activeSpecialDayMessage = activeSpecialDayMessage
                         )
