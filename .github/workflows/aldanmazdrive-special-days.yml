@@ -46,6 +46,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: AldanmazDrive_1511262140-1_APK
-          path: Desktop/AldanmazDrive_1011261800-1.apk
+          path: Desktop/AldanmazDrive_1511262140-1.apk
           if-no-files-found: error
           retention-days: 30
