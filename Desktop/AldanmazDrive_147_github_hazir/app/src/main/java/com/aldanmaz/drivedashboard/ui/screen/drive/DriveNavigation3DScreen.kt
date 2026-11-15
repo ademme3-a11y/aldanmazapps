@@ -281,17 +281,29 @@ try{
    if(window.AndroidMap)AndroidMap.onMapError(msg);
  });
  map.on('load',function(){
+  // Temel harita/rota katmanları 3D bina verisinden bağımsız kurulmalı.
   try{
-   var layers=map.getStyle().layers,label=null;
-   for(var i=0;i<layers.length;i++){if(layers[i].type==='symbol'&&layers[i].layout&&layers[i].layout['text-field']){label=layers[i].id;break;}}
-   map.addLayer({id:'3d-buildings',source:'openmaptiles','source-layer':'building',type:'fill-extrusion',minzoom:14,paint:{'fill-extrusion-color':'#8295a5','fill-extrusion-height':['coalesce',['get','render_height'],4],'fill-extrusion-base':['coalesce',['get','render_min_height'],0],'fill-extrusion-opacity':0.8}},label||undefined);
    map.addSource('gps-trail',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:trail}}});
    map.addLayer({id:'gps-trail-line',type:'line',source:'gps-trail',paint:{'line-color':'#20baff','line-width':5}});
    map.addSource('nav-route',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:[]}}});
    map.addLayer({id:'nav-route-line',type:'line',source:'nav-route',paint:{'line-color':'#25dcff','line-width':7}});
    carMarker=new maplibregl.Marker({element:car,anchor:'center',rotationAlignment:'map'}).setLngLat(pos).addTo(map);
    if(window.AndroidMap)AndroidMap.onMapReady();
-  }catch(e){if(window.AndroidMap)AndroidMap.onMapError('Katman kurulumu: '+e.message);}
+  }catch(coreError){
+   if(window.AndroidMap)AndroidMap.onMapError('Temel harita katmanları: '+coreError.message);
+   return;
+  }
+  // 3D binalar isteğe bağlıdır; hata verse bile harita ve arama çalışır.
+  try{
+   var style=map.getStyle(),layers=style.layers||[],label=null;
+   if(style.sources&&style.sources.openmaptiles){
+    for(var i=0;i<layers.length;i++){if(layers[i].type==='symbol'&&layers[i].layout&&layers[i].layout['text-field']){label=layers[i].id;break;}}
+    var buildingLayer={id:'3d-buildings',source:'openmaptiles','source-layer':'building',type:'fill-extrusion',minzoom:14,paint:{'fill-extrusion-color':'#8295a5','fill-extrusion-height':['coalesce',['get','render_height'],4],'fill-extrusion-base':['coalesce',['get','render_min_height'],0],'fill-extrusion-opacity':0.8}};
+    if(label)map.addLayer(buildingLayer,label);else map.addLayer(buildingLayer);
+   }else if(window.AndroidMap){AndroidMap.onMapStatus('Harita hazır • 3D bina verisi bu stilde yok');}
+  }catch(buildingError){
+   if(window.AndroidMap)AndroidMap.onMapStatus('Harita hazır • 3D binalar yüklenemedi');
+  }
  });
 }catch(e){if(window.AndroidMap)AndroidMap.onMapError(e.message);}
 window.updateVehicle=function(lat,lon,head,speed,limit){
@@ -304,18 +316,32 @@ window.updateVehicle=function(lat,lon,head,speed,limit){
 };
 window.findDestination=async function(q){
  try{
-  if(!map||!map.isStyleLoaded()){if(window.AndroidMap)AndroidMap.onMapStatus('Harita henüz hazır değil');return;}
+  if(!map||!map.isStyleLoaded()||!map.getSource('nav-route')){if(window.AndroidMap)AndroidMap.onMapStatus('Harita henüz hazır değil; tekrar deneyin');return;}
   if(window.AndroidMap)AndroidMap.onMapStatus('Hedef konumu aranıyor…');
-  var g=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q),{headers:{'Accept-Language':'tr'}});
-  if(!g.ok)throw new Error('Konum servisi HTTP '+g.status);
-  var a=await g.json();if(!a.length){if(window.AndroidMap)AndroidMap.onMapStatus('Bu hedef bulunamadı');return;}
+  var encoded=encodeURIComponent(q),a=[],geocodeError=null;
+  // Önce Nominatim, yanıt vermezse Photon ile ikinci arama sağlayıcısı.
+  try{
+   var g=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encoded,{headers:{'Accept-Language':'tr'}});
+   if(!g.ok)throw new Error('Nominatim HTTP '+g.status);
+   a=await g.json();
+  }catch(firstError){geocodeError=firstError;}
+  if(!a.length){
+   try{
+    var p=await fetch('https://photon.komoot.io/api/?limit=1&lang=tr&q='+encoded);
+    if(!p.ok)throw new Error('Photon HTTP '+p.status);
+    var pd=await p.json();
+    if(pd.features&&pd.features.length){var xy=pd.features[0].geometry.coordinates;a=[{lon:xy[0],lat:xy[1]}];}
+   }catch(secondError){throw new Error('Şehir arama servisleri yanıt vermedi: '+secondError.message);}
+  }
+  if(!a.length){if(window.AndroidMap)AndroidMap.onMapStatus('Bu şehir/yer bulunamadı');return;}
   var end=[Number(a[0].lon),Number(a[0].lat)];
+  if(!isFinite(end[0])||!isFinite(end[1]))throw new Error('Arama sonucu koordinatları geçersiz');
   if(window.AndroidMap)AndroidMap.onMapStatus('Rota hesaplanıyor…');
   var r=await fetch('https://router.project-osrm.org/route/v1/driving/'+pos.join(',')+';'+end.join(',')+'?overview=full&geometries=geojson');
   if(!r.ok)throw new Error('Rota servisi HTTP '+r.status);
   var d=await r.json();if(!d.routes||!d.routes.length){if(window.AndroidMap)AndroidMap.onMapStatus('Bu hedefe rota oluşturulamadı');return;}
   map.getSource('nav-route').setData({type:'Feature',geometry:d.routes[0].geometry});
-  var b=new maplibregl.LngLatBounds();d.routes[0].geometry.coordinates.forEach(function(p){b.extend(p);});
+  var b=new maplibregl.LngLatBounds();d.routes[0].geometry.coordinates.forEach(function(pt){b.extend(pt);});
   map.fitBounds(b,{padding:{top:190,bottom:100,left:45,right:45},duration:900});
   if(window.AndroidMap)AndroidMap.onMapStatus('Rota hazır • '+(d.routes[0].distance/1000).toFixed(1)+' km');
  }catch(e){if(window.AndroidMap)AndroidMap.onMapError('Arama/rota: '+e.message);}
