@@ -345,7 +345,7 @@ fun DriveDashboardScreen(
     var dashboardRouteProfile by remember { mutableStateOf<RouteProfileResult?>(null) }
     var showDashboardRouteProfile by remember { mutableStateOf(false) }
     var showDashboardLiveProfile by remember { mutableStateOf(false) }
-    var showDashboardRouteFullScreen by remember { mutableStateOf(false) }
+    var showDashboardRouteFullScreen by remember { mutableStateOf(false) }\n    var show3DDriveScreen by remember { mutableStateOf(false) }
 
 
     LaunchedEffect(isLiveSlopeHalfVisible) {
@@ -615,7 +615,7 @@ fun DriveDashboardScreen(
                                     onVehicleModeChange = onVehicleModeChange,
                                     onTripStart = onTripStart,
                                     onTripStop = onTripStop,
-                                    onLiveFollowClick = onLiveFollowClick,
+                                    onLiveFollowClick = { show3DDriveScreen = true },
                                     liveFollowActive = liveFollowActive
                                 )
                                 if (showDashboardRouteProfile && dashboardRouteProfile != null) {
@@ -741,6 +741,22 @@ fun DriveDashboardScreen(
                         isCaravan = vehicleMode == "Karavan",
                         onBack = { showDashboardRouteFullScreen = false },
                         modifier = Modifier.fillMaxSize()
+                    )
+                }
+
+                if (show3DDriveScreen) {
+                    DriveNavigation3DScreen(
+                        latitude = currentLatitude,
+                        longitude = currentLongitude,
+                        speedKmh = speedKmh,
+                        currentTime = currentTime,
+                        vehicleKm = vehicleRealKm,
+                        headingDegrees = compassHeadingDegrees,
+                        direction = direction,
+                        locationStatus = locationStatus,
+                        speedLimitKmh = activeSpeedLimit,
+                        isGpsActive = isGpsActive,
+                        onBack = { show3DDriveScreen = false }
                     )
                 }
             }
