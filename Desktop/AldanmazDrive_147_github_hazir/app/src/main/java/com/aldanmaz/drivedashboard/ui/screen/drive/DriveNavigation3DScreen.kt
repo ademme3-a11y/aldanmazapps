@@ -27,15 +27,27 @@ internal fun DriveNavigation3DScreen(
 ) {
     val context = LocalContext.current
     var destination by remember { mutableStateOf("") }
+    var pendingDestination by remember { mutableStateOf("") }
+    var webReady by remember { mutableStateOf(false) }
     var mapView by remember { mutableStateOf<WebView?>(null) }
 
-    LaunchedEffect(mapView, latitude, longitude, headingDegrees, speedKmh, speedLimitKmh) {
+    LaunchedEffect(mapView, webReady, latitude, longitude, headingDegrees, speedKmh, speedLimitKmh) {
+        if (!webReady) return@LaunchedEffect
         val lat = latitude ?: return@LaunchedEffect
         val lon = longitude ?: return@LaunchedEffect
         val heading = headingDegrees ?: 0f
         mapView?.evaluateJavascript(
             "window.updateVehicle(" + lat + "," + lon + "," + heading + "," + speedKmh.coerceAtLeast(0) + "," + (speedLimitKmh ?: 0) + ");", null
         )
+    }
+
+    LaunchedEffect(mapView, webReady, pendingDestination) {
+        val query = pendingDestination
+        if (webReady && mapView != null && query.isNotBlank()) {
+            val quoted = org.json.JSONObject.quote(query)
+            mapView?.evaluateJavascript("window.findDestination($quoted);", null)
+            pendingDestination = ""
+        }
     }
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {
@@ -47,7 +59,12 @@ internal fun DriveNavigation3DScreen(
                     settings.javaScriptEnabled = true
                     settings.domStorageEnabled = true
                     webChromeClient = WebChromeClient()
-                    webViewClient = WebViewClient()
+                    webViewClient = object : WebViewClient() {
+                        override fun onPageFinished(view: WebView?, url: String?) {
+                            super.onPageFinished(view, url)
+                            webReady = true
+                        }
+                    }
                     loadDataWithBaseURL("https://tiles.openfreemap.org/", DRIVE_3D_HTML, "text/html", "UTF-8", null)
                     mapView = this
                 }
@@ -92,9 +109,8 @@ internal fun DriveNavigation3DScreen(
                     )
                 )
                 Button(onClick = {
-                    val q = org.json.JSONObject.quote(destination.trim())
-                    if (destination.isNotBlank()) mapView?.evaluateJavascript("window.findDestination($q);", null)
-                }) { Text("ARA", fontWeight = FontWeight.Bold) }
+                    pendingDestination = destination.trim()
+                }, enabled = destination.isNotBlank()) { Text("ARA", fontWeight = FontWeight.Bold) }
             }
         }
         Surface(
@@ -139,7 +155,7 @@ map.on('load',function(){
  var layers=map.getStyle().layers,label=null;
  for(var i=0;i<layers.length;i++){if(layers[i].type==='symbol'&&layers[i].layout&&layers[i].layout['text-field']){label=layers[i].id;break;}}
  map.addLayer({id:'3d-buildings',source:'openmaptiles','source-layer':'building',type:'fill-extrusion',minzoom:14,paint:{'fill-extrusion-color':'#8295a5','fill-extrusion-height':['coalesce',['get','render_height'],4],'fill-extrusion-base':['coalesce',['get','render_min_height'],0],'fill-extrusion-opacity':0.8}},label);
- map.addSource('gps-trail',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:[]}}});
+ map.addSource('gps-trail',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:trail}}});
  map.addLayer({id:'gps-trail-line',type:'line',source:'gps-trail',paint:{'line-color':'#20baff','line-width':5}});
  map.addSource('nav-route',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:[]}}});
  map.addLayer({id:'nav-route-line',type:'line',source:'nav-route',paint:{'line-color':'#25dcff','line-width':7}});
@@ -155,6 +171,7 @@ window.updateVehicle=function(lat,lon,head,speed,limit){
 };
 window.findDestination=async function(q){
  try{
+  if(!map.loaded()) await new Promise(function(resolve){map.once('load',resolve);});
   var g=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q),{headers:{'Accept-Language':'tr'}});
   var a=await g.json();if(!a.length){alert('Konum bulunamadı');return;}
   var end=[Number(a[0].lon),Number(a[0].lat)];
