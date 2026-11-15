@@ -2,7 +2,7 @@ name: Aldanmaz Drive 154 Debug Build
 
 on:
   push:
-    branches: [main]
+    branches: [main, feature/live-follow-147-preserved]
     paths:
       - 'Desktop/AldanmazDrive_147_github_hazir/**'
       - 'Desktop/AldanmazDrive_147_github_hazir/.github/workflows/aldanmazdrive-154-debug.yml'
@@ -30,15 +30,15 @@ jobs:
         run: ./gradlew assembleDebug --no-daemon
 
       - name: Rename APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk ../AldanmazDrive_154.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk ../AldanmazDrive_1511262140-1.apk
 
       - name: Create source ZIP
-        run: zip -r ../AldanmazDrive_154.zip . -x '.gradle/*' 'app/build/*' '**/.DS_Store'
+        run: zip -r ../AldanmazDrive_1511262140-1.zip . -x '.gradle/*' 'app/build/*' '**/.DS_Store'
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: AldanmazDrive_154_APK
+          name: AldanmazDrive_1511262140-1_APK
           path: Desktop/AldanmazDrive_154.apk
           if-no-files-found: error
           retention-days: 30
@@ -46,7 +46,7 @@ jobs:
       - name: Upload source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: AldanmazDrive_154_ZIP
+          name: AldanmazDrive_1511262140-1_ZIP
           path: Desktop/AldanmazDrive_154.zip
           if-no-files-found: error
           retention-days: 30
