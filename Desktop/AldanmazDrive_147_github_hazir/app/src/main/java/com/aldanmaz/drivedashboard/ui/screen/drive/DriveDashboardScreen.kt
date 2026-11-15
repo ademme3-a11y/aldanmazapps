@@ -345,7 +345,8 @@ fun DriveDashboardScreen(
     var dashboardRouteProfile by remember { mutableStateOf<RouteProfileResult?>(null) }
     var showDashboardRouteProfile by remember { mutableStateOf(false) }
     var showDashboardLiveProfile by remember { mutableStateOf(false) }
-    var showDashboardRouteFullScreen by remember { mutableStateOf(false) }\n    var show3DDriveScreen by remember { mutableStateOf(false) }
+    var showDashboardRouteFullScreen by remember { mutableStateOf(false) }
+    var show3DDriveScreen by remember { mutableStateOf(false) }
 
 
     LaunchedEffect(isLiveSlopeHalfVisible) {
