@@ -47,6 +47,7 @@ internal class NavMapController {
     private var epoch = 0
     private var viewW = 0
     private var viewH = 0
+    private var vehicleCleared = false
     private var lastRoadQueryAt = 0L
     private var lastRoadName: String? = null
     var styleReady = false
@@ -113,6 +114,11 @@ internal class NavMapController {
             val trail = LineLayer("nav-trail", TRAIL_SRC).withProperties(
                 PropertyFactory.lineColor("#3AA0FF"), PropertyFactory.lineOpacity(0.45f), PropertyFactory.lineWidth(4f),
                 PropertyFactory.lineCap(Property.LINE_CAP_ROUND), PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND))
+            val glow = LineLayer("nav-route-glow", ROUTE_SRC).withProperties(
+                PropertyFactory.lineColor("#28D7FF"), PropertyFactory.lineOpacity(0.20f), PropertyFactory.lineBlur(6f),
+                PropertyFactory.lineWidth(Expression.interpolate(Expression.exponential(1.5f), Expression.zoom(),
+                    Expression.stop(8, 10f), Expression.stop(14, 26f), Expression.stop(19, 64f))),
+                PropertyFactory.lineCap(Property.LINE_CAP_ROUND), PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND))
             val casing = LineLayer("nav-route-casing", ROUTE_SRC).withProperties(
                 PropertyFactory.lineColor("#06324A"), PropertyFactory.lineWidth(widthCasing),
                 PropertyFactory.lineCap(Property.LINE_CAP_ROUND), PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND))
@@ -130,7 +136,7 @@ internal class NavMapController {
                 PropertyFactory.fillExtrusionVerticalGradient(true))
 
             // Rota/iz etiketlerin altina, arac en uste.
-            for (l in listOf(trail, casing, line)) {
+            for (l in listOf(trail, glow, casing, line)) {
                 if (below != null) style.addLayerBelow(l, below) else style.addLayer(l)
             }
             style.addLayer(dest)
@@ -245,9 +251,17 @@ internal class NavMapController {
     /** Aracin 3B modelini konuma/yone yerlestirir; olcek kamera zoom'una gore sabit ekran boyutu verir. */
     fun setVehicle(lat: Double, lon: Double, headingDeg: Double, zoom: Double) {
         val src = vehicleSrc ?: return
+        vehicleCleared = false
         val mpp = NavGeo.metersPerPixel(lat, zoom)
         val scale = (carPx * mpp / VehicleModel.LENGTH_M).coerceIn(1.0, 14.0)
         src.setGeoJson(VehicleModel.featureCollection(lat, lon, headingDeg, scale))
+    }
+
+    /** Surus kamerasinda arac ekrana foto olarak cizilir; haritadaki 3B blok model gizlenir. */
+    fun clearVehicle() {
+        if (vehicleCleared) return
+        vehicleSrc?.setGeoJson(EMPTY_FC)
+        vehicleCleared = true
     }
 
     // ---- kamera ----

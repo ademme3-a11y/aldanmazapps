@@ -1,6 +1,10 @@
 package com.aldanmaz.drivedashboard.ui.screen.drive
 
+import android.net.Uri
 import android.os.SystemClock
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -15,6 +19,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -38,6 +43,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -45,6 +51,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -53,7 +60,10 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -62,6 +72,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.aldanmaz.drivedashboard.BuildConfig
+import com.aldanmaz.drivedashboard.R
 import com.aldanmaz.drivedashboard.nav.FilteredFix
 import com.aldanmaz.drivedashboard.nav.GeoPoint
 import com.aldanmaz.drivedashboard.nav.GpsFilter
@@ -71,20 +82,22 @@ import com.aldanmaz.drivedashboard.nav.NavGeo
 import com.aldanmaz.drivedashboard.nav.NavMapController
 import com.aldanmaz.drivedashboard.nav.NavMapState
 import com.aldanmaz.drivedashboard.nav.NavMapView
+import com.aldanmaz.drivedashboard.nav.NavVehiclePhoto
 import com.aldanmaz.drivedashboard.nav.NavViewModel
 import com.aldanmaz.drivedashboard.nav.PoseSmoother
 import com.aldanmaz.drivedashboard.nav.RouteState
 import com.aldanmaz.drivedashboard.nav.SearchState
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.time.LocalTime
 import java.util.Locale
 
 private enum class CamMode { FOLLOW, OVERVIEW, FREE }
 
-private val PanelColor = Color(0xE60E151C)
-private val ChipColor = Color(0xE61B2630)
+private val PanelColor = Color(0xF50E151C)
+private val ChipColor = Color(0xF21B2630)
 private val Accent = Color(0xFF28D7FF)
-private val SoftText = Color(0xFFCAD6E0)
+private val SoftText = Color(0xFFDCE6EE)
 private val Good = Color(0xFF52E69A)
 private val Warn = Color(0xFFFFC45C)
 private val Bad = Color(0xFFFF6B6B)
@@ -210,7 +223,8 @@ internal fun DriveNavigation3DScreen(
                         lastDrawNs = now
                         val mode = camNow
                         val zoomForScale = if (mode == CamMode.FOLLOW) smoother.zoom else (controller.currentZoom() ?: smoother.zoom)
-                        controller.setVehicle(smoother.lat, smoother.lon, smoother.heading, zoomForScale)
+                        if (mode == CamMode.FOLLOW) controller.clearVehicle()
+                        else controller.setVehicle(smoother.lat, smoother.lon, smoother.heading, zoomForScale)
                         if (mode == CamMode.FOLLOW) {
                             controller.moveFollow(smoother.lat, smoother.lon, smoother.heading, smoother.zoom)
                         } else if (mode == CamMode.FREE && SystemClock.elapsedRealtime() - gestureNow > 15_000L) {
@@ -232,6 +246,25 @@ internal fun DriveNavigation3DScreen(
             val fromRoute = progressNow?.currentStreet?.takeIf { it.isNotBlank() }
             val n = fromRoute ?: controller.roadNameAt(f.lat, f.lon, SystemClock.elapsedRealtime())
             if (n != roadName) roadName = n
+        }
+    }
+
+    // ---------- arac gorseli (kullanicinin kendi arka fotografi varsa o, yoksa varsayilan cizim) ----------
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var navPhoto by remember { mutableStateOf<ImageBitmap?>(null) }
+    var photoVersion by remember { mutableIntStateOf(0) }
+    var photoStatus by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(photoVersion) { navPhoto = NavVehiclePhoto.load(ctx) }
+    val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        if (uri != null) {
+            photoStatus = "Fotoğraf işleniyor…"
+            NavVehiclePhoto.import(ctx, uri) { res ->
+                scope.launch {
+                    res.onSuccess { photoStatus = "Fotoğraf eklendi"; photoVersion++ }
+                        .onFailure { photoStatus = "Fotoğraf işlenemedi: ${it.message ?: "bilinmeyen hata"}" }
+                }
+            }
         }
     }
 
@@ -283,6 +316,29 @@ internal fun DriveNavigation3DScreen(
             modifier = Modifier.fillMaxSize()
         )
 
+        // ======== arac (takip kamerasinda arkadan gorunum) ========
+        if (camMode == CamMode.FOLLOW && fix != null && mapEpoch != null) {
+            val photo = navPhoto
+            val ratio = photo?.let { it.width.toFloat() / it.height } ?: (574f / 337f)
+            val carW = (minOf(maxWidth, maxHeight).value * 0.30f).coerceIn(110f, 240f).dp
+            val carH = minOf(carW / ratio, maxHeight * 0.30f)
+            Box(
+                Modifier.align(Alignment.TopStart)
+                    .offset(x = (maxWidth - carW) / 2, y = maxHeight * 0.71f - carH * 0.45f)
+                    .size(carW, carH)
+            ) {
+                if (photo != null) {
+                    Image(bitmap = photo, contentDescription = "Araç", contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
+                } else {
+                    Image(
+                        painter = painterResource(R.drawable.vehicle_nav_rear_default),
+                        contentDescription = "Dacia Sandero Stepway 07 MTU 93",
+                        contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+        }
+
         // ======== ust panel ========
         AnimatedVisibility(
             visible = panelsVisible, modifier = Modifier.align(Alignment.TopStart),
@@ -294,22 +350,9 @@ internal fun DriveNavigation3DScreen(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) { Text("‹", color = Color.White, fontSize = 30.sp) }
-                Column(Modifier.weight(1f)) {
+                Column(Modifier.weight(1f).padding(end = if (landscape) 0.dp else 140.dp)) {
                     Text("3D SÜRÜŞ", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                    Text("Beyaz Dacia Sandero Stepway • 07 MTU 93", color = SoftText, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(currentTime, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    val gpsOk = isGpsActive && latitude != null && !gpsStale
-                    Text(
-                        when {
-                            latitude == null -> "GPS BEKLENİYOR"
-                            gpsStale -> "GPS ZAYIF"
-                            gpsOk -> "GPS AKTİF"
-                            else -> "GPS BEKLENİYOR"
-                        },
-                        color = if (gpsOk) Good else Warn, fontSize = 10.sp
-                    )
+                    Text("Beyaz Dacia Sandero Stepway 2017 Dizel • 07 MTU 93", color = SoftText, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
 
@@ -349,7 +392,7 @@ internal fun DriveNavigation3DScreen(
                     TextButton(onClick = { vm.retrySearch() }) { Text("TEKRAR DENE", color = Accent, fontWeight = FontWeight.Bold) }
                 }
                 is SearchState.Results -> LazyColumn(
-                    Modifier.fillMaxWidth().heightIn(max = if (landscape) 220.dp else 240.dp)
+                    Modifier.fillMaxWidth().heightIn(max = if (landscape) (maxHeight - 260.dp).coerceAtLeast(120.dp) else minOf(240.dp, maxHeight * 0.3f))
                         .background(ChipColor, RoundedCornerShape(10.dp))
                 ) {
                     items(s.places) { place ->
@@ -358,9 +401,9 @@ internal fun DriveNavigation3DScreen(
                                 .clickable { focus.clearFocus(); vm.selectPlace(place) }
                                 .padding(horizontal = 12.dp, vertical = 9.dp)
                         ) {
-                            Text(place.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(place.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             if (place.subtitle.isNotBlank()) {
-                                Text(place.subtitle, color = SoftText, fontSize = 11.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                Text(place.subtitle, color = SoftText, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
                             }
                         }
                     }
@@ -409,26 +452,26 @@ internal fun DriveNavigation3DScreen(
         if (panelsVisible && camMode != CamMode.FOLLOW && fix != null) {
             Button(
                 onClick = { controller.applyFollowPadding(); camMode = CamMode.FOLLOW },
-                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 12.dp, bottom = if (landscape) 24.dp else 230.dp),
+                modifier = Modifier.align(if (landscape) Alignment.BottomCenter else Alignment.BottomEnd).padding(end = 12.dp, bottom = if (landscape) 24.dp else 230.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = Color(0xFF06222B))
             ) { Text("ORTALA", fontWeight = FontWeight.Bold) }
         }
 
         // ======== alt panel ========
         AnimatedVisibility(
-            visible = panelsVisible, modifier = Modifier.align(Alignment.BottomStart),
+            visible = panelsVisible, modifier = Modifier.align(if (landscape) Alignment.BottomEnd else Alignment.BottomStart),
             enter = fadeIn(), exit = fadeOut()
         ) {
         Column(
-            panelModifier.padding(10.dp)
+            (if (landscape) Modifier.width(400.dp) else Modifier.fillMaxWidth()).padding(10.dp)
                 .background(PanelColor, RoundedCornerShape(12.dp)).padding(11.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
                 Surface(Modifier.weight(1f), color = ChipColor, shape = RoundedCornerShape(10.dp)) {
                     Row(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), verticalAlignment = Alignment.Bottom) {
-                        Text(speedKmh.coerceAtLeast(0).toString(), color = Color.White, fontSize = 34.sp, fontWeight = FontWeight.Black)
-                        Text(" km/h", color = SoftText, fontSize = 12.sp, modifier = Modifier.padding(bottom = 6.dp))
+                        Text(speedKmh.coerceAtLeast(0).toString(), color = Color.White, fontSize = 68.sp, fontWeight = FontWeight.Black)
+                        Text(" km/h", color = SoftText, fontSize = 20.sp, modifier = Modifier.padding(bottom = 12.dp))
                     }
                 }
                 if (speedLimitKmh != null && speedLimitKmh > 0) InfoChip("SINIR", speedLimitKmh.toString())
@@ -452,15 +495,30 @@ internal fun DriveNavigation3DScreen(
                     Column(Modifier.weight(1f)) {
                         Text(
                             "${NavFormat.distance(prog.remainingM)} • ${NavFormat.duration(prog.remainingS)}",
-                            color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold
+                            color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold
                         )
                         Text(
                             "Varış ${NavFormat.eta(LocalTime.now(), prog.remainingS)} • ${destination?.name.orEmpty()}",
-                            color = SoftText, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+                            color = SoftText, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
                         )
                     }
                     TextButton(onClick = { vm.cancelRoute() }) {
                         Text(if (prog.arrived) "TAMAM" else "İPTAL", color = Accent, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    photoStatus ?: if (navPhoto != null) "Araç: kendi fotoğrafınız" else "Araç: varsayılan görsel",
+                    color = SoftText, fontSize = 11.sp, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis
+                )
+                TextButton(onClick = { photoPicker.launch("image/*") }) {
+                    Text("FOTOĞRAF SEÇ", color = Accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+                if (navPhoto != null) {
+                    TextButton(onClick = { NavVehiclePhoto.reset(ctx); photoStatus = null; photoVersion++ }) {
+                        Text("SIFIRLA", color = SoftText, fontSize = 11.sp)
                     }
                 }
             }
@@ -492,22 +550,30 @@ internal fun DriveNavigation3DScreen(
         }
         }
 
-        // ======== sadece hiz + saat (paneller gizliyken) ========
+        // ======== saat: sag ust kose, her zaman gorunur ========
+        Surface(
+            Modifier.align(Alignment.TopEnd).padding(10.dp),
+            color = PanelColor, shape = RoundedCornerShape(14.dp)
+        ) {
+            Text(
+                currentTime, color = Color.White, fontSize = 40.sp, fontWeight = FontWeight.Black,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+            )
+        }
+
+        // ======== sadece hiz (paneller gizliyken) ========
         AnimatedVisibility(
             visible = !panelsVisible,
             modifier = Modifier.align(if (landscape) Alignment.BottomStart else Alignment.BottomCenter),
             enter = fadeIn(), exit = fadeOut()
         ) {
             Row(
-                Modifier.padding(14.dp).background(PanelColor, RoundedCornerShape(16.dp))
-                    .padding(horizontal = 18.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(18.dp)
+                Modifier.padding(14.dp).background(PanelColor, RoundedCornerShape(18.dp))
+                    .padding(horizontal = 22.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.Bottom
             ) {
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Text(speedKmh.coerceAtLeast(0).toString(), color = Color.White, fontSize = 52.sp, fontWeight = FontWeight.Black)
-                    Text(" km/h", color = SoftText, fontSize = 14.sp, modifier = Modifier.padding(bottom = 9.dp))
-                }
-                Text(currentTime, color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.Bold)
+                Text(speedKmh.coerceAtLeast(0).toString(), color = Color.White, fontSize = 104.sp, fontWeight = FontWeight.Black)
+                Text(" km/h", color = SoftText, fontSize = 28.sp, modifier = Modifier.padding(bottom = 20.dp))
             }
         }
     }
