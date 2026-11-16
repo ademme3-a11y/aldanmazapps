@@ -1,350 +1,489 @@
 package com.aldanmaz.drivedashboard.ui.screen.drive
 
-import android.graphics.Color as AndroidColor
-import android.os.Handler
-import android.os.Looper
-import android.webkit.ConsoleMessage
-import android.webkit.JavascriptInterface
-import android.webkit.WebChromeClient
-import android.webkit.WebResourceRequest
-import android.webkit.WebResourceResponse
-import android.webkit.WebView
-import android.webkit.WebViewClient
+import android.os.SystemClock
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.aldanmaz.drivedashboard.BuildConfig
+import com.aldanmaz.drivedashboard.nav.FilteredFix
+import com.aldanmaz.drivedashboard.nav.GeoPoint
+import com.aldanmaz.drivedashboard.nav.GpsFilter
+import com.aldanmaz.drivedashboard.nav.ManeuverKind
+import com.aldanmaz.drivedashboard.nav.NavFormat
+import com.aldanmaz.drivedashboard.nav.NavGeo
+import com.aldanmaz.drivedashboard.nav.NavMapController
+import com.aldanmaz.drivedashboard.nav.NavMapState
+import com.aldanmaz.drivedashboard.nav.NavMapView
+import com.aldanmaz.drivedashboard.nav.NavViewModel
+import com.aldanmaz.drivedashboard.nav.PoseSmoother
+import com.aldanmaz.drivedashboard.nav.RouteState
+import com.aldanmaz.drivedashboard.nav.SearchState
+import kotlinx.coroutines.delay
+import java.time.LocalTime
 import java.util.Locale
 
-private class DriveMapJavascriptBridge(
-    private val onStatus: (String, Boolean?) -> Unit
-) {
-    @JavascriptInterface
-    fun onMapReady() = onStatus("3D harita hazır", true)
+private enum class CamMode { FOLLOW, OVERVIEW, FREE }
 
-    @JavascriptInterface
-    fun onMapStatus(message: String) = onStatus(message, null)
+private val PanelColor = Color(0xE60E151C)
+private val ChipColor = Color(0xE61B2630)
+private val Accent = Color(0xFF28D7FF)
+private val SoftText = Color(0xFFCAD6E0)
+private val Good = Color(0xFF52E69A)
+private val Warn = Color(0xFFFFC45C)
+private val Bad = Color(0xFFFF6B6B)
 
-    @JavascriptInterface
-    fun onMapError(message: String) = onStatus("Harita hatası: $message", null)
-}
-
+/**
+ * Tesla'dan esinlenen (ozgun tasarim) 3B surus ve navigasyon ekrani.
+ *
+ * Yerel MapLibre haritasi + gercek GPS + Photon/Nominatim arama + Valhalla/OSRM rota.
+ * Eski WebView/CDN surumunun yerini alir; imza ve cagiran taraf degismedi.
+ * Hiz yalnizca km/sa; sahte konum gosterilmez.
+ */
 @Composable
 internal fun DriveNavigation3DScreen(
     latitude: Double?, longitude: Double?, speedKmh: Int, currentTime: String,
     vehicleKm: Double, headingDegrees: Float?, direction: String,
     locationStatus: String, speedLimitKmh: Int?, isGpsActive: Boolean, onBack: () -> Unit
 ) {
-    val context = LocalContext.current
-    val mainHandler = remember { Handler(Looper.getMainLooper()) }
-    var destination by remember { mutableStateOf("") }
-    var pendingDestination by remember { mutableStateOf("") }
-    var mapReady by remember { mutableStateOf(false) }
-    var mapStatus by remember { mutableStateOf("Harita motoru başlatılıyor…") }
-    var mapView by remember { mutableStateOf<WebView?>(null) }
+    val vm: NavViewModel = viewModel()
+    val controller = remember { NavMapController() }
+    val focus = LocalFocusManager.current
+    val density = LocalDensity.current.density
 
-    LaunchedEffect(mapView, mapReady, latitude, longitude, headingDegrees, speedKmh, speedLimitKmh) {
-        if (!mapReady) return@LaunchedEffect
-        val lat = latitude ?: return@LaunchedEffect
-        val lon = longitude ?: return@LaunchedEffect
-        val heading = headingDegrees ?: 0f
-        mapView?.evaluateJavascript(
-            "window.updateVehicle($lat,$lon,$heading,${speedKmh.coerceAtLeast(0)},${speedLimitKmh ?: 0});",
-            null
-        )
+    val query by vm.query.collectAsStateWithLifecycle()
+    val search by vm.search.collectAsStateWithLifecycle()
+    val destination by vm.destination.collectAsStateWithLifecycle()
+    val routeState by vm.routeState.collectAsStateWithLifecycle()
+    val progress by vm.progress.collectAsStateWithLifecycle()
+    val rerouting by vm.rerouting.collectAsStateWithLifecycle()
+
+    var mapState by remember { mutableStateOf<NavMapState>(NavMapState.Loading) }
+    var retryToken by remember { mutableIntStateOf(0) }
+    var camMode by remember { mutableStateOf(CamMode.FOLLOW) }
+    var gestureAtMs by remember { mutableStateOf(0L) }
+    var fix by remember { mutableStateOf<FilteredFix?>(null) }
+    var lastFixAtMs by remember { mutableStateOf(0L) }
+    var gpsStale by remember { mutableStateOf(false) }
+    var roadName by remember { mutableStateOf<String?>(null) }
+
+    val mapEpoch: Int? = when (val s = mapState) {
+        is NavMapState.Ready -> s.epoch
+        is NavMapState.Degraded -> s.epoch
+        else -> null
     }
 
-    // Hedef, yalnızca MapLibre stil ve katmanları gerçekten hazır olduktan sonra gönderilir.
-    LaunchedEffect(mapView, mapReady, pendingDestination) {
-        val query = pendingDestination
-        if (mapReady && mapView != null && query.isNotBlank()) {
-            mapStatus = "Hedef aranıyor: $query"
-            val quoted = org.json.JSONObject.quote(query)
-            mapView?.evaluateJavascript("window.findDestination($quoted);", null)
-            pendingDestination = ""
+    val fixNow by rememberUpdatedState(fix)
+    val progressNow by rememberUpdatedState(progress)
+    val camNow by rememberUpdatedState(camMode)
+    val gestureNow by rememberUpdatedState(gestureAtMs)
+
+    // ---------- GPS: filtrele, ViewModel'e ve haritaya ilet ----------
+    val filter = remember { GpsFilter() }
+    val trail = remember { ArrayList<GeoPoint>() }
+    val lastRaw = remember { doubleArrayOf(Double.NaN, Double.NaN) }
+    LaunchedEffect(latitude, longitude, speedKmh, headingDegrees) {
+        val la = latitude ?: return@LaunchedEffect
+        val lo = longitude ?: return@LaunchedEffect
+        val f = filter.accept(la, lo, speedKmh, headingDegrees, SystemClock.elapsedRealtime()) ?: return@LaunchedEffect
+        fix = f
+        if (la != lastRaw[0] || lo != lastRaw[1]) {
+            lastRaw[0] = la; lastRaw[1] = lo
+            lastFixAtMs = SystemClock.elapsedRealtime()
+            gpsStale = false
+            vm.onPosition(GeoPoint(f.lat, f.lon))
+            val p = GeoPoint(f.lat, f.lon)
+            if (trail.isEmpty() || NavGeo.haversine(trail.last(), p) >= 6.0) {
+                trail.add(p)
+                if (trail.size > 500) trail.removeAt(0)
+                controller.setTrail(trail)
+            }
+        }
+    }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(2_000)
+            gpsStale = lastFixAtMs != 0L && SystemClock.elapsedRealtime() - lastFixAtMs > 10_000
         }
     }
 
-    Box(Modifier.fillMaxSize().background(Color.Black)) {
-        AndroidView(
-            modifier = Modifier.fillMaxSize(),
-            factory = { ctx ->
-                WebView(ctx).apply {
-                    setBackgroundColor(AndroidColor.rgb(12, 20, 29))
-                    settings.javaScriptEnabled = true
-                    settings.domStorageEnabled = true
-                    settings.databaseEnabled = true
-                    settings.loadsImagesAutomatically = true
-                    settings.javaScriptCanOpenWindowsAutomatically = false
-                    settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
-                    settings.cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
-                    settings.userAgentString = "${settings.userAgentString} AldanmazDrive/3D"
-                    setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
+    // ---------- harita katmanlarini veriyle senkronla (stil her kuruldugunda) ----------
+    LaunchedEffect(mapEpoch, routeState) {
+        if (mapEpoch == null) return@LaunchedEffect
+        val rs = routeState
+        controller.setRoute(if (rs is RouteState.Ready) rs.route.points else null)
+    }
+    LaunchedEffect(mapEpoch, destination) {
+        if (mapEpoch == null) return@LaunchedEffect
+        controller.setDestination(destination?.let { GeoPoint(it.lat, it.lon) })
+    }
+    LaunchedEffect(mapEpoch) {
+        if (mapEpoch != null) controller.setTrail(trail)
+    }
 
-                    addJavascriptInterface(
-                        DriveMapJavascriptBridge { message, ready ->
-                            mainHandler.post {
-                                mapStatus = message
-                                if (ready != null) mapReady = ready
-                            }
-                        },
-                        "AndroidMap"
-                    )
+    // ---------- yeni rota: once tum rotayi goster, sonra surus kamerasina don ----------
+    val readyEpoch = (routeState as? RouteState.Ready)?.epoch
+    LaunchedEffect(readyEpoch, mapEpoch) {
+        val rs = routeState as? RouteState.Ready ?: return@LaunchedEffect
+        if (mapEpoch == null) return@LaunchedEffect
+        camMode = CamMode.OVERVIEW
+        val left = (24 * density).toInt()
+        controller.fitRoute(rs.route.points, left, (250 * density).toInt(), (24 * density).toInt(), (210 * density).toInt())
+        delay(3_800)
+        if (camMode == CamMode.OVERVIEW) {
+            controller.applyFollowPadding()
+            camMode = CamMode.FOLLOW
+        }
+    }
 
-                    webChromeClient = object : WebChromeClient() {
-                        override fun onConsoleMessage(message: ConsoleMessage): Boolean {
-                            if (message.messageLevel() == ConsoleMessage.MessageLevel.ERROR) {
-                                mainHandler.post {
-                                    mapStatus = "Harita betik hatası: ${message.message().take(140)}"
-                                }
-                            }
-                            return true
+    // ---------- kare dongusu: arac + kamera (yaklasik 30 fps) ----------
+    LaunchedEffect(mapEpoch) {
+        if (mapEpoch == null) return@LaunchedEffect
+        val smoother = PoseSmoother()
+        var lastNs = 0L
+        var lastDrawNs = 0L
+        while (true) {
+            androidx.compose.runtime.withFrameNanos { now ->
+                val f = fixNow
+                if (f != null) {
+                    val dt = if (lastNs == 0L) 0.016 else (now - lastNs) / 1_000_000_000.0
+                    lastNs = now
+                    val targetZoom = PoseSmoother.zoomForSpeed(f.speedKmh, progressNow?.distToNextM)
+                    smoother.step(dt, f.lat, f.lon, f.headingDeg, targetZoom)
+                    if (now - lastDrawNs >= 33_000_000L) {
+                        lastDrawNs = now
+                        val mode = camNow
+                        val zoomForScale = if (mode == CamMode.FOLLOW) smoother.zoom else (controller.currentZoom() ?: smoother.zoom)
+                        controller.setVehicle(smoother.lat, smoother.lon, smoother.heading, zoomForScale)
+                        if (mode == CamMode.FOLLOW) {
+                            controller.moveFollow(smoother.lat, smoother.lon, smoother.heading, smoother.zoom)
+                        } else if (mode == CamMode.FREE && SystemClock.elapsedRealtime() - gestureNow > 15_000L) {
+                            controller.applyFollowPadding()
+                            camMode = CamMode.FOLLOW   // Tesla gibi: bir sure sonra otomatik geri don
                         }
                     }
-
-                    webViewClient = object : WebViewClient() {
-                        override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
-                            super.onPageStarted(view, url, favicon)
-                            mapReady = false
-                            mapStatus = "Harita kaynakları yükleniyor…"
-                        }
-
-                        override fun onPageFinished(view: WebView?, url: String?) {
-                            super.onPageFinished(view, url)
-                            // onPageFinished yalnızca HTML'nin bittiğini söyler; haritanın hazır olduğunu söylemez.
-                            if (!mapReady) mapStatus = "Harita stili ve 3D katmanlar bekleniyor…"
-                        }
-
-                        override fun onReceivedError(
-                            view: WebView?,
-                            request: WebResourceRequest?,
-                            error: android.webkit.WebResourceError?
-                        ) {
-                            super.onReceivedError(view, request, error)
-                            if (request?.isForMainFrame == true) {
-                                val description = error?.description?.toString() ?: "Bilinmeyen bağlantı hatası"
-                                mainHandler.post {
-                                    mapReady = false
-                                    mapStatus = "Harita sayfası açılamadı: $description"
-                                }
-                            }
-                        }
-
-                        override fun onReceivedHttpError(
-                            view: WebView?,
-                            request: WebResourceRequest?,
-                            errorResponse: WebResourceResponse?
-                        ) {
-                            super.onReceivedHttpError(view, request, errorResponse)
-                            if (request?.isForMainFrame == true) {
-                                mainHandler.post {
-                                    mapReady = false
-                                    mapStatus = "Harita sunucusu HTTP ${errorResponse?.statusCode ?: "hatası"} döndürdü"
-                                }
-                            }
-                        }
-
-                        override fun onRenderProcessGone(
-                            view: WebView?,
-                            detail: android.webkit.RenderProcessGoneDetail?
-                        ): Boolean {
-                            mainHandler.post {
-                                mapReady = false
-                                mapStatus = "Harita motoru durdu. Ekranı kapatıp yeniden açın."
-                            }
-                            return true
-                        }
-                    }
-
-                    loadDataWithBaseURL("https://aldanmazdrive.local/", DRIVE_3D_HTML, "text/html", "UTF-8", null)
-                    mapView = this
                 }
+            }
+        }
+    }
+
+    // ---------- yol adi: rota varsa rotadan, yoksa harita karolarindan ----------
+    LaunchedEffect(mapEpoch) {
+        if (mapEpoch == null) return@LaunchedEffect
+        while (true) {
+            delay(1_300)
+            val f = fixNow ?: continue
+            val fromRoute = progressNow?.currentStreet?.takeIf { it.isNotBlank() }
+            val n = fromRoute ?: controller.roadNameAt(f.lat, f.lon, SystemClock.elapsedRealtime())
+            if (n != roadName) roadName = n
+        }
+    }
+
+    BoxWithConstraints(Modifier.fillMaxSize().background(Color(0xFF0B1118))) {
+        val landscape = maxWidth > maxHeight * 1.15f
+        val panelModifier = if (landscape) Modifier.width(440.dp) else Modifier.fillMaxWidth()
+
+        NavMapView(
+            controller = controller,
+            styleUrl = BuildConfig.NAV_STYLE_URL,
+            retryToken = retryToken,
+            onState = { mapState = it },
+            onUserGesture = {
+                if (camMode == CamMode.FOLLOW || camMode == CamMode.OVERVIEW) camMode = CamMode.FREE
+                gestureAtMs = SystemClock.elapsedRealtime()
             },
-            update = { mapView = it }
+            modifier = Modifier.fillMaxSize()
         )
 
+        // ======== ust panel ========
         Column(
-            Modifier.align(Alignment.TopCenter).fillMaxWidth()
-                .background(Color(0xD9162532)).padding(10.dp),
+            panelModifier.align(Alignment.TopStart).background(PanelColor).padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(7.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) { Text("‹", color = Color.White, fontSize = 30.sp) }
                 Column(Modifier.weight(1f)) {
                     Text("3D SÜRÜŞ", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                    Text("Beyaz Dacia Sandero Stepway • 07 MTU 93", color = Color(0xFFCAD6E0), fontSize = 11.sp)
+                    Text("Beyaz Dacia Sandero Stepway • 07 MTU 93", color = SoftText, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(currentTime, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    Text(if (isGpsActive) "GPS AKTİF" else "GPS BEKLENİYOR", color = if (isGpsActive) Color(0xFF52E69A) else Color(0xFFFFC45C), fontSize = 10.sp)
+                    val gpsOk = isGpsActive && latitude != null && !gpsStale
+                    Text(
+                        when {
+                            latitude == null -> "GPS BEKLENİYOR"
+                            gpsStale -> "GPS ZAYIF"
+                            gpsOk -> "GPS AKTİF"
+                            else -> "GPS BEKLENİYOR"
+                        },
+                        color = if (gpsOk) Good else Warn, fontSize = 10.sp
+                    )
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
-                Surface(Modifier.weight(1f), color = Color(0xD9273949), shape = RoundedCornerShape(10.dp)) {
-                    Row(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), verticalAlignment = Alignment.Bottom) {
-                        Text(speedKmh.coerceAtLeast(0).toString(), color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.Black)
-                        Text(" km/h", color = Color(0xFFCAD6E0), fontSize = 11.sp, modifier = Modifier.padding(bottom = 5.dp))
-                    }
-                }
-                DriveInfoChip("ARAÇ KM", if (vehicleKm > 0) String.format(Locale("tr", "TR"), "%,.0f", vehicleKm) else "—")
-                DriveInfoChip("YÖN", direction.ifBlank { "--" })
-                if (speedLimitKmh != null && speedLimitKmh > 0) DriveInfoChip("SINIR", speedLimitKmh.toString())
-            }
+
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 OutlinedTextField(
-                    value = destination, onValueChange = { destination = it }, modifier = Modifier.weight(1f),
-                    singleLine = true, placeholder = { Text("Varış noktası ara…", color = Color.LightGray) },
+                    value = query, onValueChange = { vm.setQuery(it) }, modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    placeholder = { Text("Şehir, ilçe, sokak, adres veya yer…", color = Color.LightGray, fontSize = 13.sp) },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { vm.searchNow(); focus.clearFocus() }),
+                    trailingIcon = {
+                        if (query.isNotEmpty()) {
+                            TextButton(onClick = { vm.setQuery(""); vm.dismissSearch() }) { Text("×", color = SoftText, fontSize = 20.sp) }
+                        }
+                    },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                        focusedBorderColor = Color(0xFF28C8ED), unfocusedBorderColor = Color(0xFF728493),
-                        cursorColor = Color.White
+                        focusedBorderColor = Accent, unfocusedBorderColor = Color(0xFF728493), cursorColor = Color.White
                     )
                 )
-                Button(onClick = {
-                    val query = destination.trim()
-                    if (query.isNotBlank()) {
-                        if (mapReady) {
-                            mapStatus = "Hedef aranıyor: $query"
-                            mapView?.evaluateJavascript("window.findDestination(${org.json.JSONObject.quote(query)});", null)
-                        } else {
-                            pendingDestination = query
-                            mapStatus = "Harita hazır olunca hedef aranacak…"
+                Button(
+                    onClick = { vm.searchNow(); focus.clearFocus() },
+                    enabled = query.trim().length >= 2 && search !is SearchState.Loading
+                ) { Text("ARA", fontWeight = FontWeight.Bold) }
+            }
+
+            when (val s = search) {
+                is SearchState.Idle -> Unit
+                is SearchState.Loading -> StatusRow(loading = true, text = "Aranıyor: ${s.query}", color = SoftText)
+                is SearchState.Empty -> StatusRow(
+                    loading = false, color = Warn,
+                    text = "“${s.query}” için sonuç bulunamadı. Yazımı kontrol edin veya daha genel bir ad deneyin."
+                )
+                is SearchState.Error -> Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    StatusRow(loading = false, text = s.message, color = Bad)
+                    TextButton(onClick = { vm.retrySearch() }) { Text("TEKRAR DENE", color = Accent, fontWeight = FontWeight.Bold) }
+                }
+                is SearchState.Results -> LazyColumn(
+                    Modifier.fillMaxWidth().heightIn(max = if (landscape) 220.dp else 240.dp)
+                        .background(ChipColor, RoundedCornerShape(10.dp))
+                ) {
+                    items(s.places) { place ->
+                        Column(
+                            Modifier.fillMaxWidth()
+                                .clickable { focus.clearFocus(); vm.selectPlace(place) }
+                                .padding(horizontal = 12.dp, vertical = 9.dp)
+                        ) {
+                            Text(place.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            if (place.subtitle.isNotBlank()) {
+                                Text(place.subtitle, color = SoftText, fontSize = 11.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            }
                         }
                     }
-                }, enabled = destination.isNotBlank()) { Text("ARA", fontWeight = FontWeight.Bold) }
+                }
+            }
+
+            when (val r = routeState) {
+                is RouteState.Loading -> StatusRow(loading = true, text = "Rota hesaplanıyor…", color = SoftText)
+                is RouteState.WaitingForGps -> StatusRow(
+                    loading = true, color = Warn,
+                    text = "GPS konumu bekleniyor — konum alınınca rota hesaplanacak. ${if (latitude == null) locationStatus else ""}".trim()
+                )
+                is RouteState.Error -> Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    StatusRow(loading = false, text = r.message, color = Bad)
+                    Row {
+                        TextButton(onClick = { vm.retryRoute() }) { Text("TEKRAR DENE", color = Accent, fontWeight = FontWeight.Bold) }
+                        TextButton(onClick = { vm.cancelRoute() }) { Text("İPTAL", color = SoftText) }
+                    }
+                }
+                else -> Unit
+            }
+
+            val prog = progress
+            if (routeState is RouteState.Ready && prog != null) {
+                val step = prog.nextStep
+                Row(
+                    Modifier.fillMaxWidth().background(ChipColor, RoundedCornerShape(12.dp)).padding(10.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    ManeuverIcon(step?.kind ?: ManeuverKind.STRAIGHT, Modifier.size(54.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            if (prog.arrived) "Hedefe ulaştınız" else NavFormat.distance(prog.distToNextM),
+                            color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.Black
+                        )
+                        if (!prog.arrived) {
+                            Text(step?.instruction.orEmpty(), color = SoftText, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        }
+                    }
+                }
             }
         }
 
-        Surface(
-            Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(10.dp),
-            color = Color(0xD9162532), shape = RoundedCornerShape(10.dp)
+        // ======== yeniden ortala ========
+        if (camMode != CamMode.FOLLOW && fix != null) {
+            Button(
+                onClick = { controller.applyFollowPadding(); camMode = CamMode.FOLLOW },
+                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 12.dp, bottom = if (landscape) 24.dp else 230.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = Color(0xFF06222B))
+            ) { Text("ORTALA", fontWeight = FontWeight.Bold) }
+        }
+
+        // ======== alt panel ========
+        Column(
+            panelModifier.align(Alignment.BottomStart).padding(10.dp)
+                .background(PanelColor, RoundedCornerShape(12.dp)).padding(11.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Column(Modifier.padding(11.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
+                Surface(Modifier.weight(1f), color = ChipColor, shape = RoundedCornerShape(10.dp)) {
+                    Row(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), verticalAlignment = Alignment.Bottom) {
+                        Text(speedKmh.coerceAtLeast(0).toString(), color = Color.White, fontSize = 34.sp, fontWeight = FontWeight.Black)
+                        Text(" km/h", color = SoftText, fontSize = 12.sp, modifier = Modifier.padding(bottom = 6.dp))
+                    }
+                }
+                if (speedLimitKmh != null && speedLimitKmh > 0) InfoChip("SINIR", speedLimitKmh.toString())
+                InfoChip("YÖN", direction.ifBlank { "--" })
+                InfoChip("ARAÇ KM", if (vehicleKm > 0) String.format(Locale.forLanguageTag("tr-TR"), "%,.0f", vehicleKm) else "—")
+            }
+
+            val road = roadName
+            if (!road.isNullOrBlank() || rerouting) {
                 Text(
-                    mapStatus,
-                    color = if (mapReady) Color(0xFF52E69A) else Color(0xFFFFC45C),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    if (latitude != null && longitude != null) "Canlı GPS izi açık • Hedef girilmezse geçtiğin yol çizilir" else locationStatus,
-                    color = Color.White, fontSize = 10.sp
+                    if (rerouting) "Rota yeniden hesaplanıyor…" else road.orEmpty(),
+                    color = if (rerouting) Warn else Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis
                 )
             }
-        }
-    }
 
-    DisposableEffect(mapView) {
-        val view = mapView
-        onDispose {
-            view?.apply { stopLoading(); loadUrl("about:blank"); removeJavascriptInterface("AndroidMap"); destroy() }
+            val prog = progress
+            val rs = routeState
+            if (rs is RouteState.Ready && prog != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            "${NavFormat.distance(prog.remainingM)} • ${NavFormat.duration(prog.remainingS)}",
+                            color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "Varış ${NavFormat.eta(LocalTime.now(), prog.remainingS)} • ${destination?.name.orEmpty()}",
+                            color = SoftText, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    TextButton(onClick = { vm.cancelRoute() }) {
+                        Text(if (prog.arrived) "TAMAM" else "İPTAL", color = Accent, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+
+            when (val ms = mapState) {
+                is NavMapState.Loading -> StatusRow(loading = true, text = "Harita yükleniyor…", color = Warn)
+                is NavMapState.Ready -> Text(
+                    if (ms.buildings) "Harita hazır • 3D binalar açık" else "Harita hazır • 3D bina verisi bu stilde yok",
+                    color = Good, fontSize = 10.sp
+                )
+                is NavMapState.Degraded -> Column {
+                    Text(ms.reason, color = Warn, fontSize = 10.sp)
+                    TextButton(onClick = { retryToken++ }) { Text("HARİTAYI TEKRAR DENE", color = Accent, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                }
+                is NavMapState.Failed -> Column {
+                    Text(ms.reason, color = Bad, fontSize = 10.sp)
+                    TextButton(onClick = { retryToken++ }) { Text("TEKRAR DENE", color = Accent, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                }
+            }
+            Text(
+                when {
+                    latitude == null -> locationStatus
+                    gpsStale -> "GPS sinyali zayıf veya kayıp — son bilinen konum gösteriliyor"
+                    else -> String.format(Locale.US, "Canlı GPS %.5f, %.5f", latitude, longitude ?: 0.0)
+                },
+                color = if (latitude == null || gpsStale) Warn else SoftText, fontSize = 10.sp
+            )
+            Text("© OpenStreetMap katkıcıları • OpenFreeMap • MapLibre", color = Color(0xFF8DA0B0), fontSize = 9.sp)
         }
     }
 }
 
 @Composable
-private fun DriveInfoChip(label: String, value: String) {
-    Surface(color = Color(0xD9273949), shape = RoundedCornerShape(9.dp)) {
+private fun StatusRow(loading: Boolean, text: String, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (loading) CircularProgressIndicator(Modifier.size(16.dp), color = Accent, strokeWidth = 2.dp)
+        Text(text, color = color, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
+private fun InfoChip(label: String, value: String) {
+    Surface(color = ChipColor, shape = RoundedCornerShape(9.dp)) {
         Column(Modifier.padding(horizontal = 9.dp, vertical = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(label, color = Color(0xFFCAD6E0), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+            Text(label, color = SoftText, fontSize = 9.sp, fontWeight = FontWeight.Bold)
             Text(value, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
 
-private val DRIVE_3D_HTML = """
-<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
-<style>html,body,#map{margin:0;width:100%;height:100%;background:#101a24;overflow:hidden}.car{width:54px;height:90px;filter:drop-shadow(0 4px 5px #0009)}.car svg{width:100%;height:100%}.plate{position:absolute;bottom:7px;left:50%;transform:translateX(-50%);background:white;color:#111;font:bold 7px Arial;padding:2px 3px;border:1px solid #222;white-space:nowrap}.maplibregl-ctrl-attrib{display:none!important}</style>
-<script>
-window.onerror=function(message,source,line){if(window.AndroidMap)AndroidMap.onMapError(String(message)+" (satır "+line+")");return false;};
-</script>
-</head><body><div id="map"></div>
-<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script><script>
-var map,carMarker,trail=[],pos=[30.70,36.89],bearing=0;
-try{
- if(!window.maplibregl)throw new Error('MapLibre kütüphanesi indirilemedi');
- var car=document.createElement('div');car.className='car';car.innerHTML='<svg viewBox="0 0 60 100"><path d="M15 18 Q18 5 30 5 Q42 5 45 18 L53 76 Q52 91 30 95 Q8 91 7 76Z" fill="#f7f8f9" stroke="#65717a" stroke-width="2"/><path d="M17 24 Q30 15 43 24 L46 51 Q30 58 14 51Z" fill="#243746" stroke="#cbd4da" stroke-width="2"/><path d="M13 60 Q30 66 47 60 L49 78 Q30 88 11 78Z" fill="#e8edf0"/><rect x="9" y="29" width="5" height="12" rx="2" fill="#fff0b0"/><rect x="46" y="29" width="5" height="12" rx="2" fill="#fff0b0"/><rect x="10" y="78" width="7" height="6" fill="#e33"/><rect x="43" y="78" width="7" height="6" fill="#e33"/></svg><div class="plate">07 MTU 93</div>';
- map=new maplibregl.Map({container:'map',style:'https://tiles.openfreemap.org/styles/liberty',center:pos,zoom:15.5,pitch:62,bearing:0,antialias:true});
- map.addControl(new maplibregl.NavigationControl({showCompass:false}),'bottom-right');
- map.on('error',function(e){
-   var msg=(e&&e.error&&e.error.message)?e.error.message:'Harita verisi yüklenemedi';
-   if(window.AndroidMap)AndroidMap.onMapError(msg);
- });
- map.on('load',function(){
-  // Temel harita/rota katmanları 3D bina verisinden bağımsız kurulmalı.
-  try{
-   map.addSource('gps-trail',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:trail}}});
-   map.addLayer({id:'gps-trail-line',type:'line',source:'gps-trail',paint:{'line-color':'#20baff','line-width':5}});
-   map.addSource('nav-route',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:[]}}});
-   map.addLayer({id:'nav-route-line',type:'line',source:'nav-route',paint:{'line-color':'#25dcff','line-width':7}});
-   carMarker=new maplibregl.Marker({element:car,anchor:'center',rotationAlignment:'map'}).setLngLat(pos).addTo(map);
-   if(window.AndroidMap)AndroidMap.onMapReady();
-  }catch(coreError){
-   if(window.AndroidMap)AndroidMap.onMapError('Temel harita katmanları: '+coreError.message);
-   return;
-  }
-  // 3D binalar isteğe bağlıdır; hata verse bile harita ve arama çalışır.
-  try{
-   var style=map.getStyle(),layers=style.layers||[],label=null;
-   if(style.sources&&style.sources.openmaptiles){
-    for(var i=0;i<layers.length;i++){if(layers[i].type==='symbol'&&layers[i].layout&&layers[i].layout['text-field']){label=layers[i].id;break;}}
-    var buildingLayer={id:'3d-buildings',source:'openmaptiles','source-layer':'building',type:'fill-extrusion',minzoom:14,paint:{'fill-extrusion-color':'#8295a5','fill-extrusion-height':['coalesce',['get','render_height'],4],'fill-extrusion-base':['coalesce',['get','render_min_height'],0],'fill-extrusion-opacity':0.8}};
-    if(label)map.addLayer(buildingLayer,label);else map.addLayer(buildingLayer);
-   }else if(window.AndroidMap){AndroidMap.onMapStatus('Harita hazır • 3D bina verisi bu stilde yok');}
-  }catch(buildingError){
-   if(window.AndroidMap)AndroidMap.onMapStatus('Harita hazır • 3D binalar yüklenemedi');
-  }
- });
-}catch(e){if(window.AndroidMap)AndroidMap.onMapError(e.message);}
-window.updateVehicle=function(lat,lon,head,speed,limit){
- if(!map||!map.isStyleLoaded()||!isFinite(lat)||!isFinite(lon))return;
- pos=[lon,lat];bearing=head||0;
- if(carMarker)carMarker.setLngLat(pos).setRotation(bearing);
- trail.push(pos);if(trail.length>1800)trail.shift();
- var src=map.getSource('gps-trail');if(src)src.setData({type:'Feature',geometry:{type:'LineString',coordinates:trail}});
- map.easeTo({center:pos,bearing:bearing,pitch:62,zoom:Math.max(15,Math.min(18,16+speed/120)),duration:850});
-};
-window.findDestination=async function(q){
- try{
-  if(!map||!map.isStyleLoaded()||!map.getSource('nav-route')){if(window.AndroidMap)AndroidMap.onMapStatus('Harita henüz hazır değil; tekrar deneyin');return;}
-  if(window.AndroidMap)AndroidMap.onMapStatus('Hedef konumu aranıyor…');
-  var encoded=encodeURIComponent(q),a=[],geocodeError=null;
-  // Önce Nominatim, yanıt vermezse Photon ile ikinci arama sağlayıcısı.
-  try{
-   var g=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encoded,{headers:{'Accept-Language':'tr'}});
-   if(!g.ok)throw new Error('Nominatim HTTP '+g.status);
-   a=await g.json();
-  }catch(firstError){geocodeError=firstError;}
-  if(!a.length){
-   try{
-    var p=await fetch('https://photon.komoot.io/api/?limit=1&lang=tr&q='+encoded);
-    if(!p.ok)throw new Error('Photon HTTP '+p.status);
-    var pd=await p.json();
-    if(pd.features&&pd.features.length){var xy=pd.features[0].geometry.coordinates;a=[{lon:xy[0],lat:xy[1]}];}
-   }catch(secondError){throw new Error('Şehir arama servisleri yanıt vermedi: '+secondError.message);}
-  }
-  if(!a.length){if(window.AndroidMap)AndroidMap.onMapStatus('Bu şehir/yer bulunamadı');return;}
-  var end=[Number(a[0].lon),Number(a[0].lat)];
-  if(!isFinite(end[0])||!isFinite(end[1]))throw new Error('Arama sonucu koordinatları geçersiz');
-  if(window.AndroidMap)AndroidMap.onMapStatus('Rota hesaplanıyor…');
-  var r=await fetch('https://router.project-osrm.org/route/v1/driving/'+pos.join(',')+';'+end.join(',')+'?overview=full&geometries=geojson');
-  if(!r.ok)throw new Error('Rota servisi HTTP '+r.status);
-  var d=await r.json();if(!d.routes||!d.routes.length){if(window.AndroidMap)AndroidMap.onMapStatus('Bu hedefe rota oluşturulamadı');return;}
-  map.getSource('nav-route').setData({type:'Feature',geometry:d.routes[0].geometry});
-  var b=new maplibregl.LngLatBounds();d.routes[0].geometry.coordinates.forEach(function(pt){b.extend(pt);});
-  map.fitBounds(b,{padding:{top:190,bottom:100,left:45,right:45},duration:900});
-  if(window.AndroidMap)AndroidMap.onMapStatus('Rota hazır • '+(d.routes[0].distance/1000).toFixed(1)+' km');
- }catch(e){if(window.AndroidMap)AndroidMap.onMapError('Arama/rota: '+e.message);}
-};
-</script></body></html>
-""".trimIndent()
+/** Manevra oku: font/ikon paketine bagimli degil, Canvas ile cizilir. */
+@Composable
+private fun ManeuverIcon(kind: ManeuverKind, modifier: Modifier = Modifier) {
+    Canvas(modifier) {
+        val w = size.width
+        val h = size.height
+        val c = Offset(w / 2f, h / 2f)
+        if (kind == ManeuverKind.ARRIVE) {
+            drawCircle(Color(0xFFFF4D5A), radius = w * 0.26f, center = c)
+            drawCircle(Color.White, radius = w * 0.10f, center = c)
+        } else {
+            if (kind == ManeuverKind.ROUNDABOUT) {
+                drawCircle(Accent, radius = w * 0.24f, center = c, style = Stroke(width = w * 0.07f))
+            }
+            rotate(kind.angleDeg, pivot = c) {
+                val shaft = Path().apply { moveTo(w * 0.5f, h * 0.88f); lineTo(w * 0.5f, h * 0.38f) }
+                drawPath(shaft, Color.White, style = Stroke(width = w * 0.12f, cap = StrokeCap.Round))
+                val head = Path().apply {
+                    moveTo(w * 0.5f, h * 0.08f); lineTo(w * 0.82f, h * 0.46f); lineTo(w * 0.18f, h * 0.46f); close()
+                }
+                drawPath(head, Color.White)
+            }
+        }
+    }
+}
