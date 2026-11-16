@@ -1,6 +1,9 @@
 package com.aldanmaz.drivedashboard.ui.screen.drive
 
 import android.os.SystemClock
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -39,12 +42,16 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
@@ -228,7 +235,39 @@ internal fun DriveNavigation3DScreen(
         }
     }
 
-    BoxWithConstraints(Modifier.fillMaxSize().background(Color(0xFF0B1118))) {
+    // ---------- panel gorunurlugu ----------
+    // Hedef girilirken / arama-rota islemi sürerken paneller bekler (gizlenmez).
+    // Aksi halde ekrana dokunulunca paneller acilir ve 3 sn sonra gizlenir; geriye yalnizca hiz ve saat kalir.
+    var panelsRevealed by remember { mutableStateOf(true) }
+    var touchTick by remember { mutableIntStateOf(0) }
+    var searchFocused by remember { mutableStateOf(false) }
+    val holdPanels = searchFocused ||
+        search !is SearchState.Idle ||
+        routeState is RouteState.Loading || routeState is RouteState.WaitingForGps || routeState is RouteState.Error ||
+        mapState is NavMapState.Failed ||
+        (destination == null && query.isNotBlank())
+    LaunchedEffect(touchTick, holdPanels, panelsRevealed) {
+        if (panelsRevealed && !holdPanels) {
+            delay(3_000)
+            panelsRevealed = false
+        }
+    }
+    val panelsVisible = holdPanels || panelsRevealed
+
+    BoxWithConstraints(
+        Modifier.fillMaxSize().background(Color(0xFF0B1118)).pointerInput(Unit) {
+            // Dokunusu tuketmeden izler: harita jestleri aynen calisir.
+            awaitPointerEventScope {
+                while (true) {
+                    val ev = awaitPointerEvent(PointerEventPass.Initial)
+                    if (ev.type == PointerEventType.Press) {
+                        panelsRevealed = true
+                        touchTick++
+                    }
+                }
+            }
+        }
+    ) {
         val landscape = maxWidth > maxHeight * 1.15f
         val panelModifier = if (landscape) Modifier.width(440.dp) else Modifier.fillMaxWidth()
 
@@ -245,8 +284,12 @@ internal fun DriveNavigation3DScreen(
         )
 
         // ======== ust panel ========
+        AnimatedVisibility(
+            visible = panelsVisible, modifier = Modifier.align(Alignment.TopStart),
+            enter = fadeIn(), exit = fadeOut()
+        ) {
         Column(
-            panelModifier.align(Alignment.TopStart).background(PanelColor).padding(10.dp),
+            panelModifier.background(PanelColor).padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(7.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -272,7 +315,8 @@ internal fun DriveNavigation3DScreen(
 
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 OutlinedTextField(
-                    value = query, onValueChange = { vm.setQuery(it) }, modifier = Modifier.weight(1f),
+                    value = query, onValueChange = { vm.setQuery(it) },
+                    modifier = Modifier.weight(1f).onFocusChanged { searchFocused = it.isFocused },
                     singleLine = true,
                     placeholder = { Text("Şehir, ilçe, sokak, adres veya yer…", color = Color.LightGray, fontSize = 13.sp) },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -359,9 +403,10 @@ internal fun DriveNavigation3DScreen(
                 }
             }
         }
+        }
 
         // ======== yeniden ortala ========
-        if (camMode != CamMode.FOLLOW && fix != null) {
+        if (panelsVisible && camMode != CamMode.FOLLOW && fix != null) {
             Button(
                 onClick = { controller.applyFollowPadding(); camMode = CamMode.FOLLOW },
                 modifier = Modifier.align(Alignment.BottomEnd).padding(end = 12.dp, bottom = if (landscape) 24.dp else 230.dp),
@@ -370,8 +415,12 @@ internal fun DriveNavigation3DScreen(
         }
 
         // ======== alt panel ========
+        AnimatedVisibility(
+            visible = panelsVisible, modifier = Modifier.align(Alignment.BottomStart),
+            enter = fadeIn(), exit = fadeOut()
+        ) {
         Column(
-            panelModifier.align(Alignment.BottomStart).padding(10.dp)
+            panelModifier.padding(10.dp)
                 .background(PanelColor, RoundedCornerShape(12.dp)).padding(11.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
@@ -440,6 +489,26 @@ internal fun DriveNavigation3DScreen(
                 color = if (latitude == null || gpsStale) Warn else SoftText, fontSize = 10.sp
             )
             Text("© OpenStreetMap katkıcıları • OpenFreeMap • MapLibre", color = Color(0xFF8DA0B0), fontSize = 9.sp)
+        }
+        }
+
+        // ======== sadece hiz + saat (paneller gizliyken) ========
+        AnimatedVisibility(
+            visible = !panelsVisible,
+            modifier = Modifier.align(if (landscape) Alignment.BottomStart else Alignment.BottomCenter),
+            enter = fadeIn(), exit = fadeOut()
+        ) {
+            Row(
+                Modifier.padding(14.dp).background(PanelColor, RoundedCornerShape(16.dp))
+                    .padding(horizontal = 18.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(18.dp)
+            ) {
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(speedKmh.coerceAtLeast(0).toString(), color = Color.White, fontSize = 52.sp, fontWeight = FontWeight.Black)
+                    Text(" km/h", color = SoftText, fontSize = 14.sp, modifier = Modifier.padding(bottom = 9.dp))
+                }
+                Text(currentTime, color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.Bold)
+            }
         }
     }
 }

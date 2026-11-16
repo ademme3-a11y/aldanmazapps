@@ -141,6 +141,10 @@ class NavViewModel(app: Application) : AndroidViewModel(app) {
         _routeState.value = RouteState.None
         _progress.value = null
         _rerouting.value = false
+        suppressQuery = null
+        _query.value = ""
+        searchJob?.cancel()
+        _search.value = SearchState.Idle
     }
 
     private fun requestRoute(reroute: Boolean) {
