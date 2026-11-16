@@ -11,6 +11,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -28,6 +29,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -109,6 +111,12 @@ private class NavColors(
     val good: Color, val warn: Color, val bad: Color, val hudShadow: Shadow, val mapBg: Color
 )
 
+/** Hiz ve saat icin secilebilir yazi renkleri (0 = otomatik/temaya gore). */
+private val HudChoices = listOf(
+    "Kırmızı" to Color(0xFFFF3B47), "Turuncu" to Color(0xFFFF9F1A), "Yeşil" to Color(0xFF2ED573),
+    "Mavi" to Color(0xFF2F7BFF), "Siyah" to Color(0xFF000000)
+)
+
 private val NightColors = NavColors(
     day = false, panel = Color(0xF50E151C), chip = Color(0xF21B2630), text = Color.White, soft = Color(0xFFDCE6EE),
     accent = Color(0xFF28D7FF), onAccent = Color(0xFF06222B), edge = Color(0xFF728493), muted = Color(0xFF8DA0B0),
@@ -174,6 +182,11 @@ internal fun DriveNavigation3DScreen(
     val daylight = SunCalc.isDaylight(nowMs, fix?.lat ?: latitude, fix?.lon ?: longitude, LocalTime.now().hour)
     val isDay = when (themeMode) { 1 -> true; 2 -> false; else -> daylight }
     val C = if (isDay) DayColors else NightColors
+    var hudColorIdx by remember { mutableIntStateOf(runCatching { prefs.getInt("hud_color", 0) }.getOrDefault(0).coerceIn(0, HudChoices.size)) }
+    val hudColor = if (hudColorIdx == 0) C.text else HudChoices[hudColorIdx - 1].second
+    val hudSoft = if (hudColorIdx == 0) C.soft else HudChoices[hudColorIdx - 1].second
+    // Siyah (ve gunduz) yazilarda acik, digerlerinde koyu golge: harita uzerinde okunur kalir.
+    val hudShadowNow = if (hudColorIdx == 5 || (isDay && hudColorIdx != 0)) DayColors.hudShadow else if (hudColorIdx == 0) C.hudShadow else NightColors.hudShadow
     LaunchedEffect(isDay, mapEpoch) { controller.setTheme(isDay) }
 
     val fixNow by rememberUpdatedState(fix)
@@ -378,8 +391,8 @@ internal fun DriveNavigation3DScreen(
             val ratio = photo?.let { it.width.toFloat() / it.height } ?: (574f / 337f)
             val carW = (minOf(maxWidth, maxHeight).value * 0.30f).coerceIn(110f, 240f).dp
             val carH = minOf(carW / ratio, maxHeight * 0.30f)
-            val boxW = if (arrowMode) carH * 1.15f else carW
-            val boxH = if (arrowMode) carH * 1.3f else carH
+            val boxW = if (arrowMode) carH * 0.92f else carW
+            val boxH = if (arrowMode) carH * 1.04f else carH
             val boxY = if (arrowMode) maxHeight * 0.71f - boxH * 0.5f else maxHeight * 0.71f - carH * 0.45f
             Box(
                 Modifier.align(Alignment.TopStart)
@@ -536,8 +549,8 @@ internal fun DriveNavigation3DScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
                 Surface(Modifier.weight(1f), color = C.chip, shape = RoundedCornerShape(10.dp)) {
                     Row(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), verticalAlignment = Alignment.Bottom) {
-                        Text(speedKmh.coerceAtLeast(0).toString(), color = C.text, fontSize = 68.sp, fontWeight = FontWeight.Black)
-                        Text(" km/h", color = C.soft, fontSize = 20.sp, modifier = Modifier.padding(bottom = 12.dp))
+                        Text(speedKmh.coerceAtLeast(0).toString(), color = hudColor, fontSize = 68.sp, fontWeight = FontWeight.Black)
+                        Text(" km/h", color = hudSoft, fontSize = 20.sp, modifier = Modifier.padding(bottom = 12.dp))
                     }
                 }
                 if (speedLimitKmh != null && speedLimitKmh > 0) InfoChip(C, "SINIR", speedLimitKmh.toString())
@@ -570,6 +583,25 @@ internal fun DriveNavigation3DScreen(
                     }
                     TextButton(onClick = { vm.cancelRoute() }) {
                         Text(if (prog.arrived) "TAMAM" else "İPTAL", color = C.accent, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("HIZ/SAAT RENGİ", color = C.soft, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                for (idx in 0..HudChoices.size) {
+                    val swatch = if (idx == 0) C.text else HudChoices[idx - 1].second
+                    Box(
+                        Modifier.size(28.dp)
+                            .background(if (idx == 0) C.chip else swatch, CircleShape)
+                            .border(if (idx == hudColorIdx) 3.dp else 1.dp, if (idx == hudColorIdx) C.accent else C.edge, CircleShape)
+                            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                                hudColorIdx = idx
+                                runCatching { prefs.edit().putInt("hud_color", idx).apply() }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (idx == 0) Text("A", color = C.text, fontSize = 12.sp, fontWeight = FontWeight.Black)
                     }
                 }
             }
@@ -627,7 +659,7 @@ internal fun DriveNavigation3DScreen(
 
         // ======== saat: sag ust kose, her zaman gorunur (arkasi seffaf) ========
         Text(
-            currentTime, color = C.text, fontSize = 40.sp, fontWeight = FontWeight.Black, style = TextStyle(shadow = C.hudShadow),
+            currentTime, color = hudColor, fontSize = 40.sp, fontWeight = FontWeight.Black, style = TextStyle(shadow = hudShadowNow),
             modifier = Modifier.align(Alignment.TopEnd).safeDrawingPadding().padding(horizontal = 18.dp, vertical = 8.dp)
         )
 
@@ -638,8 +670,8 @@ internal fun DriveNavigation3DScreen(
             enter = fadeIn(), exit = fadeOut()
         ) {
             Row(Modifier.padding(horizontal = 22.dp, vertical = 10.dp), verticalAlignment = Alignment.Bottom) {
-                Text(speedKmh.coerceAtLeast(0).toString(), color = C.text, fontSize = 104.sp, fontWeight = FontWeight.Black, style = TextStyle(shadow = C.hudShadow))
-                Text(" km/h", color = C.soft, fontSize = 28.sp, style = TextStyle(shadow = C.hudShadow), modifier = Modifier.padding(bottom = 20.dp))
+                Text(speedKmh.coerceAtLeast(0).toString(), color = hudColor, fontSize = 104.sp, fontWeight = FontWeight.Black, style = TextStyle(shadow = hudShadowNow))
+                Text(" km/h", color = hudSoft, fontSize = 28.sp, style = TextStyle(shadow = hudShadowNow), modifier = Modifier.padding(bottom = 20.dp))
             }
         }
     }
