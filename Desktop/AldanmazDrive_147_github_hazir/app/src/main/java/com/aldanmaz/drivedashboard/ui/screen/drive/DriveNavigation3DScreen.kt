@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -53,6 +54,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
@@ -64,6 +66,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -97,6 +100,8 @@ private enum class CamMode { FOLLOW, OVERVIEW, FREE }
 private val PanelColor = Color(0xF50E151C)
 private val ChipColor = Color(0xF21B2630)
 private val Accent = Color(0xFF28D7FF)
+// Hiz/saat arkasinda kutu yok: harita gorunur kalir, okunurluk golge ile saglanir.
+private val HudStyle = TextStyle(shadow = Shadow(Color(0xE6000000), Offset(0f, 4f), 16f))
 private val SoftText = Color(0xFFDCE6EE)
 private val Good = Color(0xFF52E69A)
 private val Warn = Color(0xFFFFC45C)
@@ -342,7 +347,7 @@ internal fun DriveNavigation3DScreen(
 
         // ======== ust panel ========
         AnimatedVisibility(
-            visible = panelsVisible, modifier = Modifier.align(Alignment.TopStart),
+            visible = panelsVisible, modifier = Modifier.align(Alignment.TopStart).safeDrawingPadding(),
             enter = fadeIn(), exit = fadeOut()
         ) {
         Column(
@@ -453,14 +458,14 @@ internal fun DriveNavigation3DScreen(
         if (panelsVisible && camMode != CamMode.FOLLOW && fix != null) {
             Button(
                 onClick = { controller.applyFollowPadding(); camMode = CamMode.FOLLOW },
-                modifier = Modifier.align(if (landscape) Alignment.BottomCenter else Alignment.BottomEnd).padding(end = 12.dp, bottom = if (landscape) 24.dp else 230.dp),
+                modifier = Modifier.align(if (landscape) Alignment.BottomCenter else Alignment.BottomEnd).safeDrawingPadding().padding(end = 12.dp, bottom = if (landscape) 24.dp else 230.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = Color(0xFF06222B))
             ) { Text("ORTALA", fontWeight = FontWeight.Bold) }
         }
 
         // ======== alt panel ========
         AnimatedVisibility(
-            visible = panelsVisible, modifier = Modifier.align(if (landscape) Alignment.BottomEnd else Alignment.BottomStart),
+            visible = panelsVisible, modifier = Modifier.align(if (landscape) Alignment.BottomEnd else Alignment.BottomStart).safeDrawingPadding(),
             enter = fadeIn(), exit = fadeOut()
         ) {
         Column(
@@ -551,30 +556,21 @@ internal fun DriveNavigation3DScreen(
         }
         }
 
-        // ======== saat: sag ust kose, her zaman gorunur ========
-        Surface(
-            Modifier.align(Alignment.TopEnd).padding(10.dp),
-            color = PanelColor, shape = RoundedCornerShape(14.dp)
-        ) {
-            Text(
-                currentTime, color = Color.White, fontSize = 40.sp, fontWeight = FontWeight.Black,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
-            )
-        }
+        // ======== saat: sag ust kose, her zaman gorunur (arkasi seffaf) ========
+        Text(
+            currentTime, color = Color.White, fontSize = 40.sp, fontWeight = FontWeight.Black, style = HudStyle,
+            modifier = Modifier.align(Alignment.TopEnd).safeDrawingPadding().padding(horizontal = 18.dp, vertical = 8.dp)
+        )
 
-        // ======== sadece hiz (paneller gizliyken) ========
+        // ======== sadece hiz (paneller gizliyken; arkasi seffaf) ========
         AnimatedVisibility(
             visible = !panelsVisible,
-            modifier = Modifier.align(if (landscape) Alignment.BottomStart else Alignment.BottomCenter),
+            modifier = Modifier.align(if (landscape) Alignment.BottomStart else Alignment.BottomCenter).safeDrawingPadding(),
             enter = fadeIn(), exit = fadeOut()
         ) {
-            Row(
-                Modifier.padding(14.dp).background(PanelColor, RoundedCornerShape(18.dp))
-                    .padding(horizontal = 22.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.Bottom
-            ) {
-                Text(speedKmh.coerceAtLeast(0).toString(), color = Color.White, fontSize = 104.sp, fontWeight = FontWeight.Black)
-                Text(" km/h", color = SoftText, fontSize = 28.sp, modifier = Modifier.padding(bottom = 20.dp))
+            Row(Modifier.padding(horizontal = 22.dp, vertical = 10.dp), verticalAlignment = Alignment.Bottom) {
+                Text(speedKmh.coerceAtLeast(0).toString(), color = Color.White, fontSize = 104.sp, fontWeight = FontWeight.Black, style = HudStyle)
+                Text(" km/h", color = SoftText, fontSize = 28.sp, style = HudStyle, modifier = Modifier.padding(bottom = 20.dp))
             }
         }
     }

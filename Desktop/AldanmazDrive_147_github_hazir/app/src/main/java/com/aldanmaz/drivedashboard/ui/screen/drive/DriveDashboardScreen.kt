@@ -375,6 +375,8 @@ fun DriveDashboardScreen(
             SpeedWarningState.OVER_LIMIT -> DangerRed
         }
 
+    // 3B surus ekrani panonun kenar boslugu/gunduz deseni DISINDA, gercek tam ekran cizilir.
+    Box(Modifier.fillMaxSize()) {
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = DashboardBackground
@@ -745,23 +747,24 @@ fun DriveDashboardScreen(
                     )
                 }
 
-                if (show3DDriveScreen) {
-                    DriveNavigation3DScreen(
-                        latitude = currentLatitude,
-                        longitude = currentLongitude,
-                        speedKmh = speedKmh,
-                        currentTime = currentTime,
-                        vehicleKm = vehicleRealKm,
-                        headingDegrees = compassHeadingDegrees,
-                        direction = direction,
-                        locationStatus = locationStatus,
-                        speedLimitKmh = activeSpeedLimit,
-                        isGpsActive = isGpsActive,
-                        onBack = { show3DDriveScreen = false }
-                    )
-                }
             }
         }
+    }
+    if (show3DDriveScreen) {
+        DriveNavigation3DScreen(
+            latitude = currentLatitude,
+            longitude = currentLongitude,
+            speedKmh = speedKmh,
+            currentTime = currentTime,
+            vehicleKm = vehicleRealKm,
+            headingDegrees = compassHeadingDegrees,
+            direction = direction,
+            locationStatus = locationStatus,
+            speedLimitKmh = activeSpeedLimit,
+            isGpsActive = isGpsActive,
+            onBack = { show3DDriveScreen = false }
+        )
+    }
     }
 }
 
