@@ -450,7 +450,7 @@ internal fun DriveNavigation3DScreen(
                 is SearchState.Idle -> Unit
                 is SearchState.Loading -> StatusRow(C, loading = true, text = "Aranıyor: ${s.query}", color = C.soft)
                 is SearchState.Empty -> StatusRow(
-                    loading = false, color = C.warn,
+                    c = C, loading = false, color = C.warn,
                     text = "“${s.query}” için sonuç bulunamadı. Yazımı kontrol edin veya daha genel bir ad deneyin."
                 )
                 is SearchState.Error -> Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -479,7 +479,7 @@ internal fun DriveNavigation3DScreen(
             when (val r = routeState) {
                 is RouteState.Loading -> StatusRow(C, loading = true, text = "Rota hesaplanıyor…", color = C.soft)
                 is RouteState.WaitingForGps -> StatusRow(
-                    loading = true, color = C.warn,
+                    c = C, loading = true, color = C.warn,
                     text = "GPS konumu bekleniyor — konum alınınca rota hesaplanacak. ${if (latitude == null) locationStatus else ""}".trim()
                 )
                 is RouteState.Error -> Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -669,15 +669,15 @@ private fun ManeuverIcon(c: NavColors, kind: ManeuverKind, modifier: Modifier = 
     Canvas(modifier) {
         val w = size.width
         val h = size.height
-        val c = Offset(w / 2f, h / 2f)
+        val ctr = Offset(w / 2f, h / 2f)
         if (kind == ManeuverKind.ARRIVE) {
-            drawCircle(Color(0xFFFF4D5A), radius = w * 0.26f, center = c)
-            drawCircle(c.panel, radius = w * 0.10f, center = c)
+            drawCircle(Color(0xFFFF4D5A), radius = w * 0.26f, center = ctr)
+            drawCircle(c.panel, radius = w * 0.10f, center = ctr)
         } else {
             if (kind == ManeuverKind.ROUNDABOUT) {
-                drawCircle(c.accent, radius = w * 0.24f, center = c, style = Stroke(width = w * 0.07f))
+                drawCircle(c.accent, radius = w * 0.24f, center = ctr, style = Stroke(width = w * 0.07f))
             }
-            rotate(kind.angleDeg, pivot = c) {
+            rotate(kind.angleDeg, pivot = ctr) {
                 val shaft = Path().apply { moveTo(w * 0.5f, h * 0.88f); lineTo(w * 0.5f, h * 0.38f) }
                 drawPath(shaft, c.text, style = Stroke(width = w * 0.12f, cap = StrokeCap.Round))
                 val head = Path().apply {
