@@ -31,6 +31,7 @@ val localProperties = Properties().apply {
 }
 val tomTomApiKey = localProperties.getProperty("TOMTOM_API_KEY", "")
 val hereApiKey = "XxFmf94n6m2-uI8bkUWv5RFnears4QND0dGMDYu_13M"
+fun navProp(key: String, default: String): String = localProperties.getProperty(key, default).trim()
 
 android {
     namespace = "com.aldanmaz.drivedashboard"
@@ -39,11 +40,18 @@ android {
         applicationId = "com.aldanmaz.drivedashboard"
         minSdk = 29
         targetSdk = 37
-        versionCode = 259
-        versionName = "1611260003-1"
+        versionCode = 260
+        versionName = "1611260625-1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "TOMTOM_API_KEY", "\"$tomTomApiKey\"")
         buildConfigField("String", "HERE_API_KEY", "\"$hereApiKey\"" )
+        // 3D navigasyon saglayicilari: hepsi local.properties'ten degistirilebilir, API anahtari gerekmez.
+        buildConfigField("String", "NAV_STYLE_URL", "\"${navProp("NAV_STYLE_URL", "https://tiles.openfreemap.org/styles/liberty")}\"")
+        buildConfigField("String", "NAV_GEOCODER_URL", "\"${navProp("NAV_GEOCODER_URL", "https://photon.komoot.io/api/")}\"")
+        buildConfigField("String", "NAV_GEOCODER_FALLBACK_URL", "\"${navProp("NAV_GEOCODER_FALLBACK_URL", "https://nominatim.openstreetmap.org/search")}\"")
+        buildConfigField("String", "NAV_ROUTER_URL", "\"${navProp("NAV_ROUTER_URL", "https://valhalla1.openstreetmap.de/route")}\"")
+        buildConfigField("String", "NAV_ROUTER_FALLBACK_URL", "\"${navProp("NAV_ROUTER_FALLBACK_URL", "https://router.project-osrm.org")}\"")
+        buildConfigField("String", "NAV_USER_AGENT", "\"AldanmazDrive/$versionName (Android; +https://github.com/ademme3-a11y/aldanmazapps)\"")
     }
     signingConfigs {
         create("stableDebug") {
@@ -77,6 +85,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
     implementation(libs.androidx.activity.compose)
     implementation("com.google.android.gms:play-services-location:21.4.0")
+    // 3D navigasyon: yerel (native) vektor harita motoru, WebView/CDN bagimliligi yok. BSD-2 lisansli.
+    implementation("org.maplibre.gl:android-sdk:13.6.1")
     implementation("com.google.android.gms:play-services-mlkit-subject-segmentation:16.0.0-beta1")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.10.0")
@@ -92,6 +102,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     testImplementation(libs.junit)
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
