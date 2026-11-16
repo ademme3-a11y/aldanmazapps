@@ -53,6 +53,10 @@ internal class NavMapController {
     var styleReady = false
         private set
 
+    /** Gunduz (acik, Tesla tarzi) / gece (koyu) harita temasi. */
+    var dayTheme = false
+        private set
+
     /** Arac ekranda yaklasik bu kadar piksel uzunlukta gorunur. */
     var carPx: Double = 300.0
         private set
@@ -64,6 +68,7 @@ internal class NavMapController {
         m.uiSettings.isLogoEnabled = false
         m.uiSettings.isRotateGesturesEnabled = true
         m.uiSettings.isTiltGesturesEnabled = true
+        m.uiSettings.isDoubleTapGesturesEnabled = false   // cift dokunus panelleri acar, haritayi yakinlastirmaz
         m.setMaxZoomPreference(20.0)
         m.setMinZoomPreference(3.0)
         m.addOnCameraMoveStartedListener { reason ->
@@ -96,9 +101,7 @@ internal class NavMapController {
         routeSrc = null; destSrc = null; trailSrc = null; vehicleSrc = null
         var core = false
         var buildings = false
-        if (recolor) {
-            try { applyDarkTheme(style) } catch (t: Throwable) { Log.w(tag, "koyu tema uygulanamadi", t) }
-        }
+        try { applyTheme(style, recolor) } catch (t: Throwable) { Log.w(tag, "tema uygulanamadi", t) }
         try {
             val below = style.layers.firstOrNull { it is SymbolLayer }?.id
             val empty = "{\"type\":\"FeatureCollection\",\"features\":[]}"
@@ -168,47 +171,77 @@ internal class NavMapController {
             Log.w(tag, "3B binalar eklenemedi (secenekli)", t)
         }
         styleReady = core
+        if (core) try { applyTheme(style, recolor) } catch (t: Throwable) { Log.w(tag, "tema (rota katmanlari) uygulanamadi", t) }
         return StyleInstallResult(core, buildings)
     }
 
-    /** Hazir (acik) stili Tesla tarzi koyu temaya cevirir; her katman ayri korunur. */
-    private fun applyDarkTheme(style: Style) {
+    /** Calisma aninda gece/gunduz temasini degistirir (stili yeniden yuklemeden). */
+    fun setTheme(day: Boolean) {
+        if (day == dayTheme) return
+        dayTheme = day
+        val st = map?.style ?: return
+        if (!styleReady) return
+        try { applyTheme(st, full = true) } catch (t: Throwable) { Log.w(tag, "tema degistirilemedi", t) }
+    }
+
+    /** Hazir stili Tesla tarzi gece (koyu) veya gunduz (acik gri-beyaz) temaya cevirir; her katman ayri korunur. */
+    private fun applyTheme(style: Style, full: Boolean) {
+        val d = dayTheme
+        val bg = if (d) "#E8EBEF" else "#0D141B"
         for (layer in style.layers) {
             try {
                 val id = layer.id.lowercase(Locale.ROOT)
+                if (id.startsWith("nav-")) { themeNavLayer(layer, id, d); continue }
                 when (layer) {
-                    is BackgroundLayer -> layer.setProperties(PropertyFactory.backgroundColor("#0D141B"))
-                    is FillLayer -> layer.setProperties(PropertyFactory.fillColor(when {
-                        id.contains("water") -> "#10222F"
-                        id.contains("park") || id.contains("wood") || id.contains("grass") || id.contains("forest") -> "#12201B"
-                        id.contains("building") -> "#1B2630"
-                        id.contains("aeroway") -> "#1B2730"
-                        else -> "#141C24"
-                    }))
-                    is LineLayer -> {
-                        val color = when {
-                            id.contains("waterway") -> "#16303F"
-                            id.contains("boundary") -> "#3A4650"
-                            id.contains("casing") -> "#05080B"
-                            id.contains("rail") || id.contains("transit") -> "#2A343D"
-                            id.contains("motorway") || id.contains("trunk") -> "#9DB7D0"
-                            id.contains("primary") -> "#7F98B0"
-                            id.contains("secondary") || id.contains("tertiary") -> "#667C91"
-                            id.contains("road") || id.contains("street") || id.contains("minor") ||
-                                id.contains("service") || id.contains("bridge") || id.contains("tunnel") -> "#4A5D6E"
-                            else -> null
+                    is BackgroundLayer -> layer.setProperties(PropertyFactory.backgroundColor(bg))
+                    else -> if (!full) Unit else when (layer) {
+                        is FillLayer -> layer.setProperties(PropertyFactory.fillColor(when {
+                            id.contains("water") -> if (d) "#B9D3E8" else "#10222F"
+                            id.contains("park") || id.contains("wood") || id.contains("grass") || id.contains("forest") ->
+                                if (d) "#D3E2D0" else "#12201B"
+                            id.contains("building") -> if (d) "#D5D9DE" else "#1B2630"
+                            id.contains("aeroway") -> if (d) "#DADFE4" else "#1B2730"
+                            else -> if (d) "#EEF0F3" else "#141C24"
+                        }))
+                        is LineLayer -> {
+                            val color = when {
+                                id.contains("waterway") -> if (d) "#A9C8E0" else "#16303F"
+                                id.contains("boundary") -> if (d) "#B4BCC5" else "#3A4650"
+                                id.contains("casing") -> if (d) "#C3C9D0" else "#05080B"
+                                id.contains("rail") || id.contains("transit") -> if (d) "#C9CFD6" else "#2A343D"
+                                id.contains("motorway") || id.contains("trunk") -> if (d) "#FFFFFF" else "#9DB7D0"
+                                id.contains("primary") -> if (d) "#FFFFFF" else "#7F98B0"
+                                id.contains("secondary") || id.contains("tertiary") -> if (d) "#FCFCFD" else "#667C91"
+                                id.contains("road") || id.contains("street") || id.contains("minor") ||
+                                    id.contains("service") || id.contains("bridge") || id.contains("tunnel") ->
+                                    if (d) "#F8F9FA" else "#4A5D6E"
+                                else -> null
+                            }
+                            if (color != null) layer.setProperties(PropertyFactory.lineColor(color))
                         }
-                        if (color != null) layer.setProperties(PropertyFactory.lineColor(color))
+                        is SymbolLayer -> layer.setProperties(
+                            PropertyFactory.textColor(if (d) "#3A434D" else "#CFD9E2"),
+                            PropertyFactory.textHaloColor(if (d) "#FFFFFF" else "#0D141B"))
+                        is FillExtrusionLayer -> layer.setProperties(
+                            PropertyFactory.fillExtrusionColor(if (d) "#CDD2D9" else "#34424F"),
+                            PropertyFactory.fillExtrusionOpacity(0.9f))
+                        else -> Unit
                     }
-                    is SymbolLayer -> layer.setProperties(
-                        PropertyFactory.textColor("#CFD9E2"), PropertyFactory.textHaloColor("#0D141B"))
-                    is FillExtrusionLayer -> layer.setProperties(
-                        PropertyFactory.fillExtrusionColor("#34424F"), PropertyFactory.fillExtrusionOpacity(0.88f))
-                    else -> Unit
                 }
             } catch (t: Throwable) {
                 Log.w(tag, "katman temalanamadi: ${layer.id}", t)
             }
+        }
+    }
+
+    /** Rota/iz/bina katmanlarinin temaya gore renkleri (arac modeli ve hedef noktasi sabit). */
+    private fun themeNavLayer(layer: org.maplibre.android.style.layers.Layer, id: String, d: Boolean) {
+        when (id) {
+            "nav-route-line" -> layer.setProperties(PropertyFactory.lineColor(if (d) "#2F7BFF" else "#28D7FF"))
+            "nav-route-glow" -> layer.setProperties(PropertyFactory.lineColor(if (d) "#2F7BFF" else "#28D7FF"))
+            "nav-route-casing" -> layer.setProperties(PropertyFactory.lineColor(if (d) "#16479E" else "#06324A"))
+            "nav-trail" -> layer.setProperties(PropertyFactory.lineColor(if (d) "#2F7BFF" else "#3AA0FF"))
+            "nav-buildings-3d" -> layer.setProperties(PropertyFactory.fillExtrusionColor(if (d) "#CDD2D9" else "#34424F"))
         }
     }
 

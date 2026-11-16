@@ -13,7 +13,11 @@ data class NavProgress(
     val distToNextM: Double,
     val currentStreet: String,
     val arrived: Boolean,
-    val offRoute: Boolean
+    val offRoute: Boolean,
+    /** Konumun rota cizgisi uzerindeki izdusumu (seritin ortasi) ve oradaki rota yonu; kamera bunlara kilitlenir. */
+    val snapLat: Double = Double.NaN,
+    val snapLon: Double = Double.NaN,
+    val routeBearing: Double = Double.NaN
 )
 
 /**
@@ -69,6 +73,15 @@ class NavEngine(val route: NavRoute) {
             max(0.0, route.durationS - elapsed)
         }
 
+        val here = NavGeo.pointAtDistance(route.points, route.cumDist, along)
+        val ahead = NavGeo.pointAtDistance(route.points, route.cumDist, along + LOOKAHEAD_M)
+        val behind = NavGeo.pointAtDistance(route.points, route.cumDist, max(0.0, along - 3.0))
+        val bearing = when {
+            NavGeo.haversine(here, ahead) >= 2.0 -> NavGeo.bearing(here, ahead)
+            NavGeo.haversine(behind, here) >= 1.0 -> NavGeo.bearing(behind, here)
+            else -> Double.NaN
+        }
+
         return NavProgress(
             distAlongM = along,
             offsetM = snap.offsetM,
@@ -78,7 +91,10 @@ class NavEngine(val route: NavRoute) {
             distToNextM = distToNext,
             currentStreet = street,
             arrived = arrived,
-            offRoute = offRoute
+            offRoute = offRoute,
+            snapLat = here.lat,
+            snapLon = here.lon,
+            routeBearing = bearing
         )
     }
 
@@ -87,5 +103,6 @@ class NavEngine(val route: NavRoute) {
         const val OFF_ROUTE_CONFIRMATIONS = 3
         const val ARRIVE_M = 25.0
         const val PASSED_BUFFER_M = 8.0
+        const val LOOKAHEAD_M = 14.0
     }
 }

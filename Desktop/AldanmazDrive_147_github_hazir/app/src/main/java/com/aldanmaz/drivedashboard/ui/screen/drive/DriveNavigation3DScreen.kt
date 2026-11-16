@@ -1,5 +1,6 @@
 package com.aldanmaz.drivedashboard.ui.screen.drive
 
+import android.content.Context
 import android.net.Uri
 import android.os.SystemClock
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -11,6 +12,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -51,11 +53,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -89,6 +93,7 @@ import com.aldanmaz.drivedashboard.nav.NavVehiclePhoto
 import com.aldanmaz.drivedashboard.nav.NavViewModel
 import com.aldanmaz.drivedashboard.nav.PoseSmoother
 import com.aldanmaz.drivedashboard.nav.RouteState
+import com.aldanmaz.drivedashboard.nav.SunCalc
 import com.aldanmaz.drivedashboard.nav.SearchState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -97,15 +102,27 @@ import java.util.Locale
 
 private enum class CamMode { FOLLOW, OVERVIEW, FREE }
 
-private val PanelColor = Color(0xF50E151C)
-private val ChipColor = Color(0xF21B2630)
-private val Accent = Color(0xFF28D7FF)
-// Hiz/saat arkasinda kutu yok: harita gorunur kalir, okunurluk golge ile saglanir.
-private val HudStyle = TextStyle(shadow = Shadow(Color(0xE6000000), Offset(0f, 4f), 16f))
-private val SoftText = Color(0xFFDCE6EE)
-private val Good = Color(0xFF52E69A)
-private val Warn = Color(0xFFFFC45C)
-private val Bad = Color(0xFFFF6B6B)
+/** Gece (koyu) ve gunduz (acik, Tesla tarzi) arayuz renkleri. */
+private class NavColors(
+    val day: Boolean, val panel: Color, val chip: Color, val text: Color, val soft: Color,
+    val accent: Color, val onAccent: Color, val edge: Color, val muted: Color,
+    val good: Color, val warn: Color, val bad: Color, val hudShadow: Shadow, val mapBg: Color
+)
+
+private val NightColors = NavColors(
+    day = false, panel = Color(0xF50E151C), chip = Color(0xF21B2630), text = Color.White, soft = Color(0xFFDCE6EE),
+    accent = Color(0xFF28D7FF), onAccent = Color(0xFF06222B), edge = Color(0xFF728493), muted = Color(0xFF8DA0B0),
+    good = Color(0xFF52E69A), warn = Color(0xFFFFC45C), bad = Color(0xFFFF6B6B),
+    // Hiz/saat arkasinda kutu yok: harita gorunur kalir, okunurluk golge ile saglanir.
+    hudShadow = Shadow(Color(0xE6000000), Offset(0f, 4f), 16f), mapBg = Color(0xFF0B1118)
+)
+
+private val DayColors = NavColors(
+    day = true, panel = Color(0xF5F6F8FA), chip = Color(0xFFE3E8ED), text = Color(0xFF171A20), soft = Color(0xFF4A5561),
+    accent = Color(0xFF3E6AE1), onAccent = Color.White, edge = Color(0xFF8C98A4), muted = Color(0xFF6B7783),
+    good = Color(0xFF1E8E57), warn = Color(0xFFB36B00), bad = Color(0xFFC62828),
+    hudShadow = Shadow(Color(0xF2FFFFFF), Offset(0f, 0f), 22f), mapBg = Color(0xFFE8EBEF)
+)
 
 /**
  * Tesla'dan esinlenen (ozgun tasarim) 3B surus ve navigasyon ekrani.
@@ -146,6 +163,18 @@ internal fun DriveNavigation3DScreen(
         is NavMapState.Degraded -> s.epoch
         else -> null
     }
+
+    // ---------- tema: otomatik (gun dogumu/batimi), gunduz veya gece ----------
+    val appCtx = LocalContext.current
+    val prefs = remember { appCtx.getSharedPreferences("nav_prefs", Context.MODE_PRIVATE) }
+    var themeMode by remember { mutableIntStateOf(runCatching { prefs.getInt("theme_mode", 0) }.getOrDefault(0)) }
+    var arrowMode by remember { mutableStateOf(runCatching { prefs.getBoolean("arrow_mode", false) }.getOrDefault(false)) }
+    var nowMs by remember { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) { while (true) { delay(60_000); nowMs = System.currentTimeMillis() } }
+    val daylight = SunCalc.isDaylight(nowMs, fix?.lat ?: latitude, fix?.lon ?: longitude, LocalTime.now().hour)
+    val isDay = when (themeMode) { 1 -> true; 2 -> false; else -> daylight }
+    val C = if (isDay) DayColors else NightColors
+    LaunchedEffect(isDay, mapEpoch) { controller.setTheme(isDay) }
 
     val fixNow by rememberUpdatedState(fix)
     val progressNow by rememberUpdatedState(progress)
@@ -223,7 +252,14 @@ internal fun DriveNavigation3DScreen(
                     val dt = if (lastNs == 0L) 0.016 else (now - lastNs) / 1_000_000_000.0
                     lastNs = now
                     val targetZoom = PoseSmoother.zoomForSpeed(f.speedKmh, progressNow?.distToNextM)
-                    smoother.step(dt, f.lat, f.lon, f.headingDeg, targetZoom)
+                    // Rotadayken arac/kamera seridin ortasina (rota cizgisine) ve yol yonune kilitlenir;
+                    // GPS yanal sapmasi aracin saga/sola kaymis gorunmesine yol acmaz.
+                    val pr = progressNow
+                    val locked = pr != null && !pr.offRoute && !pr.arrived && pr.offsetM < 30.0 && !pr.snapLat.isNaN()
+                    val tLat = if (locked) pr!!.snapLat else f.lat
+                    val tLon = if (locked) pr!!.snapLon else f.lon
+                    val tHead = if (locked && !pr!!.routeBearing.isNaN() && f.speedKmh >= 3) pr.routeBearing else f.headingDeg
+                    smoother.step(dt, tLat, tLon, tHead, targetZoom)
                     if (now - lastDrawNs >= 33_000_000L) {
                         lastDrawNs = now
                         val mode = camNow
@@ -293,14 +329,28 @@ internal fun DriveNavigation3DScreen(
     val panelsVisible = holdPanels || panelsRevealed
 
     BoxWithConstraints(
-        Modifier.fillMaxSize().background(Color(0xFF0B1118)).pointerInput(Unit) {
+        Modifier.fillMaxSize().background(C.mapBg).pointerInput(Unit) {
             // Dokunusu tuketmeden izler: harita jestleri aynen calisir.
+            // Tek dokunus bilgi girisini ACMAZ; yalnizca CIFT dokunus acar. Paneller aciksken her dokunus gizleme sayacini uzatir.
+            val slop = 56.dp.toPx()
             awaitPointerEventScope {
+                var lastTapAt = 0L
+                var lastX = 0f
+                var lastY = 0f
                 while (true) {
                     val ev = awaitPointerEvent(PointerEventPass.Initial)
-                    if (ev.type == PointerEventType.Press) {
+                    if (ev.type != PointerEventType.Press) continue
+                    if (panelsRevealed) touchTick++
+                    if (ev.changes.count { it.pressed } > 1) { lastTapAt = 0L; continue }
+                    val ch = ev.changes.firstOrNull() ?: continue
+                    val dx = ch.position.x - lastX
+                    val dy = ch.position.y - lastY
+                    if (lastTapAt != 0L && ch.uptimeMillis - lastTapAt <= 350L && dx * dx + dy * dy <= slop * slop) {
                         panelsRevealed = true
                         touchTick++
+                        lastTapAt = 0L
+                    } else {
+                        lastTapAt = ch.uptimeMillis; lastX = ch.position.x; lastY = ch.position.y
                     }
                 }
             }
@@ -322,18 +372,27 @@ internal fun DriveNavigation3DScreen(
             modifier = Modifier.fillMaxSize()
         )
 
-        // ======== arac (takip kamerasinda arkadan gorunum) ========
+        // ======== arac (takip kamerasinda arkadan gorunum); dokununca Sandero <-> kirmizi 3B ok ========
         if (camMode == CamMode.FOLLOW && fix != null && mapEpoch != null) {
             val photo = navPhoto
             val ratio = photo?.let { it.width.toFloat() / it.height } ?: (574f / 337f)
             val carW = (minOf(maxWidth, maxHeight).value * 0.30f).coerceIn(110f, 240f).dp
             val carH = minOf(carW / ratio, maxHeight * 0.30f)
+            val boxW = if (arrowMode) carH * 1.15f else carW
+            val boxH = if (arrowMode) carH * 1.3f else carH
+            val boxY = if (arrowMode) maxHeight * 0.71f - boxH * 0.5f else maxHeight * 0.71f - carH * 0.45f
             Box(
                 Modifier.align(Alignment.TopStart)
-                    .offset(x = (maxWidth - carW) / 2, y = maxHeight * 0.71f - carH * 0.45f)
-                    .size(carW, carH)
+                    .offset(x = (maxWidth - boxW) / 2, y = boxY)
+                    .size(boxW, boxH)
+                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                        arrowMode = !arrowMode
+                        runCatching { prefs.edit().putBoolean("arrow_mode", arrowMode).apply() }
+                    }
             ) {
-                if (photo != null) {
+                if (arrowMode) {
+                    NavArrow(Modifier.fillMaxSize())
+                } else if (photo != null) {
                     Image(bitmap = photo, contentDescription = "Araç", contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
                 } else {
                     Image(
@@ -351,14 +410,14 @@ internal fun DriveNavigation3DScreen(
             enter = fadeIn(), exit = fadeOut()
         ) {
         Column(
-            panelModifier.background(PanelColor).padding(10.dp),
+            panelModifier.background(C.panel).padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(7.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) { Text("‹", color = Color.White, fontSize = 30.sp) }
+                IconButton(onClick = onBack) { Text("‹", color = C.text, fontSize = 30.sp) }
                 Column(Modifier.weight(1f).padding(end = if (landscape) 0.dp else 140.dp)) {
-                    Text("3D SÜRÜŞ", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                    Text("Beyaz Dacia Sandero Stepway 2017 Dizel • 07 MTU 93", color = SoftText, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text("3D SÜRÜŞ", color = C.text, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text("Beyaz Dacia Sandero Stepway 2017 Dizel • 07 MTU 93", color = C.soft, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
 
@@ -367,39 +426,40 @@ internal fun DriveNavigation3DScreen(
                     value = query, onValueChange = { vm.setQuery(it) },
                     modifier = Modifier.weight(1f).onFocusChanged { searchFocused = it.isFocused },
                     singleLine = true,
-                    placeholder = { Text("Şehir, ilçe, sokak, adres veya yer…", color = Color.LightGray, fontSize = 13.sp) },
+                    placeholder = { Text("Şehir, ilçe, sokak, adres veya yer…", color = C.soft, fontSize = 13.sp) },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                     keyboardActions = KeyboardActions(onSearch = { vm.searchNow(); focus.clearFocus() }),
                     trailingIcon = {
                         if (query.isNotEmpty()) {
-                            TextButton(onClick = { vm.setQuery(""); vm.dismissSearch() }) { Text("×", color = SoftText, fontSize = 20.sp) }
+                            TextButton(onClick = { vm.setQuery(""); vm.dismissSearch() }) { Text("×", color = C.soft, fontSize = 20.sp) }
                         }
                     },
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                        focusedBorderColor = Accent, unfocusedBorderColor = Color(0xFF728493), cursorColor = Color.White
+                        focusedTextColor = C.text, unfocusedTextColor = C.text,
+                        focusedBorderColor = C.accent, unfocusedBorderColor = C.edge, cursorColor = C.text
                     )
                 )
                 Button(
                     onClick = { vm.searchNow(); focus.clearFocus() },
-                    enabled = query.trim().length >= 2 && search !is SearchState.Loading
+                    enabled = query.trim().length >= 2 && search !is SearchState.Loading,
+                    colors = ButtonDefaults.buttonColors(containerColor = C.accent, contentColor = C.onAccent)
                 ) { Text("ARA", fontWeight = FontWeight.Bold) }
             }
 
             when (val s = search) {
                 is SearchState.Idle -> Unit
-                is SearchState.Loading -> StatusRow(loading = true, text = "Aranıyor: ${s.query}", color = SoftText)
+                is SearchState.Loading -> StatusRow(C, loading = true, text = "Aranıyor: ${s.query}", color = C.soft)
                 is SearchState.Empty -> StatusRow(
-                    loading = false, color = Warn,
+                    loading = false, color = C.warn,
                     text = "“${s.query}” için sonuç bulunamadı. Yazımı kontrol edin veya daha genel bir ad deneyin."
                 )
                 is SearchState.Error -> Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    StatusRow(loading = false, text = s.message, color = Bad)
-                    TextButton(onClick = { vm.retrySearch() }) { Text("TEKRAR DENE", color = Accent, fontWeight = FontWeight.Bold) }
+                    StatusRow(C, loading = false, text = s.message, color = C.bad)
+                    TextButton(onClick = { vm.retrySearch() }) { Text("TEKRAR DENE", color = C.accent, fontWeight = FontWeight.Bold) }
                 }
                 is SearchState.Results -> LazyColumn(
                     Modifier.fillMaxWidth().heightIn(max = if (landscape) (screenH - 260.dp).coerceAtLeast(120.dp) else minOf(240.dp, screenH * 0.3f))
-                        .background(ChipColor, RoundedCornerShape(10.dp))
+                        .background(C.chip, RoundedCornerShape(10.dp))
                 ) {
                     items(s.places) { place ->
                         Column(
@@ -407,9 +467,9 @@ internal fun DriveNavigation3DScreen(
                                 .clickable { focus.clearFocus(); vm.selectPlace(place) }
                                 .padding(horizontal = 12.dp, vertical = 9.dp)
                         ) {
-                            Text(place.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(place.name, color = C.text, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             if (place.subtitle.isNotBlank()) {
-                                Text(place.subtitle, color = SoftText, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                Text(place.subtitle, color = C.soft, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
                             }
                         }
                     }
@@ -417,16 +477,16 @@ internal fun DriveNavigation3DScreen(
             }
 
             when (val r = routeState) {
-                is RouteState.Loading -> StatusRow(loading = true, text = "Rota hesaplanıyor…", color = SoftText)
+                is RouteState.Loading -> StatusRow(C, loading = true, text = "Rota hesaplanıyor…", color = C.soft)
                 is RouteState.WaitingForGps -> StatusRow(
-                    loading = true, color = Warn,
+                    loading = true, color = C.warn,
                     text = "GPS konumu bekleniyor — konum alınınca rota hesaplanacak. ${if (latitude == null) locationStatus else ""}".trim()
                 )
                 is RouteState.Error -> Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    StatusRow(loading = false, text = r.message, color = Bad)
+                    StatusRow(C, loading = false, text = r.message, color = C.bad)
                     Row {
-                        TextButton(onClick = { vm.retryRoute() }) { Text("TEKRAR DENE", color = Accent, fontWeight = FontWeight.Bold) }
-                        TextButton(onClick = { vm.cancelRoute() }) { Text("İPTAL", color = SoftText) }
+                        TextButton(onClick = { vm.retryRoute() }) { Text("TEKRAR DENE", color = C.accent, fontWeight = FontWeight.Bold) }
+                        TextButton(onClick = { vm.cancelRoute() }) { Text("İPTAL", color = C.soft) }
                     }
                 }
                 else -> Unit
@@ -436,17 +496,17 @@ internal fun DriveNavigation3DScreen(
             if (routeState is RouteState.Ready && prog != null) {
                 val step = prog.nextStep
                 Row(
-                    Modifier.fillMaxWidth().background(ChipColor, RoundedCornerShape(12.dp)).padding(10.dp),
+                    Modifier.fillMaxWidth().background(C.chip, RoundedCornerShape(12.dp)).padding(10.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    ManeuverIcon(step?.kind ?: ManeuverKind.STRAIGHT, Modifier.size(54.dp))
+                    ManeuverIcon(C, step?.kind ?: ManeuverKind.STRAIGHT, Modifier.size(54.dp))
                     Column(Modifier.weight(1f)) {
                         Text(
                             if (prog.arrived) "Hedefe ulaştınız" else NavFormat.distance(prog.distToNextM),
-                            color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.Black
+                            color = C.text, fontSize = 26.sp, fontWeight = FontWeight.Black
                         )
                         if (!prog.arrived) {
-                            Text(step?.instruction.orEmpty(), color = SoftText, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            Text(step?.instruction.orEmpty(), color = C.soft, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
                         }
                     }
                 }
@@ -459,7 +519,7 @@ internal fun DriveNavigation3DScreen(
             Button(
                 onClick = { controller.applyFollowPadding(); camMode = CamMode.FOLLOW },
                 modifier = Modifier.align(if (landscape) Alignment.BottomCenter else Alignment.BottomEnd).safeDrawingPadding().padding(end = 12.dp, bottom = if (landscape) 24.dp else 230.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = Color(0xFF06222B))
+                colors = ButtonDefaults.buttonColors(containerColor = C.accent, contentColor = C.onAccent)
             ) { Text("ORTALA", fontWeight = FontWeight.Bold) }
         }
 
@@ -470,26 +530,26 @@ internal fun DriveNavigation3DScreen(
         ) {
         Column(
             (if (landscape) Modifier.width(400.dp) else Modifier.fillMaxWidth()).padding(10.dp)
-                .background(PanelColor, RoundedCornerShape(12.dp)).padding(11.dp),
+                .background(C.panel, RoundedCornerShape(12.dp)).padding(11.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
-                Surface(Modifier.weight(1f), color = ChipColor, shape = RoundedCornerShape(10.dp)) {
+                Surface(Modifier.weight(1f), color = C.chip, shape = RoundedCornerShape(10.dp)) {
                     Row(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), verticalAlignment = Alignment.Bottom) {
-                        Text(speedKmh.coerceAtLeast(0).toString(), color = Color.White, fontSize = 68.sp, fontWeight = FontWeight.Black)
-                        Text(" km/h", color = SoftText, fontSize = 20.sp, modifier = Modifier.padding(bottom = 12.dp))
+                        Text(speedKmh.coerceAtLeast(0).toString(), color = C.text, fontSize = 68.sp, fontWeight = FontWeight.Black)
+                        Text(" km/h", color = C.soft, fontSize = 20.sp, modifier = Modifier.padding(bottom = 12.dp))
                     }
                 }
-                if (speedLimitKmh != null && speedLimitKmh > 0) InfoChip("SINIR", speedLimitKmh.toString())
-                InfoChip("YÖN", direction.ifBlank { "--" })
-                InfoChip("ARAÇ KM", if (vehicleKm > 0) String.format(Locale.forLanguageTag("tr-TR"), "%,.0f", vehicleKm) else "—")
+                if (speedLimitKmh != null && speedLimitKmh > 0) InfoChip(C, "SINIR", speedLimitKmh.toString())
+                InfoChip(C, "YÖN", direction.ifBlank { "--" })
+                InfoChip(C, "ARAÇ KM", if (vehicleKm > 0) String.format(Locale.forLanguageTag("tr-TR"), "%,.0f", vehicleKm) else "—")
             }
 
             val road = roadName
             if (!road.isNullOrBlank() || rerouting) {
                 Text(
                     if (rerouting) "Rota yeniden hesaplanıyor…" else road.orEmpty(),
-                    color = if (rerouting) Warn else Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                    color = if (rerouting) C.warn else C.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
                     maxLines = 1, overflow = TextOverflow.Ellipsis
                 )
             }
@@ -501,47 +561,56 @@ internal fun DriveNavigation3DScreen(
                     Column(Modifier.weight(1f)) {
                         Text(
                             "${NavFormat.distance(prog.remainingM)} • ${NavFormat.duration(prog.remainingS)}",
-                            color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold
+                            color = C.text, fontSize = 22.sp, fontWeight = FontWeight.Bold
                         )
                         Text(
                             "Varış ${NavFormat.eta(LocalTime.now(), prog.remainingS)} • ${destination?.name.orEmpty()}",
-                            color = SoftText, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+                            color = C.soft, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
                         )
                     }
                     TextButton(onClick = { vm.cancelRoute() }) {
-                        Text(if (prog.arrived) "TAMAM" else "İPTAL", color = Accent, fontWeight = FontWeight.Bold)
+                        Text(if (prog.arrived) "TAMAM" else "İPTAL", color = C.accent, fontWeight = FontWeight.Bold)
                     }
                 }
             }
 
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    photoStatus ?: if (navPhoto != null) "Araç: kendi fotoğrafınız" else "Araç: varsayılan görsel",
-                    color = SoftText, fontSize = 11.sp, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis
+                    photoStatus ?: if (arrowMode) "Araç: kırmızı ok (araca dokunun)" else if (navPhoto != null) "Araç: kendi fotoğrafınız (araca dokunun: ok)" else "Araç: Sandero (araca dokunun: ok)",
+                    color = C.soft, fontSize = 11.sp, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis
                 )
+                TextButton(onClick = {
+                    themeMode = (themeMode + 1) % 3
+                    runCatching { prefs.edit().putInt("theme_mode", themeMode).apply() }
+                }) {
+                    Text(
+                        when (themeMode) { 1 -> "TEMA: GÜNDÜZ"; 2 -> "TEMA: GECE"; else -> if (isDay) "TEMA: OTOMATİK ☀" else "TEMA: OTOMATİK ☾" },
+                        color = C.accent, fontSize = 11.sp, fontWeight = FontWeight.Bold
+                    )
+                }
                 TextButton(onClick = { photoPicker.launch("image/*") }) {
-                    Text("FOTOĞRAF SEÇ", color = Accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text("FOTOĞRAF SEÇ", color = C.accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
                 if (navPhoto != null) {
                     TextButton(onClick = { NavVehiclePhoto.reset(ctx); photoStatus = null; photoVersion++ }) {
-                        Text("SIFIRLA", color = SoftText, fontSize = 11.sp)
+                        Text("SIFIRLA", color = C.soft, fontSize = 11.sp)
                     }
                 }
             }
 
             when (val ms = mapState) {
-                is NavMapState.Loading -> StatusRow(loading = true, text = "Harita yükleniyor…", color = Warn)
+                is NavMapState.Loading -> StatusRow(C, loading = true, text = "Harita yükleniyor…", color = C.warn)
                 is NavMapState.Ready -> Text(
                     if (ms.buildings) "Harita hazır • 3D binalar açık" else "Harita hazır • 3D bina verisi bu stilde yok",
-                    color = Good, fontSize = 10.sp
+                    color = C.good, fontSize = 10.sp
                 )
                 is NavMapState.Degraded -> Column {
-                    Text(ms.reason, color = Warn, fontSize = 10.sp)
-                    TextButton(onClick = { retryToken++ }) { Text("HARİTAYI TEKRAR DENE", color = Accent, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                    Text(ms.reason, color = C.warn, fontSize = 10.sp)
+                    TextButton(onClick = { retryToken++ }) { Text("HARİTAYI TEKRAR DENE", color = C.accent, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
                 }
                 is NavMapState.Failed -> Column {
-                    Text(ms.reason, color = Bad, fontSize = 10.sp)
-                    TextButton(onClick = { retryToken++ }) { Text("TEKRAR DENE", color = Accent, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                    Text(ms.reason, color = C.bad, fontSize = 10.sp)
+                    TextButton(onClick = { retryToken++ }) { Text("TEKRAR DENE", color = C.accent, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
                 }
             }
             Text(
@@ -550,15 +619,15 @@ internal fun DriveNavigation3DScreen(
                     gpsStale -> "GPS sinyali zayıf veya kayıp — son bilinen konum gösteriliyor"
                     else -> String.format(Locale.US, "Canlı GPS %.5f, %.5f", latitude, longitude ?: 0.0)
                 },
-                color = if (latitude == null || gpsStale) Warn else SoftText, fontSize = 10.sp
+                color = if (latitude == null || gpsStale) C.warn else C.soft, fontSize = 10.sp
             )
-            Text("© OpenStreetMap katkıcıları • OpenFreeMap • MapLibre", color = Color(0xFF8DA0B0), fontSize = 9.sp)
+            Text("© OpenStreetMap katkıcıları • OpenFreeMap • MapLibre", color = C.muted, fontSize = 9.sp)
         }
         }
 
         // ======== saat: sag ust kose, her zaman gorunur (arkasi seffaf) ========
         Text(
-            currentTime, color = Color.White, fontSize = 40.sp, fontWeight = FontWeight.Black, style = HudStyle,
+            currentTime, color = C.text, fontSize = 40.sp, fontWeight = FontWeight.Black, style = TextStyle(shadow = C.hudShadow),
             modifier = Modifier.align(Alignment.TopEnd).safeDrawingPadding().padding(horizontal = 18.dp, vertical = 8.dp)
         )
 
@@ -569,53 +638,83 @@ internal fun DriveNavigation3DScreen(
             enter = fadeIn(), exit = fadeOut()
         ) {
             Row(Modifier.padding(horizontal = 22.dp, vertical = 10.dp), verticalAlignment = Alignment.Bottom) {
-                Text(speedKmh.coerceAtLeast(0).toString(), color = Color.White, fontSize = 104.sp, fontWeight = FontWeight.Black, style = HudStyle)
-                Text(" km/h", color = SoftText, fontSize = 28.sp, style = HudStyle, modifier = Modifier.padding(bottom = 20.dp))
+                Text(speedKmh.coerceAtLeast(0).toString(), color = C.text, fontSize = 104.sp, fontWeight = FontWeight.Black, style = TextStyle(shadow = C.hudShadow))
+                Text(" km/h", color = C.soft, fontSize = 28.sp, style = TextStyle(shadow = C.hudShadow), modifier = Modifier.padding(bottom = 20.dp))
             }
         }
     }
 }
 
 @Composable
-private fun StatusRow(loading: Boolean, text: String, color: Color) {
+private fun StatusRow(c: NavColors, loading: Boolean, text: String, color: Color) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (loading) CircularProgressIndicator(Modifier.size(16.dp), color = Accent, strokeWidth = 2.dp)
+        if (loading) CircularProgressIndicator(Modifier.size(16.dp), color = c.accent, strokeWidth = 2.dp)
         Text(text, color = color, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
 @Composable
-private fun InfoChip(label: String, value: String) {
-    Surface(color = ChipColor, shape = RoundedCornerShape(9.dp)) {
+private fun InfoChip(c: NavColors, label: String, value: String) {
+    Surface(color = c.chip, shape = RoundedCornerShape(9.dp)) {
         Column(Modifier.padding(horizontal = 9.dp, vertical = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(label, color = SoftText, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-            Text(value, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            Text(label, color = c.soft, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+            Text(value, color = c.text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
 
 /** Manevra oku: font/ikon paketine bagimli degil, Canvas ile cizilir. */
 @Composable
-private fun ManeuverIcon(kind: ManeuverKind, modifier: Modifier = Modifier) {
+private fun ManeuverIcon(c: NavColors, kind: ManeuverKind, modifier: Modifier = Modifier) {
     Canvas(modifier) {
         val w = size.width
         val h = size.height
         val c = Offset(w / 2f, h / 2f)
         if (kind == ManeuverKind.ARRIVE) {
             drawCircle(Color(0xFFFF4D5A), radius = w * 0.26f, center = c)
-            drawCircle(Color.White, radius = w * 0.10f, center = c)
+            drawCircle(c.panel, radius = w * 0.10f, center = c)
         } else {
             if (kind == ManeuverKind.ROUNDABOUT) {
-                drawCircle(Accent, radius = w * 0.24f, center = c, style = Stroke(width = w * 0.07f))
+                drawCircle(c.accent, radius = w * 0.24f, center = c, style = Stroke(width = w * 0.07f))
             }
             rotate(kind.angleDeg, pivot = c) {
                 val shaft = Path().apply { moveTo(w * 0.5f, h * 0.88f); lineTo(w * 0.5f, h * 0.38f) }
-                drawPath(shaft, Color.White, style = Stroke(width = w * 0.12f, cap = StrokeCap.Round))
+                drawPath(shaft, c.text, style = Stroke(width = w * 0.12f, cap = StrokeCap.Round))
                 val head = Path().apply {
                     moveTo(w * 0.5f, h * 0.08f); lineTo(w * 0.82f, h * 0.46f); lineTo(w * 0.18f, h * 0.46f); close()
                 }
-                drawPath(head, Color.White)
+                drawPath(head, c.text)
             }
         }
+    }
+}
+
+/** Kirmizi, 3B gorunumlu navigasyon oku (Canvas): yan yuzler, kalinlik, parlama ve zemin golgesi. */
+@Composable
+private fun NavArrow(modifier: Modifier = Modifier) {
+    Canvas(modifier) {
+        val w = size.width
+        val h = size.height
+        fun pt(x: Float, y: Float) = Offset(w * x, h * y)
+        val tip = pt(0.5f, 0.04f)
+        val left = pt(0.10f, 0.80f)
+        val notch = pt(0.5f, 0.60f)
+        val right = pt(0.90f, 0.80f)
+        val depth = h * 0.08f
+        drawOval(Color(0x73000000), topLeft = pt(0.08f, 0.80f), size = Size(w * 0.84f, h * 0.17f))
+        val side = Path().apply {
+            moveTo(left.x, left.y); lineTo(notch.x, notch.y); lineTo(right.x, right.y)
+            lineTo(right.x, right.y + depth); lineTo(notch.x, notch.y + depth); lineTo(left.x, left.y + depth); close()
+        }
+        drawPath(side, Color(0xFF6B0A12))
+        val leftFace = Path().apply { moveTo(tip.x, tip.y); lineTo(left.x, left.y); lineTo(notch.x, notch.y); close() }
+        val rightFace = Path().apply { moveTo(tip.x, tip.y); lineTo(notch.x, notch.y); lineTo(right.x, right.y); close() }
+        drawPath(leftFace, Color(0xFFB5121E))
+        drawPath(rightFace, Color(0xFFFF3B47))
+        drawLine(Color(0xA6FFFFFF), tip, notch, strokeWidth = w * 0.014f, cap = StrokeCap.Round)
+        val outline = Path().apply {
+            moveTo(tip.x, tip.y); lineTo(left.x, left.y); lineTo(notch.x, notch.y); lineTo(right.x, right.y); close()
+        }
+        drawPath(outline, Color(0x80FFFFFF), style = Stroke(width = w * 0.016f, join = StrokeJoin.Round))
     }
 }

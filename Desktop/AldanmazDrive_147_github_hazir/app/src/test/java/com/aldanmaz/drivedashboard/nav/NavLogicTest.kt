@@ -319,4 +319,56 @@ class NavLogicTest {
         assertEquals("1 sa 5 dk", NavFormat.duration(3900.0))
         assertEquals("14:32", NavFormat.eta(java.time.LocalTime.of(14, 14), 1080.0))
     }
+
+    // ---------- serit ortasi (rotaya kilitleme) ----------
+    @Test fun progressSnapsLateralGpsErrorBackToRouteCentreLine() {
+        val r = straightRoute()
+        val e = NavEngine(r)
+        val p = e.update(GeoPoint(36.9100, 30.70003))   // ~2.7 m dogu, serit disina sapmis GPS
+        assertEquals(30.70, p.snapLon, 1e-6)             // rota cizgisine oturur
+        assertEquals(36.9100, p.snapLat, 2e-4)
+        assertEquals(0.0, p.routeBearing, 1.0)           // kuzey
+    }
+
+    @Test fun pointAtDistanceInterpolatesAndClamps() {
+        val r = straightRoute()
+        val mid = NavGeo.pointAtDistance(r.points, r.cumDist, r.cumDist[3] + 10.0)
+        assertEquals(36.90 + 3 * 0.0045, mid.lat, 0.0002)
+        assertEquals(r.points.first().lat, NavGeo.pointAtDistance(r.points, r.cumDist, -5.0).lat, 1e-12)
+        assertEquals(r.points.last().lat, NavGeo.pointAtDistance(r.points, r.cumDist, 1e9).lat, 1e-12)
+    }
+
+    // ---------- gun dogumu / batimi ----------
+    private fun utcMs(y: Int, mo: Int, d: Int, h: Int, mi: Int): Long =
+        java.time.ZonedDateTime.of(y, mo, d, h, mi, 0, 0, java.time.ZoneOffset.UTC).toInstant().toEpochMilli()
+
+    private fun minutesUtc(ms: Long): Int { val z = java.time.Instant.ofEpochMilli(ms).atZone(java.time.ZoneOffset.UTC); return z.hour * 60 + z.minute }
+
+    @Test fun sunTimesMatchKnownReferenceValues() {
+        // Londra (51.5N, 0.1W), 16 Kasim: dogus ~07:12, batis ~16:07 (UTC) — bilinen referans
+        val ev = SunCalc.events(utcMs(2026, 11, 16, 12, 0), 51.5, -0.1)
+        val today = ev.filter { java.time.Instant.ofEpochMilli(it.first).atZone(java.time.ZoneOffset.UTC).dayOfMonth == 16 }
+        assertTrue("dogus ${minutesUtc(today.first { it.second }.first)}", abs(minutesUtc(today.first { it.second }.first) - (7 * 60 + 12)) <= 8)
+        assertTrue("batis ${minutesUtc(today.first { !it.second }.first)}", abs(minutesUtc(today.first { !it.second }.first) - (16 * 60 + 7)) <= 8)
+    }
+
+    @Test fun antalyaSunTimesAreInTurkeyTimeZonePlausibleRange() {
+        // Antalya 36.9N 30.7E (Turkiye UTC+3, saat dilimi meridyeninin batisinda): kasimda dogus ~07:36, batis ~17:47 yerel
+        val ev = SunCalc.events(utcMs(2026, 11, 16, 9, 0), 36.9, 30.7)
+        val today = ev.filter { java.time.Instant.ofEpochMilli(it.first).atZone(java.time.ZoneOffset.UTC).dayOfMonth == 16 }
+        val riseLocal = minutesUtc(today.first { it.second }.first) + 180
+        val setLocal = minutesUtc(today.first { !it.second }.first) + 180
+        assertTrue("dogus $riseLocal", riseLocal in (7 * 60 + 10)..(7 * 60 + 55))
+        assertTrue("batis $setLocal", setLocal in (17 * 60 + 30)..(17 * 60 + 58))
+    }
+
+    @Test fun daylightFlagFollowsSunriseAndSunset() {
+        val lat = 36.9; val lon = 30.7
+        assertTrue(SunCalc.isDaylight(utcMs(2026, 11, 16, 9, 0), lat, lon, 12))     // 12:00 yerel
+        assertFalse(SunCalc.isDaylight(utcMs(2026, 11, 16, 20, 0), lat, lon, 23))   // 23:00 yerel
+        assertFalse(SunCalc.isDaylight(utcMs(2026, 11, 16, 2, 0), lat, lon, 5))     // 05:00 yerel (dogustan once)
+        assertTrue(SunCalc.isDaylight(utcMs(2026, 6, 21, 17, 0), lat, lon, 20))     // yaz: 20:00 yerel hala gunduz
+        assertTrue(SunCalc.isDaylight(0L, null, null, 12))                          // konum yoksa saate gore
+        assertFalse(SunCalc.isDaylight(0L, null, null, 3))
+    }
 }

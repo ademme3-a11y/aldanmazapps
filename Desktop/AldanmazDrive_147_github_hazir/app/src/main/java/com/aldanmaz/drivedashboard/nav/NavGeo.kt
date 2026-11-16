@@ -95,6 +95,25 @@ object NavGeo {
     fun metersToDegLat(m: Double) = m / M_PER_DEG_LAT
     fun metersToDegLon(m: Double, lat: Double) = m / (M_PER_DEG_LAT * max(0.01, cos(rad(lat))))
 
+    /** Rota uzerinde baslangictan d metre sonraki nokta (rota disina tasmaz). */
+    fun pointAtDistance(points: List<GeoPoint>, cum: DoubleArray, d: Double): GeoPoint {
+        if (points.isEmpty()) return GeoPoint(0.0, 0.0)
+        if (points.size == 1 || d <= 0.0) return points.first()
+        if (d >= cum.last()) return points.last()
+        var lo = 0
+        var hi = cum.size - 1
+        while (hi - lo > 1) {
+            val mid = (lo + hi) ushr 1
+            if (cum[mid] <= d) lo = mid else hi = mid
+        }
+        val seg = cum[hi] - cum[lo]
+        val t = if (seg < 1e-9) 0.0 else (d - cum[lo]) / seg
+        return GeoPoint(
+            points[lo].lat + (points[hi].lat - points[lo].lat) * t,
+            points[lo].lon + (points[hi].lon - points[lo].lon) * t
+        )
+    }
+
     class Snap(val distAlongM: Double, val offsetM: Double, val segIndex: Int)
 
     /**
