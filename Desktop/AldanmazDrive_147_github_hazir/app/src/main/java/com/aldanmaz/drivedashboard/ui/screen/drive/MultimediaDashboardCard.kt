@@ -427,7 +427,13 @@ private fun MediaShortcutTile(
                     compact = true,
                 )
             } else if (item.id == "livetv") {
-                Text("🚘", fontSize = 42.sp)
+                // Kirmizi 3B navigasyon oku + yol mavisi 3B "3D" yazisi (oran 248:320)
+                Image(
+                    painter = painterResource(R.drawable.icon_nav3d),
+                    contentDescription = "3D Navigasyon",
+                    contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                    modifier = Modifier.size(width = 42.dp, height = 54.dp)
+                )
             } else if (item.id == "radio") {
                 // 141: Ekolayzer kaldırıldı. Radyo aktifken ikon hafifçe sola-sağa
                 // döner; radyo kapalıyken herhangi bir animasyon oynatılmaz.
