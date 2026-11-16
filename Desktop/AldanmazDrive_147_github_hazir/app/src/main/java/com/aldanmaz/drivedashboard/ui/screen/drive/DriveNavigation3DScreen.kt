@@ -302,6 +302,7 @@ internal fun DriveNavigation3DScreen(
         }
     ) {
         val landscape = maxWidth > maxHeight * 1.15f
+        val screenH = maxHeight   // ic ice Column/LazyColumn kapsamlarinda dogrudan maxHeight kullanilamaz
         val panelModifier = if (landscape) Modifier.width(440.dp) else Modifier.fillMaxWidth()
 
         NavMapView(
@@ -392,7 +393,7 @@ internal fun DriveNavigation3DScreen(
                     TextButton(onClick = { vm.retrySearch() }) { Text("TEKRAR DENE", color = Accent, fontWeight = FontWeight.Bold) }
                 }
                 is SearchState.Results -> LazyColumn(
-                    Modifier.fillMaxWidth().heightIn(max = if (landscape) (maxHeight - 260.dp).coerceAtLeast(120.dp) else minOf(240.dp, maxHeight * 0.3f))
+                    Modifier.fillMaxWidth().heightIn(max = if (landscape) (screenH - 260.dp).coerceAtLeast(120.dp) else minOf(240.dp, screenH * 0.3f))
                         .background(ChipColor, RoundedCornerShape(10.dp))
                 ) {
                     items(s.places) { place ->
