@@ -191,7 +191,7 @@ internal fun DriveNavigation3DScreen(
     val localNetPerm = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { camKey++ }
     var camExpanded by remember { mutableStateOf(false) }
     var camUrl by remember { mutableStateOf(runCatching { prefs.getString("cam_url", null) }.getOrNull() ?: "rtsp://192.168.0.1:554/livestream/12") }
-    var camRearUrl by remember { mutableStateOf(runCatching { prefs.getString("cam_url_rear", null) }.getOrNull() ?: "rtsp://192.168.0.1:554/livestream/13") }
+    var camRearUrl by remember { mutableStateOf(runCatching { prefs.getString("cam_url_rear", null) }.getOrNull() ?: "") }   // arka kamera adresi bilinmiyor: bos birakilir, tam ekranda girilir
     var northUp by remember { mutableStateOf(runCatching { prefs.getBoolean("north_up", false) }.getOrDefault(false)) }
     var arrowVisible by remember { mutableStateOf(false) }
     var arrowPos by remember { mutableStateOf(Offset.Zero) }

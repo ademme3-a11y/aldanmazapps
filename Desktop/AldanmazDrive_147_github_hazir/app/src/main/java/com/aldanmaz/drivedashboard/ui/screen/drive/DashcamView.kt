@@ -119,7 +119,7 @@ private fun DashcamPane(url: String, label: String, attempt: Int, big: Boolean, 
                             }
                         }.start()
                     }
-                    MediaPlayer.Event.EndReached -> status = "Yayın sona erdi."
+                    MediaPlayer.Event.EndReached -> status = "Yayın sona erdi: kamera bağlantıyı kapattı. Kamera aynı anda tek izleyiciye izin veriyor olabilir; 70mai/VLC uygulamaları kapalı mı? ⟳ ile yeniden deneyin."
                     MediaPlayer.Event.Stopped -> if (status.startsWith("Bağlanıyor")) status = "Durduruldu (Stopped), görüntü gelmedi."
                     else -> Unit
                 }
