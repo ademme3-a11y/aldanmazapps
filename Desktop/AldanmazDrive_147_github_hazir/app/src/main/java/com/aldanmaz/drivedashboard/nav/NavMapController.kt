@@ -281,7 +281,7 @@ internal class NavMapController {
             sb.append('[').append(String.format(Locale.US, "%.6f", points[i].lon)).append(',')
                 .append(String.format(Locale.US, "%.6f", points[i].lat)).append(']')
         }
-        sb.append(',[').append(String.format(Locale.US, "%.6f", here.lon)).append(',')
+        sb.append(",[").append(String.format(Locale.US, "%.6f", here.lon)).append(',')
             .append(String.format(Locale.US, "%.6f", here.lat)).append("]]}}")
         src.setGeoJson(sb.toString())
     }
