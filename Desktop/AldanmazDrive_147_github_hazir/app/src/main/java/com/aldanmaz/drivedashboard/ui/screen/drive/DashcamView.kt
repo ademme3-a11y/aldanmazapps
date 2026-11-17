@@ -1,10 +1,5 @@
 package com.aldanmaz.drivedashboard.ui.screen.drive
 
-import android.net.ConnectivityManager
-import android.net.Network
-import android.net.NetworkCapabilities
-import android.view.SurfaceView
-import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -35,69 +30,61 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.media3.common.MediaItem
-import androidx.media3.common.PlaybackException
-import androidx.media3.common.Player
-import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.DefaultLoadControl
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.rtsp.RtspMediaSource
+import android.net.Uri
+import org.videolan.libvlc.LibVLC
+import org.videolan.libvlc.Media
+import org.videolan.libvlc.MediaPlayer
+import org.videolan.libvlc.util.VLCVideoLayout
 
-/** Araç kamerasının (ör. 70mai) Wi-Fi ağındaki ağı bulur; RTSP soketleri bu ağa bağlanır, harita/internet mobil veride kalır. */
-private fun findWifiNetwork(cm: ConnectivityManager?): Network? = try {
-    @Suppress("DEPRECATION")
-    cm?.allNetworks?.firstOrNull { cm.getNetworkCapabilities(it)?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true }
-} catch (_: Throwable) { null }
-
-/** Tek kamera kanali: RTSP/TCP, dusuk gecikme. Goruntu yoksa durum metni gosterir; kayit akisina mudahale etmez (yalnizca izler). */
-@OptIn(UnstableApi::class)
+/**
+ * Tek kamera kanali (VLC oynatici motoru): kameranin RTSP akisini VLC ile ayni sekilde acar.
+ * Goruntu yoksa durum metni gosterir; kamerayi kayittan alikoyan hicbir komut gondermez (yalnizca izler).
+ */
 @Composable
 private fun DashcamPane(url: String, label: String, attempt: Int, big: Boolean, modifier: Modifier) {
     val ctx = LocalContext.current
     var status by remember { mutableStateOf("Bağlanıyor…") }
-    var player by remember { mutableStateOf<ExoPlayer?>(null) }
-    // Ilk deneme Wi-Fi agina baglanir; olmazsa bir kez de sistem varsayilan agiyla denenir.
-    var bindToWifi by remember(url, attempt) { mutableStateOf(true) }
+    val layout = remember { VLCVideoLayout(ctx) }
 
-    DisposableEffect(url, attempt, bindToWifi) {
+    DisposableEffect(url, attempt) {
         status = "Bağlanıyor…"
-        val cm = ctx.getSystemService(ConnectivityManager::class.java)
-        val wifi = findWifiNetwork(cm)
-        val factory = RtspMediaSource.Factory().setForceUseRtpTcp(true).setTimeoutMs(8_000L)
-        if (wifi != null && bindToWifi) factory.setSocketFactory(wifi.socketFactory)
-        val p = ExoPlayer.Builder(ctx)
-            .setLoadControl(DefaultLoadControl.Builder().setBufferDurationsMs(500, 1_500, 250, 500).build())
-            .build()
-        p.addListener(object : Player.Listener {
-            override fun onPlaybackStateChanged(state: Int) {
-                if (state == Player.STATE_READY) status = ""
-            }
-            override fun onPlayerError(error: PlaybackException) {
-                if (bindToWifi && wifi != null) {
-                    bindToWifi = false      // Wi-Fi'a ozel baglanti olmadi: varsayilan agla yeniden dene
-                } else {
-                    val why = (error.cause?.message ?: error.message ?: "").take(90)
-                    status = "Bağlanamadı (${error.errorCodeName}) $why"
+        var lib: LibVLC? = null
+        var mp: MediaPlayer? = null
+        try {
+            lib = LibVLC(ctx, arrayListOf("--rtsp-tcp", "--network-caching=400", "--no-audio", "--no-stats"))
+            val player = MediaPlayer(lib)
+            mp = player
+            player.attachViews(layout, null, false, false)
+            player.setEventListener { ev ->
+                when (ev.type) {
+                    MediaPlayer.Event.Playing, MediaPlayer.Event.Vout -> status = ""
+                    MediaPlayer.Event.EncounteredError -> status = "Bağlanamadı: kamera akışı açılamadı. Adres ve Wi-Fi bağlantısını kontrol edin."
+                    MediaPlayer.Event.EndReached -> status = "Yayın sona erdi."
+                    else -> Unit
                 }
             }
-        })
-        try {
-            p.setMediaSource(factory.createMediaSource(MediaItem.fromUri(url)))
-            p.prepare()
-            p.playWhenReady = true
+            val media = Media(lib, Uri.parse(url))
+            media.setHWDecoderEnabled(true, false)
+            media.addOption(":network-caching=400")
+            player.media = media
+            media.release()
+            player.play()
         } catch (t: Throwable) {
-            status = "Adres geçersiz: ${t.message ?: url}"
+            status = "Oynatıcı başlatılamadı: ${t.javaClass.simpleName} ${(t.message ?: "").take(80)}"
         }
-        player = p
-        onDispose { player = null; p.release() }
+        onDispose {
+            try {
+                mp?.setEventListener(null)
+                mp?.stop()
+                mp?.detachViews()
+                mp?.release()
+                lib?.release()
+            } catch (_: Throwable) { }
+        }
     }
 
     Box(modifier.background(Color.Black)) {
-        AndroidView(
-            factory = { SurfaceView(it) },
-            update = { sv -> player?.setVideoSurfaceView(sv) },
-            modifier = Modifier.fillMaxSize()
-        )
+        AndroidView(factory = { layout }, modifier = Modifier.fillMaxSize())
         Text(
             label, color = Color.White, fontSize = if (big) 14.sp else 10.sp, fontWeight = FontWeight.Bold,
             modifier = Modifier.align(Alignment.TopStart).padding(6.dp).background(Color(0x99000000), RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 2.dp)
