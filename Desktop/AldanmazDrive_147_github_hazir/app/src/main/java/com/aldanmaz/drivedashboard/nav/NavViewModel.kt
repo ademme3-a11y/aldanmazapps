@@ -69,7 +69,38 @@ class NavViewModel(app: Application) : AndroidViewModel(app) {
     private var routeEpoch = 0
     private var suppressQuery: String? = null
 
+    private val prefs = app.getSharedPreferences("nav_prefs", android.content.Context.MODE_PRIVATE)
+
+    /** Son hedefi kaydeder (null = sil); uygulama kapanip acilsa da rota ayni hedefle devam eder. */
+    private fun persistDestination(p: PlaceResult?) {
+        try {
+            prefs.edit().apply {
+                if (p == null) {
+                    remove("dest_id"); remove("dest_name"); remove("dest_sub"); remove("dest_lat"); remove("dest_lon"); remove("dest_kind")
+                } else {
+                    putString("dest_id", p.id); putString("dest_name", p.name); putString("dest_sub", p.subtitle)
+                    putString("dest_lat", p.lat.toString()); putString("dest_lon", p.lon.toString()); putString("dest_kind", p.kind)
+                }
+            }.apply()
+        } catch (_: Throwable) { }
+    }
+
+    private fun restoreDestination(): PlaceResult? = try {
+        val lat = prefs.getString("dest_lat", null)?.toDoubleOrNull()
+        val lon = prefs.getString("dest_lon", null)?.toDoubleOrNull()
+        val name = prefs.getString("dest_name", null)
+        if (lat == null || lon == null || name.isNullOrBlank()) null
+        else PlaceResult(prefs.getString("dest_id", "") ?: "", name, prefs.getString("dest_sub", "") ?: "", lat, lon, prefs.getString("dest_kind", "") ?: "")
+    } catch (_: Throwable) { null }
+
     init {
+        // Program kapatilip acildiginda son hedef geri yuklenir; gercek GPS konumu gelince rota yeniden hesaplanir.
+        restoreDestination()?.let { saved ->
+            suppressQuery = saved.name
+            _query.value = saved.name
+            _destination.value = saved
+            _routeState.value = RouteState.WaitingForGps
+        }
         viewModelScope.launch {
             _query.debounce(450).distinctUntilChanged().collect { q ->
                 val t = q.trim()
@@ -129,6 +160,7 @@ class NavViewModel(app: Application) : AndroidViewModel(app) {
         _query.value = p.name
         _search.value = SearchState.Idle
         _destination.value = p
+        persistDestination(p)
         requestRoute(reroute = false)
     }
 
@@ -138,6 +170,7 @@ class NavViewModel(app: Application) : AndroidViewModel(app) {
         routeJob?.cancel()
         engine = null
         _destination.value = null
+        persistDestination(null)
         _routeState.value = RouteState.None
         _progress.value = null
         _rerouting.value = false
@@ -192,6 +225,7 @@ class NavViewModel(app: Application) : AndroidViewModel(app) {
                 val e = engine ?: return
                 val prog = e.update(p)
                 _progress.value = prog
+                if (prog.arrived) persistDestination(null)   // varildi: bir sonraki acilista eski hedef geri gelmez
                 val now = System.currentTimeMillis()
                 if (prog.offRoute && !prog.arrived && !_rerouting.value && now - lastRerouteAt > REROUTE_COOLDOWN_MS) {
                     requestRoute(reroute = true)
