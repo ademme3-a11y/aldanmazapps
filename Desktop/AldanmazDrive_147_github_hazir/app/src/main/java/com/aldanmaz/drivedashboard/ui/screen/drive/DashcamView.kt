@@ -49,22 +49,29 @@ private fun DashcamPane(url: String, label: String, attempt: Int, big: Boolean, 
     DisposableEffect(url, attempt) {
         status = "Bağlanıyor…"
         var lib: LibVLC? = null
+        // 12 sn icinde goruntu gelmezse hicbir sey olmuyormus gibi birakmayiz; durumu acikca yazariz.
+        val handler = android.os.Handler(android.os.Looper.getMainLooper())
+        val watchdog = Runnable { if (status.startsWith("Bağlanıyor")) status = "12 sn içinde görüntü gelmedi. VLC uygulamasında aynı adres açılıyor mu? Adres: $url" }
+        handler.postDelayed(watchdog, 12_000L)
         var mp: MediaPlayer? = null
         try {
-            lib = LibVLC(ctx, arrayListOf("--rtsp-tcp", "--network-caching=400", "--no-audio", "--no-stats"))
+            // VLC uygulamasinin varsayilanlariyla ayni: TCP'yi zorlamayiz, donanim kod cozmeyi elle ayarlamayiz.
+            lib = LibVLC(ctx, arrayListOf("--network-caching=400"))
             val player = MediaPlayer(lib)
             mp = player
             player.attachViews(layout, null, false, false)
             player.setEventListener { ev ->
                 when (ev.type) {
                     MediaPlayer.Event.Playing, MediaPlayer.Event.Vout -> status = ""
-                    MediaPlayer.Event.EncounteredError -> status = "Bağlanamadı: kamera akışı açılamadı. Adres ve Wi-Fi bağlantısını kontrol edin."
+                    MediaPlayer.Event.Opening -> status = "Bağlanıyor… (açılıyor)"
+                    MediaPlayer.Event.Buffering -> if (status.isNotEmpty()) status = "Bağlanıyor… (arabellek %${ev.buffering.toInt()})"
+                    MediaPlayer.Event.EncounteredError -> status = "Bağlanamadı: VLC motoru akışı açamadı (EncounteredError). Adres: $url"
                     MediaPlayer.Event.EndReached -> status = "Yayın sona erdi."
+                    MediaPlayer.Event.Stopped -> if (status.startsWith("Bağlanıyor")) status = "Durduruldu (Stopped), görüntü gelmedi."
                     else -> Unit
                 }
             }
             val media = Media(lib, Uri.parse(url))
-            media.setHWDecoderEnabled(true, false)
             media.addOption(":network-caching=400")
             player.media = media
             media.release()
@@ -73,6 +80,7 @@ private fun DashcamPane(url: String, label: String, attempt: Int, big: Boolean, 
             status = "Oynatıcı başlatılamadı: ${t.javaClass.simpleName} ${(t.message ?: "").take(80)}"
         }
         onDispose {
+            handler.removeCallbacks(watchdog)
             try {
                 mp?.setEventListener(null)
                 mp?.stop()
