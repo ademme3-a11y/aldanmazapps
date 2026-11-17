@@ -186,6 +186,7 @@ internal fun DriveNavigation3DScreen(
     var camOpen by remember { mutableStateOf(false) }
     var camExpanded by remember { mutableStateOf(false) }
     var camUrl by remember { mutableStateOf(runCatching { prefs.getString("cam_url", null) }.getOrNull() ?: "rtsp://192.168.0.1:554/livestream/12") }
+    var camRearUrl by remember { mutableStateOf(runCatching { prefs.getString("cam_url_rear", null) }.getOrNull() ?: "rtsp://192.168.0.1:554/livestream/13") }
     var northUp by remember { mutableStateOf(runCatching { prefs.getBoolean("north_up", false) }.getOrDefault(false)) }
     var arrowVisible by remember { mutableStateOf(false) }
     var arrowPos by remember { mutableStateOf(Offset.Zero) }
@@ -774,13 +775,18 @@ internal fun DriveNavigation3DScreen(
         // ======== arac kamerasi (70mai vb.) canli goruntu: kucuk pencere veya tam ekran ========
         if (camOpen) {
             DashcamView(
-                url = camUrl,
+                frontUrl = camUrl,
+                rearUrl = camRearUrl,
                 expanded = camExpanded,
-                onUrlChange = { camUrl = it; runCatching { prefs.edit().putString("cam_url", it).apply() } },
+                landscape = landscape,
+                onUrlsChange = { f, r ->
+                    camUrl = f; camRearUrl = r
+                    runCatching { prefs.edit().putString("cam_url", f).putString("cam_url_rear", r).apply() }
+                },
                 onToggleExpand = { camExpanded = !camExpanded },
                 onClose = { camOpen = false; camExpanded = false },
                 modifier = if (camExpanded) Modifier.fillMaxSize()
-                else Modifier.align(Alignment.CenterEnd).safeDrawingPadding().padding(12.dp).size(if (landscape) 300.dp else 210.dp, if (landscape) 170.dp else 120.dp)
+                else Modifier.align(Alignment.CenterEnd).safeDrawingPadding().padding(12.dp).size(if (landscape) 300.dp else 210.dp, if (landscape) 330.dp else 240.dp)
             )
         }
     }

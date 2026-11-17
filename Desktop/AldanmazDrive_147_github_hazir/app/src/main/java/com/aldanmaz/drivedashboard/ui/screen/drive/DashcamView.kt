@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -48,25 +49,13 @@ private fun findWifiNetwork(cm: ConnectivityManager?): Network? = try {
     cm?.allNetworks?.firstOrNull { cm.getNetworkCapabilities(it)?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true }
 } catch (_: Throwable) { null }
 
-/**
- * Araç kamerası canlı görüntüsü (RTSP, düşük gecikme, TCP). Küçük pencere veya tam ekran.
- * Not: kameranın RTSP adresi modele göre değişir; adres alanından düzenlenir ve telefonda saklanır.
- */
+/** Tek kamera kanali: RTSP/TCP, dusuk gecikme. Goruntu yoksa durum metni gosterir; kayit akisina mudahale etmez (yalnizca izler). */
 @OptIn(UnstableApi::class)
 @Composable
-internal fun DashcamView(
-    url: String,
-    expanded: Boolean,
-    onUrlChange: (String) -> Unit,
-    onToggleExpand: () -> Unit,
-    onClose: () -> Unit,
-    modifier: Modifier = Modifier
-) {
+private fun DashcamPane(url: String, label: String, attempt: Int, big: Boolean, modifier: Modifier) {
     val ctx = LocalContext.current
     var status by remember { mutableStateOf("Bağlanıyor…") }
-    var attempt by remember { mutableIntStateOf(0) }
     var player by remember { mutableStateOf<ExoPlayer?>(null) }
-    var draftUrl by remember(url) { mutableStateOf(url) }
 
     DisposableEffect(url, attempt) {
         status = "Bağlanıyor…"
@@ -82,7 +71,7 @@ internal fun DashcamView(
                 if (state == Player.STATE_READY) status = ""
             }
             override fun onPlayerError(error: PlaybackException) {
-                status = "Kamera bağlantısı kurulamadı. Telefon/multimedya kameranın Wi-Fi ağına bağlı mı? (${error.errorCodeName})"
+                status = "Bağlanamadı (${error.errorCodeName}). Kameranın Wi-Fi ağına bağlı mısınız? Adres doğru mu?"
             }
         })
         try {
@@ -96,22 +85,59 @@ internal fun DashcamView(
         onDispose { player = null; p.release() }
     }
 
-    Box(
-        modifier
-            .clip(RoundedCornerShape(if (expanded) 0.dp else 12.dp))
-            .background(Color.Black)
-            .border(if (expanded) 0.dp else 2.dp, Color(0xFF3A4652), RoundedCornerShape(if (expanded) 0.dp else 12.dp))
-    ) {
+    Box(modifier.background(Color.Black)) {
         AndroidView(
             factory = { SurfaceView(it) },
             update = { sv -> player?.setVideoSurfaceView(sv) },
             modifier = Modifier.fillMaxSize()
         )
+        Text(
+            label, color = Color.White, fontSize = if (big) 14.sp else 10.sp, fontWeight = FontWeight.Bold,
+            modifier = Modifier.align(Alignment.TopStart).padding(6.dp).background(Color(0x99000000), RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 2.dp)
+        )
         if (status.isNotEmpty()) {
             Text(
-                status, color = Color.White, fontSize = if (expanded) 16.sp else 11.sp,
-                modifier = Modifier.align(Alignment.Center).padding(16.dp).background(Color(0x99000000), RoundedCornerShape(8.dp)).padding(8.dp)
+                status, color = Color.White, fontSize = if (big) 14.sp else 10.sp,
+                modifier = Modifier.align(Alignment.Center).padding(12.dp).background(Color(0x99000000), RoundedCornerShape(8.dp)).padding(8.dp)
             )
+        }
+    }
+}
+
+/**
+ * Araç kamerası (ör. 70mai) ön + arka canlı görüntü: küçük pencere veya tam ekran.
+ * Adresler modele göre değişir; tam ekranda düzenlenir ve telefonda saklanır. Boş bırakılan kanal gösterilmez.
+ */
+@Composable
+internal fun DashcamView(
+    frontUrl: String,
+    rearUrl: String,
+    expanded: Boolean,
+    landscape: Boolean,
+    onUrlsChange: (String, String) -> Unit,
+    onToggleExpand: () -> Unit,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var attempt by remember { mutableIntStateOf(0) }
+    var draftFront by remember(frontUrl) { mutableStateOf(frontUrl) }
+    var draftRear by remember(rearUrl) { mutableStateOf(rearUrl) }
+    val shape = RoundedCornerShape(if (expanded) 0.dp else 12.dp)
+    val channels = listOf("ÖN" to frontUrl, "ARKA" to rearUrl).filter { it.second.isNotBlank() }
+
+    Box(modifier.clip(shape).background(Color.Black).border(if (expanded) 0.dp else 2.dp, Color(0xFF3A4652), shape)) {
+        val sideBySide = expanded && landscape
+        if (sideBySide) {
+            Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                for ((label, url) in channels) DashcamPane(url, label, attempt, true, Modifier.weight(1f).fillMaxSize())
+            }
+        } else {
+            Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                for ((label, url) in channels) DashcamPane(url, label, attempt, expanded, Modifier.weight(1f).fillMaxWidth())
+            }
+        }
+        if (channels.isEmpty()) {
+            Text("Kamera adresi girilmedi", color = Color.White, modifier = Modifier.align(Alignment.Center))
         }
         Row(Modifier.align(Alignment.TopEnd).padding(6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             for ((label, action) in listOf("⟳" to { attempt++ }, (if (expanded) "▭" else "⤢") to onToggleExpand, "✕" to onClose)) {
@@ -123,12 +149,14 @@ internal fun DashcamView(
             }
         }
         if (expanded) {
-            Column(Modifier.align(Alignment.BottomStart).padding(12.dp).background(Color(0xCC000000), RoundedCornerShape(12.dp)).padding(10.dp)) {
-                Text("KAMERA ADRESİ (RTSP)", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(draftUrl, { draftUrl = it }, singleLine = true, modifier = Modifier.weight(1f))
-                    Button(onClick = { onUrlChange(draftUrl.trim()) }) { Text("BAĞLAN") }
-                }
+            Column(
+                Modifier.align(Alignment.BottomCenter).padding(12.dp).background(Color(0xDD000000), RoundedCornerShape(12.dp)).padding(10.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text("KAMERA ADRESLERİ (RTSP) — boş bırakılan kanal gösterilmez", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                OutlinedTextField(draftFront, { draftFront = it }, label = { Text("Ön kamera") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(draftRear, { draftRear = it }, label = { Text("Arka kamera") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                Button(onClick = { onUrlsChange(draftFront.trim(), draftRear.trim()) }) { Text("BAĞLAN") }
             }
         }
     }
