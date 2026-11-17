@@ -749,7 +749,7 @@ internal fun DriveNavigation3DScreen(
                     northUp = !northUp
                     runCatching { prefs.edit().putBoolean("north_up", northUp).apply() }
                 }
-                Hud3DText(if (northUp) "KUZEY" else "SEYİR", hudColor, 10.sp, hudShadowNow)
+                Text(if (northUp) "KUZEY" else "SEYİR", color = hudColor, fontSize = 10.sp, fontWeight = FontWeight.Bold, style = TextStyle(shadow = Shadow(Color(0xCC000000), Offset(0f, 2f), 4f)))
             }
         }
 
@@ -841,17 +841,22 @@ private fun NavArrow(modifier: Modifier = Modifier) {
     }
 }
 
-/** Kalinlikli (3B) yazi: yan yuzler koyu tonda katman katman, on yuz secilen renkte; ustune yumusak golge. */
+/**
+ * Kaliteli 3B yazi: on yuz secilen renkte; arkasinda ince, tek yone (sag-asagi) uzanan, koyuya dogru tonlanan yan yuz katmanlari.
+ * Bulanik golge KULLANILMAZ (yazi ile golgenin birbirine girmesini onler); yan yuzler keskindir.
+ */
 @Composable
-private fun Hud3DText(text: String, color: Color, size: TextUnit, shadow: Shadow, modifier: Modifier = Modifier) {
-    val side = if (color.luminance() < 0.12f) Color(0xFF7C8794) else lerp(color, Color.Black, 0.55f)
-    val step = (size.value * 0.011f).coerceAtLeast(0.6f)
-    Box(modifier) {
-        for (i in 6 downTo 1) {
+private fun Hud3DText(text: String, color: Color, size: TextUnit, @Suppress("UNUSED_PARAMETER") shadow: Shadow, modifier: Modifier = Modifier) {
+    val depth = (size.value * 0.034f).coerceIn(0.9f, 4.2f)      // dp
+    val layers = (depth / 0.4f).toInt().coerceAtLeast(2)
+    val dark = color.luminance() < 0.12f
+    Box(modifier.padding(end = depth.dp, bottom = depth.dp)) {
+        for (i in layers downTo 1) {
+            val t = i / layers.toFloat()
+            val shade = if (dark) lerp(Color(0xFFA9B3BF), Color(0xFF5E6975), t) else lerp(lerp(color, Color.Black, 0.40f), lerp(color, Color.Black, 0.72f), t)
             Text(
-                text, color = side, fontSize = size, fontWeight = FontWeight.Black,
-                modifier = Modifier.offset(x = (step * i).dp, y = (step * i * 1.15f).dp),
-                style = if (i == 6) TextStyle(shadow = shadow) else TextStyle.Default
+                text, color = shade, fontSize = size, fontWeight = FontWeight.Black,
+                modifier = Modifier.offset(x = (depth * t).dp, y = (depth * t).dp)
             )
         }
         Text(text, color = color, fontSize = size, fontWeight = FontWeight.Black)
