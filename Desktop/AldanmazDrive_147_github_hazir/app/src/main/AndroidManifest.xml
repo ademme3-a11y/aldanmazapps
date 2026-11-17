@@ -79,6 +79,13 @@
             android:stopWithTask="false" />
 
         <service
+            android:name=".data.location.TripRecordingService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="location"
+            android:stopWithTask="true" />
+
+        <service
             android:name=".trafficagent.TrafikTakipServisi"
             android:enabled="true"
             android:exported="false"

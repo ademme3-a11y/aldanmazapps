@@ -337,6 +337,12 @@ class DriveDashboardViewModel(
             }
         }
 
+        // Arka planda / ekran kapaliyken de km kaydi surmesi icin konum "on plan hizmeti" calistirilir.
+        runCatching {
+            val appCtx = getApplication<Application>()
+            ContextCompat.startForegroundService(appCtx, Intent(appCtx, com.aldanmaz.drivedashboard.data.location.TripRecordingService::class.java))
+        }
+
         if (locationJob?.isActive == true) return
 
         _uiState.value = _uiState.value.copy(
@@ -374,6 +380,10 @@ class DriveDashboardViewModel(
     }
 
     fun stopLocationTracking() {
+        runCatching {
+            val appCtx = getApplication<Application>()
+            appCtx.stopService(Intent(appCtx, com.aldanmaz.drivedashboard.data.location.TripRecordingService::class.java))
+        }
         locationJob?.cancel()
         locationJob = null
         cancelParkEntryCheck()
@@ -2608,6 +2618,10 @@ class DriveDashboardViewModel(
     }
 
     override fun onCleared() {
+        runCatching {
+            val appCtx = getApplication<Application>()
+            appCtx.stopService(Intent(appCtx, com.aldanmaz.drivedashboard.data.location.TripRecordingService::class.java))
+        }
         locationJob?.cancel()
         parkEntryJob?.cancel()
         parkTimerJob?.cancel()

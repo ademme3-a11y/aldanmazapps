@@ -280,10 +280,14 @@ fun DriveDashboardRoute(
             viewModel.startLocationTracking()
         }
 
+        // GPS/km kaydi arka planda ve ekran kapaliyken de surer (TripRecordingService); yalnizca pusula durur.
         onStopOrDispose {
-            viewModel.stopLocationTracking()
             viewModel.stopCompassTracking()
         }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose { viewModel.stopLocationTracking() }
     }
 
     val todayForecast = weatherUiState.dailyForecast.firstOrNull()
