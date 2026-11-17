@@ -60,6 +60,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
@@ -78,6 +80,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -616,8 +619,8 @@ internal fun DriveNavigation3DScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
                 Surface(Modifier.weight(1f), color = C.chip, shape = RoundedCornerShape(10.dp)) {
                     Row(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), verticalAlignment = Alignment.Bottom) {
-                        Text(speedKmh.coerceAtLeast(0).toString(), color = hudColor, fontSize = 68.sp, fontWeight = FontWeight.Black)
-                        Text(" km/h", color = hudSoft, fontSize = 20.sp, modifier = Modifier.padding(bottom = 12.dp))
+                        Hud3DText(speedKmh.coerceAtLeast(0).toString(), hudColor, 68.sp, hudShadowNow)
+                        Hud3DText(" km/h", hudSoft, 20.sp, hudShadowNow, modifier = Modifier.padding(bottom = 12.dp))
                     }
                 }
                 if (speedLimitKmh != null && speedLimitKmh > 0) InfoChip(C, "SINIR", speedLimitKmh.toString())
@@ -731,34 +734,34 @@ internal fun DriveNavigation3DScreen(
         }
 
         // ======== saat: sag ust kose, her zaman gorunur (arkasi seffaf) ========
-        Text(
-            currentTime, color = hudColor, fontSize = 40.sp, fontWeight = FontWeight.Black, style = TextStyle(shadow = hudShadowNow),
+        Hud3DText(
+            currentTime, hudColor, 40.sp, hudShadowNow,
             modifier = Modifier.align(Alignment.TopEnd).safeDrawingPadding().padding(horizontal = 18.dp, vertical = 8.dp)
         )
 
-        // ======== pusula: saatin zit kosesinde (sol alt); dokununca haritayi KUZEY'e kilitler / seyir yonune birakir ========
-        if (landscape || !panelsVisible) {
+        // ======== pusula: sol ust kose (paneller kapaliyken); dokununca haritayi KUZEY'e kilitler / seyir yonune birakir ========
+        if (!panelsVisible) {
             Column(
-                Modifier.align(Alignment.BottomStart).safeDrawingPadding().padding(12.dp),
+                Modifier.align(Alignment.TopStart).safeDrawingPadding().padding(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 NavCompass(C, northUp, { mapBearing }) {
                     northUp = !northUp
                     runCatching { prefs.edit().putBoolean("north_up", northUp).apply() }
                 }
-                Text(if (northUp) "KUZEY" else "SEYİR", color = hudColor, fontSize = 9.sp, fontWeight = FontWeight.Bold, style = TextStyle(shadow = hudShadowNow))
+                Hud3DText(if (northUp) "KUZEY" else "SEYİR", hudColor, 10.sp, hudShadowNow)
             }
         }
 
         // ======== sadece hiz (paneller gizliyken; arkasi seffaf) ========
         AnimatedVisibility(
             visible = !panelsVisible,
-            modifier = Modifier.align(if (landscape) Alignment.BottomStart else Alignment.BottomCenter).safeDrawingPadding().padding(start = if (landscape) 78.dp else 0.dp),
+            modifier = Modifier.align(Alignment.BottomStart).safeDrawingPadding(),
             enter = fadeIn(), exit = fadeOut()
         ) {
             Row(Modifier.padding(horizontal = 22.dp, vertical = 10.dp), verticalAlignment = Alignment.Bottom) {
-                Text(speedKmh.coerceAtLeast(0).toString(), color = hudColor, fontSize = 104.sp, fontWeight = FontWeight.Black, style = TextStyle(shadow = hudShadowNow))
-                Text(" km/h", color = hudSoft, fontSize = 28.sp, style = TextStyle(shadow = hudShadowNow), modifier = Modifier.padding(bottom = 20.dp))
+                Hud3DText(speedKmh.coerceAtLeast(0).toString(), hudColor, 104.sp, hudShadowNow)
+                Hud3DText(" km/h", hudSoft, 28.sp, hudShadowNow, modifier = Modifier.padding(bottom = 20.dp))
             }
         }
     }
@@ -838,26 +841,51 @@ private fun NavArrow(modifier: Modifier = Modifier) {
     }
 }
 
-/** Kucuk pusula: ibre haritanin donusune gore kuzeyi gosterir; dokununca kuzey kilidi acilip kapanir (kilitliyken vurgulu halka). */
+/** Kalinlikli (3B) yazi: yan yuzler koyu tonda katman katman, on yuz secilen renkte; ustune yumusak golge. */
+@Composable
+private fun Hud3DText(text: String, color: Color, size: TextUnit, shadow: Shadow, modifier: Modifier = Modifier) {
+    val side = if (color.luminance() < 0.12f) Color(0xFF7C8794) else lerp(color, Color.Black, 0.55f)
+    val step = (size.value * 0.011f).coerceAtLeast(0.6f)
+    Box(modifier) {
+        for (i in 6 downTo 1) {
+            Text(
+                text, color = side, fontSize = size, fontWeight = FontWeight.Black,
+                modifier = Modifier.offset(x = (step * i).dp, y = (step * i * 1.15f).dp),
+                style = if (i == 6) TextStyle(shadow = shadow) else TextStyle.Default
+            )
+        }
+        Text(text, color = color, fontSize = size, fontWeight = FontWeight.Black)
+    }
+}
+
+/** Kucuk pusula: ibre haritanin donusune gore kuzeyi gosterir; dokununca kuzey kilidi acilip kapanir (kilitliyken vurgulu halka). 3B: kalin kenar + ibre kalinligi. */
 @Composable
 private fun NavCompass(c: NavColors, northUp: Boolean, bearing: () -> Float, onClick: () -> Unit) {
-    Box(
-        Modifier.size(54.dp)
-            .background(c.panel, CircleShape)
-            .border(if (northUp) 3.dp else 1.5.dp, if (northUp) c.accent else c.edge, CircleShape)
-            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Canvas(Modifier.fillMaxSize().graphicsLayer { rotationZ = -bearing() }) {
-            val w = size.width
-            val h = size.height
-            val cx = w / 2f
-            val cy = h / 2f
-            val north = Path().apply { moveTo(cx, h * 0.12f); lineTo(cx - w * 0.13f, cy); lineTo(cx + w * 0.13f, cy); close() }
-            val south = Path().apply { moveTo(cx, h * 0.88f); lineTo(cx - w * 0.13f, cy); lineTo(cx + w * 0.13f, cy); close() }
-            drawPath(south, c.edge)
-            drawPath(north, Color(0xFFFF3B47))
-            drawCircle(c.text, radius = w * 0.04f, center = Offset(cx, cy))
+    Box(Modifier.size(60.dp)) {
+        Box(Modifier.offset(y = 5.dp).size(54.dp).background(if (c.day) Color(0xFF9AA5B1) else Color(0xFF030507), CircleShape))
+        Box(
+            Modifier.size(54.dp)
+                .background(c.panel, CircleShape)
+                .border(if (northUp) 3.dp else 1.5.dp, if (northUp) c.accent else c.edge, CircleShape)
+                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick),
+            contentAlignment = Alignment.Center
+        ) {
+            Canvas(Modifier.fillMaxSize().graphicsLayer { rotationZ = -bearing() }) {
+                val w = size.width
+                val h = size.height
+                val cx = w / 2f
+                val cy = h / 2f
+                val depth = w * 0.05f
+                fun tri(tipY: Float, dy: Float) = Path().apply {
+                    moveTo(cx, tipY + dy); lineTo(cx - w * 0.13f, cy + dy); lineTo(cx + w * 0.13f, cy + dy); close()
+                }
+                drawPath(tri(h * 0.88f, depth), Color(0x66000000))
+                drawPath(tri(h * 0.12f, depth), Color(0xFF8A0F19))
+                drawPath(tri(h * 0.88f, 0f), c.edge)
+                drawPath(tri(h * 0.12f, 0f), Color(0xFFFF3B47))
+                drawLine(Color(0x99FFFFFF), Offset(cx, h * 0.12f), Offset(cx, cy), strokeWidth = w * 0.02f, cap = StrokeCap.Round)
+                drawCircle(c.text, radius = w * 0.045f, center = Offset(cx, cy))
+            }
         }
     }
 }
