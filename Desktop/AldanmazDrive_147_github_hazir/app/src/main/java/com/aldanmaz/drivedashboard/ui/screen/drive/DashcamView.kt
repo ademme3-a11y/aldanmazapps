@@ -30,11 +30,46 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import android.content.Context
+import android.content.pm.PackageManager
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import android.net.Uri
+import android.os.Build
+import java.net.InetSocketAddress
+import java.net.Socket
 import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
 import org.videolan.libvlc.util.VLCVideoLayout
+
+/** Kameranin Wi-Fi agi (internetsiz olsa da). */
+private fun findWifiNetwork(cm: ConnectivityManager?): Network? = try {
+    @Suppress("DEPRECATION")
+    cm?.allNetworks?.firstOrNull { cm.getNetworkCapabilities(it)?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true }
+} catch (_: Throwable) { null }
+
+private class Probe(val viaWifi: Boolean?, val viaDefault: Boolean, val text: String)
+
+/** Kameranin RTSP kapisina (varsayilan 554) iki yoldan TCP baglantisi dener ve nedeni aciklar. Arka plan thread'inde calistirilmalidir. */
+private fun probeCamera(ctx: Context, url: String): Probe {
+    val uri = Uri.parse(url)
+    val host = uri.host ?: return Probe(null, false, "adres çözülemedi")
+    val port = if (uri.port > 0) uri.port else 554
+    fun tryConnect(make: () -> Socket): String? = try {
+        make().use { it.connect(InetSocketAddress(host, port), 2_500) }; null
+    } catch (t: Throwable) { "${t.javaClass.simpleName}: ${(t.message ?: "").take(40)}" }
+    val cm = ctx.getSystemService(ConnectivityManager::class.java)
+    val wifi = findWifiNetwork(cm)
+    val wifiErr = if (wifi == null) "Wi-Fi ağı yok" else tryConnect { wifi.socketFactory.createSocket() }
+    val defErr = tryConnect { Socket() }
+    val perm = if (Build.VERSION.SDK_INT >= 37) {
+        if (ctx.checkSelfPermission("android.permission.ACCESS_LOCAL_NETWORK") == PackageManager.PERMISSION_GRANTED) "izin var" else "izin YOK"
+    } else "izin gerekmez"
+    val text = "$host:$port • Wi-Fi ile: ${wifiErr ?: "AÇIK"} • Varsayılan ağ ile: ${defErr ?: "AÇIK"} • Yerel ağ izni: $perm • Android API ${Build.VERSION.SDK_INT}"
+    return Probe(if (wifi == null) null else wifiErr == null, defErr == null, text)
+}
 
 /**
  * Tek kamera kanali (VLC oynatici motoru): kameranin RTSP akisini VLC ile ayni sekilde acar.
@@ -45,8 +80,9 @@ private fun DashcamPane(url: String, label: String, attempt: Int, big: Boolean, 
     val ctx = LocalContext.current
     var status by remember { mutableStateOf("Bağlanıyor…") }
     val layout = remember { VLCVideoLayout(ctx) }
+    var retryKey by remember(url, attempt) { mutableIntStateOf(0) }
 
-    DisposableEffect(url, attempt) {
+    DisposableEffect(url, attempt, retryKey) {
         status = "Bağlanıyor…"
         var lib: LibVLC? = null
         // 12 sn icinde goruntu gelmezse hicbir sey olmuyormus gibi birakmayiz; durumu acikca yazariz.
@@ -65,7 +101,24 @@ private fun DashcamPane(url: String, label: String, attempt: Int, big: Boolean, 
                     MediaPlayer.Event.Playing, MediaPlayer.Event.Vout -> status = ""
                     MediaPlayer.Event.Opening -> status = "Bağlanıyor… (açılıyor)"
                     MediaPlayer.Event.Buffering -> if (status.isNotEmpty()) status = "Bağlanıyor… (arabellek %${ev.buffering.toInt()})"
-                    MediaPlayer.Event.EncounteredError -> status = "Bağlanamadı: VLC motoru akışı açamadı (EncounteredError). Adres: $url"
+                    MediaPlayer.Event.EncounteredError -> {
+                        status = "Bağlanamadı (VLC motoru). Neden araştırılıyor…"
+                        Thread {
+                            val pr = probeCamera(ctx, url)
+                            handler.post {
+                                if (pr.viaWifi == true && !pr.viaDefault && retryKey == 0) {
+                                    // Kameraya yalnizca Wi-Fi uzerinden ulasiliyor: bu uygulamayi Wi-Fi'a baglayip bir kez daha dene.
+                                    val cm = ctx.getSystemService(ConnectivityManager::class.java)
+                                    val w = findWifiNetwork(cm)
+                                    if (w != null && runCatching { cm.bindProcessToNetwork(w) }.getOrDefault(false)) {
+                                        retryKey = 1
+                                        return@post
+                                    }
+                                }
+                                status = "Bağlanamadı. " + pr.text
+                            }
+                        }.start()
+                    }
                     MediaPlayer.Event.EndReached -> status = "Yayın sona erdi."
                     MediaPlayer.Event.Stopped -> if (status.startsWith("Bağlanıyor")) status = "Durduruldu (Stopped), görüntü gelmedi."
                     else -> Unit
@@ -122,6 +175,11 @@ internal fun DashcamView(
     modifier: Modifier = Modifier
 ) {
     var attempt by remember { mutableIntStateOf(0) }
+    val viewCtx = LocalContext.current
+    // Kamera penceresi kapaninca uygulama yeniden varsayilan aga (mobil veri/harita) doner.
+    DisposableEffect(Unit) {
+        onDispose { runCatching { viewCtx.getSystemService(ConnectivityManager::class.java).bindProcessToNetwork(null) } }
+    }
     var draftFront by remember(frontUrl) { mutableStateOf(frontUrl) }
     var draftRear by remember(rearUrl) { mutableStateOf(rearUrl) }
     val shape = RoundedCornerShape(if (expanded) 0.dp else 12.dp)
