@@ -56,13 +56,15 @@ private fun DashcamPane(url: String, label: String, attempt: Int, big: Boolean, 
     val ctx = LocalContext.current
     var status by remember { mutableStateOf("Bağlanıyor…") }
     var player by remember { mutableStateOf<ExoPlayer?>(null) }
+    // Ilk deneme Wi-Fi agina baglanir; olmazsa bir kez de sistem varsayilan agiyla denenir.
+    var bindToWifi by remember(url, attempt) { mutableStateOf(true) }
 
-    DisposableEffect(url, attempt) {
+    DisposableEffect(url, attempt, bindToWifi) {
         status = "Bağlanıyor…"
         val cm = ctx.getSystemService(ConnectivityManager::class.java)
         val wifi = findWifiNetwork(cm)
         val factory = RtspMediaSource.Factory().setForceUseRtpTcp(true).setTimeoutMs(8_000L)
-        if (wifi != null) factory.setSocketFactory(wifi.socketFactory)
+        if (wifi != null && bindToWifi) factory.setSocketFactory(wifi.socketFactory)
         val p = ExoPlayer.Builder(ctx)
             .setLoadControl(DefaultLoadControl.Builder().setBufferDurationsMs(500, 1_500, 250, 500).build())
             .build()
@@ -71,7 +73,12 @@ private fun DashcamPane(url: String, label: String, attempt: Int, big: Boolean, 
                 if (state == Player.STATE_READY) status = ""
             }
             override fun onPlayerError(error: PlaybackException) {
-                status = "Bağlanamadı (${error.errorCodeName}). Kameranın Wi-Fi ağına bağlı mısınız? Adres doğru mu?"
+                if (bindToWifi && wifi != null) {
+                    bindToWifi = false      // Wi-Fi'a ozel baglanti olmadi: varsayilan agla yeniden dene
+                } else {
+                    val why = (error.cause?.message ?: error.message ?: "").take(90)
+                    status = "Bağlanamadı (${error.errorCodeName}) $why"
+                }
             }
         })
         try {

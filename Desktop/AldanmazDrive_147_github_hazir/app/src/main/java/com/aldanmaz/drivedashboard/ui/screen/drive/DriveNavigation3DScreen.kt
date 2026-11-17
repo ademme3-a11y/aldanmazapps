@@ -2,6 +2,7 @@ package com.aldanmaz.drivedashboard.ui.screen.drive
 
 import android.content.Context
 import android.net.Uri
+import android.os.Build
 import android.os.SystemClock
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -47,6 +48,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -184,6 +186,9 @@ internal fun DriveNavigation3DScreen(
     val prefs = remember { appCtx.getSharedPreferences("nav_prefs", Context.MODE_PRIVATE) }
     var themeMode by remember { mutableIntStateOf(runCatching { prefs.getInt("theme_mode", 0) }.getOrDefault(0)) }
     var camOpen by remember { mutableStateOf(false) }
+    var camKey by remember { mutableStateOf(0) }
+    // Android 17+ (hedef 37): yerel agdaki cihazlara (kamera 192.168.x.x) baglanmak icin calisma zamani izni gerekir.
+    val localNetPerm = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { camKey++ }
     var camExpanded by remember { mutableStateOf(false) }
     var camUrl by remember { mutableStateOf(runCatching { prefs.getString("cam_url", null) }.getOrNull() ?: "rtsp://192.168.0.1:554/livestream/12") }
     var camRearUrl by remember { mutableStateOf(runCatching { prefs.getString("cam_url_rear", null) }.getOrNull() ?: "rtsp://192.168.0.1:554/livestream/13") }
@@ -685,7 +690,12 @@ internal fun DriveNavigation3DScreen(
                     photoStatus ?: if (arrowMode) "Araç: kırmızı ok (araca dokunun)" else if (navPhoto != null) "Araç: kendi fotoğrafınız (araca dokunun: ok)" else "Araç: Sandero (araca dokunun: ok)",
                     color = C.soft, fontSize = 11.sp, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis
                 )
-                TextButton(onClick = { camOpen = !camOpen }) {
+                TextButton(onClick = {
+                    camOpen = !camOpen
+                    if (camOpen && Build.VERSION.SDK_INT >= 37 &&
+                        androidx.core.content.ContextCompat.checkSelfPermission(appCtx, "android.permission.ACCESS_LOCAL_NETWORK") != android.content.pm.PackageManager.PERMISSION_GRANTED
+                    ) localNetPerm.launch("android.permission.ACCESS_LOCAL_NETWORK")
+                }) {
                     Text(if (camOpen) "KAMERA: AÇIK" else "KAMERA", color = C.accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
                 TextButton(onClick = {
@@ -773,7 +783,7 @@ internal fun DriveNavigation3DScreen(
         }
 
         // ======== arac kamerasi (70mai vb.) canli goruntu: kucuk pencere veya tam ekran ========
-        if (camOpen) {
+        if (camOpen) key(camKey) {
             DashcamView(
                 frontUrl = camUrl,
                 rearUrl = camRearUrl,
