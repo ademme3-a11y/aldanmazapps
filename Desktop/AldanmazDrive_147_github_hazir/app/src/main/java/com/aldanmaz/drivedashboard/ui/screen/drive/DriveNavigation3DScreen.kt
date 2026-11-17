@@ -183,6 +183,9 @@ internal fun DriveNavigation3DScreen(
     val appCtx = LocalContext.current
     val prefs = remember { appCtx.getSharedPreferences("nav_prefs", Context.MODE_PRIVATE) }
     var themeMode by remember { mutableIntStateOf(runCatching { prefs.getInt("theme_mode", 0) }.getOrDefault(0)) }
+    var camOpen by remember { mutableStateOf(false) }
+    var camExpanded by remember { mutableStateOf(false) }
+    var camUrl by remember { mutableStateOf(runCatching { prefs.getString("cam_url", null) }.getOrNull() ?: "rtsp://192.168.0.1:554/livestream/12") }
     var northUp by remember { mutableStateOf(runCatching { prefs.getBoolean("north_up", false) }.getOrDefault(false)) }
     var arrowVisible by remember { mutableStateOf(false) }
     var arrowPos by remember { mutableStateOf(Offset.Zero) }
@@ -681,6 +684,9 @@ internal fun DriveNavigation3DScreen(
                     photoStatus ?: if (arrowMode) "Araç: kırmızı ok (araca dokunun)" else if (navPhoto != null) "Araç: kendi fotoğrafınız (araca dokunun: ok)" else "Araç: Sandero (araca dokunun: ok)",
                     color = C.soft, fontSize = 11.sp, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis
                 )
+                TextButton(onClick = { camOpen = !camOpen }) {
+                    Text(if (camOpen) "KAMERA: AÇIK" else "KAMERA", color = C.accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
                 TextButton(onClick = {
                     northUp = !northUp
                     runCatching { prefs.edit().putBoolean("north_up", northUp).apply() }
@@ -763,6 +769,19 @@ internal fun DriveNavigation3DScreen(
                 Hud3DText(speedKmh.coerceAtLeast(0).toString(), hudColor, 104.sp, hudShadowNow)
                 Hud3DText(" km/h", hudSoft, 28.sp, hudShadowNow, modifier = Modifier.padding(bottom = 20.dp))
             }
+        }
+
+        // ======== arac kamerasi (70mai vb.) canli goruntu: kucuk pencere veya tam ekran ========
+        if (camOpen) {
+            DashcamView(
+                url = camUrl,
+                expanded = camExpanded,
+                onUrlChange = { camUrl = it; runCatching { prefs.edit().putString("cam_url", it).apply() } },
+                onToggleExpand = { camExpanded = !camExpanded },
+                onClose = { camOpen = false; camExpanded = false },
+                modifier = if (camExpanded) Modifier.fillMaxSize()
+                else Modifier.align(Alignment.CenterEnd).safeDrawingPadding().padding(12.dp).size(if (landscape) 300.dp else 210.dp, if (landscape) 170.dp else 120.dp)
+            )
         }
     }
 }

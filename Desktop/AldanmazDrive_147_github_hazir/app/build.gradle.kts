@@ -40,8 +40,8 @@ android {
         applicationId = "com.aldanmaz.drivedashboard"
         minSdk = 29
         targetSdk = 37
-        versionCode = 274
-        versionName = "1711261747-1"
+        versionCode = 275
+        versionName = "1711262316-1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "TOMTOM_API_KEY", "\"$tomTomApiKey\"")
         buildConfigField("String", "HERE_API_KEY", "\"$hereApiKey\"" )
@@ -87,6 +87,8 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.4.0")
     // 3D navigasyon: yerel (native) vektor harita motoru, WebView/CDN bagimliligi yok. BSD-2 lisansli.
     implementation("org.maplibre.gl:android-sdk:13.6.1")
+    implementation("androidx.media3:media3-exoplayer:1.5.1")
+    implementation("androidx.media3:media3-exoplayer-rtsp:1.5.1")
     implementation("com.google.android.gms:play-services-mlkit-subject-segmentation:16.0.0-beta1")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.10.0")
