@@ -105,6 +105,9 @@ class PoseSmoother {
         zoom += (tZoom - zoom) * aZoom
     }
 
+    /** Yeniden ortalamada yakin zoom'a aninda don (yumusak gecis beklenmez). */
+    fun snapZoom(z: Double) { zoom = z }
+
     fun reset() { initialized = false }
 
     companion object {

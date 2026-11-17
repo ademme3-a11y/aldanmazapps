@@ -43,6 +43,7 @@ internal class NavMapController {
     private var routeSrc: GeoJsonSource? = null
     private var destSrc: GeoJsonSource? = null
     private var trailSrc: GeoJsonSource? = null
+    private var passedSrc: GeoJsonSource? = null
     private var vehicleSrc: GeoJsonSource? = null
     private var epoch = 0
     private var viewW = 0
@@ -98,7 +99,7 @@ internal class NavMapController {
 
     fun installStyle(style: Style, recolor: Boolean): StyleInstallResult {
         styleReady = false
-        routeSrc = null; destSrc = null; trailSrc = null; vehicleSrc = null
+        routeSrc = null; destSrc = null; trailSrc = null; vehicleSrc = null; passedSrc = null
         var core = false
         var buildings = false
         try { applyTheme(style, recolor) } catch (t: Throwable) { Log.w(tag, "tema uygulanamadi", t) }
@@ -108,6 +109,7 @@ internal class NavMapController {
             val rs = GeoJsonSource(ROUTE_SRC).also { it.setGeoJson(empty); style.addSource(it) }
             val ds = GeoJsonSource(DEST_SRC).also { it.setGeoJson(empty); style.addSource(it) }
             val ts = GeoJsonSource(TRAIL_SRC).also { it.setGeoJson(empty); style.addSource(it) }
+            val ps = GeoJsonSource(PASSED_SRC).also { it.setGeoJson(empty); style.addSource(it) }
             val vs = GeoJsonSource(VEH_SRC).also { it.setGeoJson(empty); style.addSource(it) }
 
             val widthCasing = Expression.interpolate(Expression.exponential(1.5f), Expression.zoom(),
@@ -115,7 +117,7 @@ internal class NavMapController {
             val widthLine = Expression.interpolate(Expression.exponential(1.5f), Expression.zoom(),
                 Expression.stop(8, 3f), Expression.stop(14, 7f), Expression.stop(19, 18f))
             val trail = LineLayer("nav-trail", TRAIL_SRC).withProperties(
-                PropertyFactory.lineColor("#3AA0FF"), PropertyFactory.lineOpacity(0.45f), PropertyFactory.lineWidth(4f),
+                PropertyFactory.lineColor("#9FB3C8"), PropertyFactory.lineOpacity(0.85f), PropertyFactory.lineWidth(6f),
                 PropertyFactory.lineCap(Property.LINE_CAP_ROUND), PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND))
             val glow = LineLayer("nav-route-glow", ROUTE_SRC).withProperties(
                 PropertyFactory.lineColor("#28D7FF"), PropertyFactory.lineOpacity(0.20f), PropertyFactory.lineBlur(6f),
@@ -128,6 +130,10 @@ internal class NavMapController {
             val line = LineLayer("nav-route-line", ROUTE_SRC).withProperties(
                 PropertyFactory.lineColor("#28D7FF"), PropertyFactory.lineWidth(widthLine),
                 PropertyFactory.lineCap(Property.LINE_CAP_ROUND), PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND))
+            // Gecilen rota: rota cizgisinin aracin gerisinde kalan kismi gri (kullanilmis yol) boyanir.
+            val passed = LineLayer("nav-passed", PASSED_SRC).withProperties(
+                PropertyFactory.lineColor("#9FB3C8"), PropertyFactory.lineOpacity(0.95f), PropertyFactory.lineWidth(widthLine),
+                PropertyFactory.lineCap(Property.LINE_CAP_ROUND), PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND))
             val dest = CircleLayer("nav-dest", DEST_SRC).withProperties(
                 PropertyFactory.circleRadius(10f), PropertyFactory.circleColor("#FF4D5A"),
                 PropertyFactory.circleStrokeColor("#FFFFFF"), PropertyFactory.circleStrokeWidth(3f))
@@ -139,12 +145,12 @@ internal class NavMapController {
                 PropertyFactory.fillExtrusionVerticalGradient(true))
 
             // Rota/iz etiketlerin altina, arac en uste.
-            for (l in listOf(trail, glow, casing, line)) {
+            for (l in listOf(trail, glow, casing, line, passed)) {
                 if (below != null) style.addLayerBelow(l, below) else style.addLayer(l)
             }
             style.addLayer(dest)
             style.addLayer(car)
-            routeSrc = rs; destSrc = ds; trailSrc = ts; vehicleSrc = vs
+            routeSrc = rs; destSrc = ds; trailSrc = ts; vehicleSrc = vs; passedSrc = ps
             core = true
         } catch (t: Throwable) {
             Log.e(tag, "cekirdek katmanlar kurulamadi", t)
@@ -240,7 +246,7 @@ internal class NavMapController {
             "nav-route-line" -> layer.setProperties(PropertyFactory.lineColor(if (d) "#2F7BFF" else "#28D7FF"))
             "nav-route-glow" -> layer.setProperties(PropertyFactory.lineColor(if (d) "#2F7BFF" else "#28D7FF"))
             "nav-route-casing" -> layer.setProperties(PropertyFactory.lineColor(if (d) "#16479E" else "#06324A"))
-            "nav-trail" -> layer.setProperties(PropertyFactory.lineColor(if (d) "#2F7BFF" else "#3AA0FF"))
+            "nav-trail", "nav-passed" -> layer.setProperties(PropertyFactory.lineColor(if (d) "#7F90A3" else "#9FB3C8"))
             "nav-buildings-3d" -> layer.setProperties(PropertyFactory.fillExtrusionColor(if (d) "#CDD2D9" else "#34424F"))
         }
     }
@@ -257,6 +263,26 @@ internal class NavMapController {
                 .append(String.format(Locale.US, "%.6f", p.lat)).append(']')
         }
         sb.append("]}}")
+        src.setGeoJson(sb.toString())
+    }
+
+    /** Rotanin aracin gerisinde kalan (gecilmis) kismini ayri katmana yazar; null/bos ise temizler. */
+    fun setPassed(points: List<GeoPoint>?, cum: DoubleArray?, alongM: Double) {
+        val src = passedSrc ?: return
+        if (points == null || cum == null || points.size < 2 || alongM < 3.0) { src.setGeoJson(EMPTY_FC); return }
+        var lo = 0
+        var hi = cum.size - 1
+        while (hi - lo > 1) { val mid = (lo + hi) ushr 1; if (cum[mid] <= alongM) lo = mid else hi = mid }
+        val here = NavGeo.pointAtDistance(points, cum, alongM)
+        val sb = StringBuilder((lo + 2) * 24 + 96)
+        sb.append("{\"type\":\"Feature\",\"properties\":{},\"geometry\":{\"type\":\"LineString\",\"coordinates\":[")
+        for (i in 0..lo) {
+            if (i > 0) sb.append(',')
+            sb.append('[').append(String.format(Locale.US, "%.6f", points[i].lon)).append(',')
+                .append(String.format(Locale.US, "%.6f", points[i].lat)).append(']')
+        }
+        sb.append(',[').append(String.format(Locale.US, "%.6f", here.lon)).append(',')
+            .append(String.format(Locale.US, "%.6f", here.lat)).append("]]}}")
         src.setGeoJson(sb.toString())
     }
 
@@ -298,11 +324,18 @@ internal class NavMapController {
     }
 
     // ---- kamera ----
-    fun moveFollow(lat: Double, lon: Double, bearing: Double, zoom: Double) {
+    fun moveFollow(lat: Double, lon: Double, bearing: Double, zoom: Double, tilt: Double = 60.0) {
         val m = map ?: return
         m.moveCamera(CameraUpdateFactory.newCameraPosition(
-            CameraPosition.Builder().target(LatLng(lat, lon)).zoom(zoom).bearing(bearing).tilt(60.0).build()))
+            CameraPosition.Builder().target(LatLng(lat, lon)).zoom(zoom).bearing(bearing).tilt(tilt).build()))
     }
+
+    /** Haritanin o anki donus acisi (pusula icin). */
+    fun currentBearing(): Double = map?.cameraPosition?.bearing ?: 0.0
+
+    /** Bir koordinatin MapView icindeki piksel konumu (ok simgesi bindirmesi icin); harita hazir degilse null. */
+    fun screenPoint(lat: Double, lon: Double): PointF? =
+        try { map?.projection?.toScreenLocation(LatLng(lat, lon)) } catch (t: Throwable) { null }
 
     /** Rotanin tamamini gosterir (sonra arayuz suruse kamerasina doner). */
     fun fitRoute(points: List<GeoPoint>, padLeftPx: Int, padTopPx: Int, padRightPx: Int, padBottomPx: Int, durationMs: Int = 1100) {
@@ -343,6 +376,7 @@ internal class NavMapController {
         const val ROUTE_SRC = "nav-route-src"
         const val DEST_SRC = "nav-dest-src"
         const val TRAIL_SRC = "nav-trail-src"
+        const val PASSED_SRC = "nav-passed-src"
         const val VEH_SRC = "nav-vehicle-src"
         const val EMPTY_FC = "{\"type\":\"FeatureCollection\",\"features\":[]}"
     }

@@ -371,4 +371,14 @@ class NavLogicTest {
         assertTrue(SunCalc.isDaylight(0L, null, null, 12))                          // konum yoksa saate gore
         assertFalse(SunCalc.isDaylight(0L, null, null, 3))
     }
+
+    @Test fun trailStoreKeepsPointsAtMinimumSpacingAndClears() {
+        NavTrailStore.clear()
+        assertTrue(NavTrailStore.add(GeoPoint(36.9000, 30.7000)))
+        assertFalse(NavTrailStore.add(GeoPoint(36.90003, 30.7000)))   // ~3 m: eklenmez
+        assertTrue(NavTrailStore.add(GeoPoint(36.9002, 30.7000)))     // ~22 m
+        assertEquals(2, NavTrailStore.snapshot().size)
+        NavTrailStore.clear()
+        assertEquals(0, NavTrailStore.snapshot().size)
+    }
 }

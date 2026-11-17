@@ -60,6 +60,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -76,6 +77,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -88,6 +90,7 @@ import com.aldanmaz.drivedashboard.nav.GpsFilter
 import com.aldanmaz.drivedashboard.nav.ManeuverKind
 import com.aldanmaz.drivedashboard.nav.NavFormat
 import com.aldanmaz.drivedashboard.nav.NavGeo
+import com.aldanmaz.drivedashboard.nav.NavTrailStore
 import com.aldanmaz.drivedashboard.nav.NavMapController
 import com.aldanmaz.drivedashboard.nav.NavMapState
 import com.aldanmaz.drivedashboard.nav.NavMapView
@@ -101,6 +104,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalTime
 import java.util.Locale
+import kotlin.math.roundToInt
 
 private enum class CamMode { FOLLOW, OVERVIEW, FREE }
 
@@ -176,6 +180,11 @@ internal fun DriveNavigation3DScreen(
     val appCtx = LocalContext.current
     val prefs = remember { appCtx.getSharedPreferences("nav_prefs", Context.MODE_PRIVATE) }
     var themeMode by remember { mutableIntStateOf(runCatching { prefs.getInt("theme_mode", 0) }.getOrDefault(0)) }
+    var northUp by remember { mutableStateOf(runCatching { prefs.getBoolean("north_up", false) }.getOrDefault(false)) }
+    var arrowVisible by remember { mutableStateOf(false) }
+    var arrowPos by remember { mutableStateOf(Offset.Zero) }
+    var arrowRot by remember { mutableStateOf(0f) }
+    var mapBearing by remember { mutableStateOf(0f) }
     var arrowMode by remember { mutableStateOf(runCatching { prefs.getBoolean("arrow_mode", false) }.getOrDefault(false)) }
     var nowMs by remember { mutableStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) { while (true) { delay(60_000); nowMs = System.currentTimeMillis() } }
@@ -192,11 +201,13 @@ internal fun DriveNavigation3DScreen(
     val fixNow by rememberUpdatedState(fix)
     val progressNow by rememberUpdatedState(progress)
     val camNow by rememberUpdatedState(camMode)
+    val northNow by rememberUpdatedState(northUp)
+    val arrowNow by rememberUpdatedState(arrowMode)
     val gestureNow by rememberUpdatedState(gestureAtMs)
 
     // ---------- GPS: filtrele, ViewModel'e ve haritaya ilet ----------
     val filter = remember { GpsFilter() }
-    val trail = remember { ArrayList<GeoPoint>() }
+    val trailClock = remember { longArrayOf(0L) }
     val lastRaw = remember { doubleArrayOf(Double.NaN, Double.NaN) }
     LaunchedEffect(latitude, longitude, speedKmh, headingDegrees) {
         val la = latitude ?: return@LaunchedEffect
@@ -209,10 +220,12 @@ internal fun DriveNavigation3DScreen(
             gpsStale = false
             vm.onPosition(GeoPoint(f.lat, f.lon))
             val p = GeoPoint(f.lat, f.lon)
-            if (trail.isEmpty() || NavGeo.haversine(trail.last(), p) >= 6.0) {
-                trail.add(p)
-                if (trail.size > 500) trail.removeAt(0)
-                controller.setTrail(trail)
+            if (NavTrailStore.add(p)) {
+                val nowT = SystemClock.elapsedRealtime()
+                if (nowT - trailClock[0] > 2_000L) {   // iz katmani en fazla 2 sn'de bir guncellenir
+                    trailClock[0] = nowT
+                    controller.setTrail(NavTrailStore.snapshot())
+                }
             }
         }
     }
@@ -234,7 +247,25 @@ internal fun DriveNavigation3DScreen(
         controller.setDestination(destination?.let { GeoPoint(it.lat, it.lon) })
     }
     LaunchedEffect(mapEpoch) {
-        if (mapEpoch != null) controller.setTrail(trail)
+        if (mapEpoch != null) controller.setTrail(NavTrailStore.snapshot())
+    }
+    // Yeni bir HEDEF secilince eski iz silinir (yeniden rota hesaplamada iz korunur).
+    val prevDestKey = remember { arrayOfNulls<String>(1) }
+    LaunchedEffect(destination) {
+        val key = destination?.let { "${it.lat},${it.lon}" } ?: return@LaunchedEffect
+        if (prevDestKey[0] != null && prevDestKey[0] != key) {
+            NavTrailStore.clear()
+            if (mapEpoch != null) controller.setTrail(emptyList())
+        }
+        prevDestKey[0] = key
+    }
+    // Gecilen rota (araci geride birakilan kisim) gri boyanir: hangi yoldan geldiginiz belli olur.
+    LaunchedEffect(mapEpoch, routeState, progress) {
+        if (mapEpoch == null) return@LaunchedEffect
+        val rs = routeState as? RouteState.Ready
+        val pr = progress
+        if (rs == null || pr == null) controller.setPassed(null, null, 0.0)
+        else controller.setPassed(rs.route.points, rs.route.cumDist, pr.distAlongM)
     }
 
     // ---------- yeni rota: once tum rotayi goster, sonra surus kamerasina don ----------
@@ -258,6 +289,7 @@ internal fun DriveNavigation3DScreen(
         val smoother = PoseSmoother()
         var lastNs = 0L
         var lastDrawNs = 0L
+        var prevMode = CamMode.FOLLOW
         while (true) {
             androidx.compose.runtime.withFrameNanos { now ->
                 val f = fixNow
@@ -276,11 +308,25 @@ internal fun DriveNavigation3DScreen(
                     if (now - lastDrawNs >= 33_000_000L) {
                         lastDrawNs = now
                         val mode = camNow
+                        val chase = mode == CamMode.FOLLOW && !northNow          // arkadan sabit gorunum (arac ekran bindirmesi)
+                        val arrowOnMap = !chase && arrowNow                      // uzaklasinca/kuzey-yukari iken de secili ok gorunur
+                        if (mode == CamMode.FOLLOW && prevMode != CamMode.FOLLOW) smoother.snapZoom(targetZoom)   // ORTALA: yakin moda don
+                        prevMode = mode
                         val zoomForScale = if (mode == CamMode.FOLLOW) smoother.zoom else (controller.currentZoom() ?: smoother.zoom)
-                        if (mode == CamMode.FOLLOW) controller.clearVehicle()
+                        if (chase || arrowOnMap) controller.clearVehicle()
                         else controller.setVehicle(smoother.lat, smoother.lon, smoother.heading, zoomForScale)
+                        val bearingNow = controller.currentBearing()
+                        if (kotlin.math.abs(bearingNow.toFloat() - mapBearing) > 0.4f) mapBearing = bearingNow.toFloat()
+                        if (arrowOnMap) {
+                            val pt = controller.screenPoint(smoother.lat, smoother.lon)
+                            if (pt != null) {
+                                arrowPos = Offset(pt.x, pt.y)
+                                arrowRot = (smoother.heading - bearingNow).toFloat()
+                                if (!arrowVisible) arrowVisible = true
+                            }
+                        } else if (arrowVisible) arrowVisible = false
                         if (mode == CamMode.FOLLOW) {
-                            controller.moveFollow(smoother.lat, smoother.lon, smoother.heading, smoother.zoom)
+                            controller.moveFollow(smoother.lat, smoother.lon, if (northNow) 0.0 else smoother.heading, smoother.zoom, if (northNow) 50.0 else 60.0)
                         } else if (mode == CamMode.FREE && SystemClock.elapsedRealtime() - gestureNow > 15_000L) {
                             controller.applyFollowPadding()
                             camMode = CamMode.FOLLOW   // Tesla gibi: bir sure sonra otomatik geri don
@@ -386,7 +432,7 @@ internal fun DriveNavigation3DScreen(
         )
 
         // ======== arac (takip kamerasinda arkadan gorunum); dokununca Sandero <-> kirmizi 3B ok ========
-        if (camMode == CamMode.FOLLOW && fix != null && mapEpoch != null) {
+        if (camMode == CamMode.FOLLOW && !northUp && fix != null && mapEpoch != null) {
             val photo = navPhoto
             val ratio = photo?.let { it.width.toFloat() / it.height } ?: (574f / 337f)
             val carW = (minOf(maxWidth, maxHeight).value * 0.30f).coerceIn(110f, 240f).dp
@@ -415,6 +461,27 @@ internal fun DriveNavigation3DScreen(
                     )
                 }
             }
+        }
+
+        // ======== haritaya bagli ok (uzaklasinca / kuzey-yukari modunda); secili ok simgesi korunur ========
+        if (arrowVisible && mapEpoch != null) {
+            val ratio2 = navPhoto?.let { it.width.toFloat() / it.height } ?: (574f / 337f)
+            val carW2 = (minOf(maxWidth, maxHeight).value * 0.30f).coerceIn(110f, 240f).dp
+            val carH2 = minOf(carW2 / ratio2, maxHeight * 0.30f)
+            val aw = carH2 * 0.92f
+            val ah = carH2 * 1.04f
+            val awPx = aw.value * density
+            val ahPx = ah.value * density
+            Box(
+                Modifier.align(Alignment.TopStart)
+                    .size(aw, ah)
+                    .offset { IntOffset((arrowPos.x - awPx / 2f).roundToInt(), (arrowPos.y - ahPx / 2f).roundToInt()) }
+                    .graphicsLayer { rotationZ = arrowRot }
+                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                        arrowMode = !arrowMode
+                        runCatching { prefs.edit().putBoolean("arrow_mode", arrowMode).apply() }
+                    }
+            ) { NavArrow(Modifier.fillMaxSize()) }
         }
 
         // ======== ust panel ========
@@ -528,10 +595,10 @@ internal fun DriveNavigation3DScreen(
         }
 
         // ======== yeniden ortala ========
-        if (panelsVisible && camMode != CamMode.FOLLOW && fix != null) {
+        if (camMode != CamMode.FOLLOW && fix != null) {
             Button(
                 onClick = { controller.applyFollowPadding(); camMode = CamMode.FOLLOW },
-                modifier = Modifier.align(if (landscape) Alignment.BottomCenter else Alignment.BottomEnd).safeDrawingPadding().padding(end = 12.dp, bottom = if (landscape) 24.dp else 230.dp),
+                modifier = Modifier.align(if (landscape) Alignment.BottomCenter else Alignment.BottomEnd).safeDrawingPadding().padding(end = 12.dp, bottom = if (landscape || !panelsVisible) 24.dp else 230.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = C.accent, contentColor = C.onAccent)
             ) { Text("ORTALA", fontWeight = FontWeight.Bold) }
         }
@@ -612,6 +679,12 @@ internal fun DriveNavigation3DScreen(
                     color = C.soft, fontSize = 11.sp, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis
                 )
                 TextButton(onClick = {
+                    northUp = !northUp
+                    runCatching { prefs.edit().putBoolean("north_up", northUp).apply() }
+                }) {
+                    Text(if (northUp) "HARİTA: KUZEY" else "HARİTA: SEYİR", color = C.accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+                TextButton(onClick = {
                     themeMode = (themeMode + 1) % 3
                     runCatching { prefs.edit().putInt("theme_mode", themeMode).apply() }
                 }) {
@@ -663,10 +736,24 @@ internal fun DriveNavigation3DScreen(
             modifier = Modifier.align(Alignment.TopEnd).safeDrawingPadding().padding(horizontal = 18.dp, vertical = 8.dp)
         )
 
+        // ======== pusula: saatin zit kosesinde (sol alt); dokununca haritayi KUZEY'e kilitler / seyir yonune birakir ========
+        if (landscape || !panelsVisible) {
+            Column(
+                Modifier.align(Alignment.BottomStart).safeDrawingPadding().padding(12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                NavCompass(C, northUp, { mapBearing }) {
+                    northUp = !northUp
+                    runCatching { prefs.edit().putBoolean("north_up", northUp).apply() }
+                }
+                Text(if (northUp) "KUZEY" else "SEYİR", color = hudColor, fontSize = 9.sp, fontWeight = FontWeight.Bold, style = TextStyle(shadow = hudShadowNow))
+            }
+        }
+
         // ======== sadece hiz (paneller gizliyken; arkasi seffaf) ========
         AnimatedVisibility(
             visible = !panelsVisible,
-            modifier = Modifier.align(if (landscape) Alignment.BottomStart else Alignment.BottomCenter).safeDrawingPadding(),
+            modifier = Modifier.align(if (landscape) Alignment.BottomStart else Alignment.BottomCenter).safeDrawingPadding().padding(start = if (landscape) 78.dp else 0.dp),
             enter = fadeIn(), exit = fadeOut()
         ) {
             Row(Modifier.padding(horizontal = 22.dp, vertical = 10.dp), verticalAlignment = Alignment.Bottom) {
@@ -748,5 +835,29 @@ private fun NavArrow(modifier: Modifier = Modifier) {
             moveTo(tip.x, tip.y); lineTo(left.x, left.y); lineTo(notch.x, notch.y); lineTo(right.x, right.y); close()
         }
         drawPath(outline, Color(0x80FFFFFF), style = Stroke(width = w * 0.016f, join = StrokeJoin.Round))
+    }
+}
+
+/** Kucuk pusula: ibre haritanin donusune gore kuzeyi gosterir; dokununca kuzey kilidi acilip kapanir (kilitliyken vurgulu halka). */
+@Composable
+private fun NavCompass(c: NavColors, northUp: Boolean, bearing: () -> Float, onClick: () -> Unit) {
+    Box(
+        Modifier.size(54.dp)
+            .background(c.panel, CircleShape)
+            .border(if (northUp) 3.dp else 1.5.dp, if (northUp) c.accent else c.edge, CircleShape)
+            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(Modifier.fillMaxSize().graphicsLayer { rotationZ = -bearing() }) {
+            val w = size.width
+            val h = size.height
+            val cx = w / 2f
+            val cy = h / 2f
+            val north = Path().apply { moveTo(cx, h * 0.12f); lineTo(cx - w * 0.13f, cy); lineTo(cx + w * 0.13f, cy); close() }
+            val south = Path().apply { moveTo(cx, h * 0.88f); lineTo(cx - w * 0.13f, cy); lineTo(cx + w * 0.13f, cy); close() }
+            drawPath(south, c.edge)
+            drawPath(north, Color(0xFFFF3B47))
+            drawCircle(c.text, radius = w * 0.04f, center = Offset(cx, cy))
+        }
     }
 }
