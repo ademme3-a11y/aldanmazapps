@@ -104,9 +104,16 @@ private fun DashcamPane(url: String, label: String, attempt: Int, big: Boolean, 
                     MediaPlayer.Event.Opening -> status = "Bağlanıyor… (açılıyor)"
                     MediaPlayer.Event.Buffering -> if (status.isNotEmpty()) status = "Bağlanıyor… (arabellek %${ev.buffering.toInt()})"
                     MediaPlayer.Event.EncounteredError -> {
-                        if (mode < 2) { handler.post { mode += 1 }; return@setEventListener }
+                        if (mode < 2) {
+                            // Kamera tek oturum tasiyor olabilir: once bu oturumu kapat, sonra bekleyip bir sonraki kipi dene.
+                            handler.post { status = "Kamera oturumu kapatılıyor, sonraki kip denenecek…"; runCatching { player.stop() } }
+                            handler.postDelayed({ mode += 1 }, 4_000L)
+                            return@setEventListener
+                        }
+                        handler.post { runCatching { player.stop() } }   // yoklamadan once kendi baglantimizi birak
                         status = "Bağlanamadı (VLC motoru). Neden araştırılıyor…"
                         Thread {
+                            Thread.sleep(3_000)
                             val pr = probeCamera(ctx, url)
                             handler.post {
                                 if (pr.viaWifi == true && !pr.viaDefault && retryKey == 0) {
@@ -122,7 +129,7 @@ private fun DashcamPane(url: String, label: String, attempt: Int, big: Boolean, 
                             }
                         }.start()
                     }
-                    MediaPlayer.Event.EndReached -> if (mode < 2) handler.post { mode += 1 } else status = "Yayın sona erdi (3 aktarım kipi denendi): kamera bağlantıyı kapattı. Kamera aynı anda tek izleyiciye izin veriyor olabilir; 70mai/VLC uygulamaları kapalı mı? ⟳ ile yeniden deneyin."
+                    MediaPlayer.Event.EndReached -> if (mode < 2) { handler.post { status = "Yayın kapandı, oturum kapatılıp sonraki kip denenecek…"; runCatching { player.stop() } }; handler.postDelayed({ mode += 1 }, 4_000L) } else status = "Yayın sona erdi (3 aktarım kipi denendi): kamera bağlantıyı kapattı. Kamera aynı anda tek izleyiciye izin veriyor olabilir; 70mai/VLC uygulamaları kapalı mı? ⟳ ile yeniden deneyin."
                     MediaPlayer.Event.Stopped -> if (status.startsWith("Bağlanıyor")) status = "Durduruldu (Stopped), görüntü gelmedi."
                     else -> Unit
                 }
@@ -138,7 +145,7 @@ private fun DashcamPane(url: String, label: String, attempt: Int, big: Boolean, 
             status = "Oynatıcı başlatılamadı: ${t.javaClass.simpleName} ${(t.message ?: "").take(80)}"
         }
         onDispose {
-            handler.removeCallbacks(watchdog)
+            handler.removeCallbacksAndMessages(null)
             try {
                 mp?.setEventListener(null)
                 mp?.stop()
