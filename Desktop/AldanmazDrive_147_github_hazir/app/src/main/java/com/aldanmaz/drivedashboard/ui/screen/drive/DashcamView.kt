@@ -81,9 +81,11 @@ private fun DashcamPane(url: String, label: String, attempt: Int, big: Boolean, 
     var status by remember { mutableStateOf("Bağlanıyor…") }
     val layout = remember { VLCVideoLayout(ctx) }
     var retryKey by remember(url, attempt) { mutableIntStateOf(0) }
+    // Aktarim kipi: 0 = VLC varsayilani, 1 = RTSP over TCP, 2 = TCP + yazilim kod cozme. Hata olursa sirayla denenir.
+    var mode by remember(url, attempt) { mutableIntStateOf(0) }
 
-    DisposableEffect(url, attempt, retryKey) {
-        status = "Bağlanıyor…"
+    DisposableEffect(url, attempt, retryKey, mode) {
+        status = if (mode == 0) "Bağlanıyor…" else "Bağlanıyor… (deneme ${mode + 1}/3: " + (if (mode == 1) "TCP" else "TCP + yazılım çözme") + ")"
         var lib: LibVLC? = null
         // 12 sn icinde goruntu gelmezse hicbir sey olmuyormus gibi birakmayiz; durumu acikca yazariz.
         val handler = android.os.Handler(android.os.Looper.getMainLooper())
@@ -102,6 +104,7 @@ private fun DashcamPane(url: String, label: String, attempt: Int, big: Boolean, 
                     MediaPlayer.Event.Opening -> status = "Bağlanıyor… (açılıyor)"
                     MediaPlayer.Event.Buffering -> if (status.isNotEmpty()) status = "Bağlanıyor… (arabellek %${ev.buffering.toInt()})"
                     MediaPlayer.Event.EncounteredError -> {
+                        if (mode < 2) { handler.post { mode += 1 }; return@setEventListener }
                         status = "Bağlanamadı (VLC motoru). Neden araştırılıyor…"
                         Thread {
                             val pr = probeCamera(ctx, url)
@@ -119,13 +122,15 @@ private fun DashcamPane(url: String, label: String, attempt: Int, big: Boolean, 
                             }
                         }.start()
                     }
-                    MediaPlayer.Event.EndReached -> status = "Yayın sona erdi: kamera bağlantıyı kapattı. Kamera aynı anda tek izleyiciye izin veriyor olabilir; 70mai/VLC uygulamaları kapalı mı? ⟳ ile yeniden deneyin."
+                    MediaPlayer.Event.EndReached -> if (mode < 2) handler.post { mode += 1 } else status = "Yayın sona erdi (3 aktarım kipi denendi): kamera bağlantıyı kapattı. Kamera aynı anda tek izleyiciye izin veriyor olabilir; 70mai/VLC uygulamaları kapalı mı? ⟳ ile yeniden deneyin."
                     MediaPlayer.Event.Stopped -> if (status.startsWith("Bağlanıyor")) status = "Durduruldu (Stopped), görüntü gelmedi."
                     else -> Unit
                 }
             }
             val media = Media(lib, Uri.parse(url))
             media.addOption(":network-caching=400")
+            if (mode >= 1) media.addOption(":rtsp-tcp")
+            if (mode >= 2) media.addOption(":avcodec-hw=none")
             player.media = media
             media.release()
             player.play()
