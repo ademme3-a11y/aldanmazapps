@@ -71,6 +71,63 @@ private fun probeCamera(ctx: Context, url: String): Probe {
     return Probe(if (wifi == null) null else wifiErr == null, defErr == null, text)
 }
 
+/** Taranacak olasi RTSP yollari (70mai: on kamera /livestream/12). */
+private val SCAN_PATHS: List<String> =
+    (0..30).map { "livestream/$it" } +
+    listOf("livestream", "live", "live/0", "live/1", "live/ch0", "live/ch1", "stream", "stream0", "stream1", "stream2",
+        "ch0", "ch1", "ch01", "ch02", "main", "sub", "front", "rear", "back", "video", "video0", "video1", "video2", "h264", "0", "1", "2")
+
+/**
+ * Kameranin RTSP kapisina sirayla DESCRIBE gonderip hangi yollarin var oldugunu bulur (yalnizca sorar, yayin baslatmaz).
+ * Arka plan thread'inde calistirilmalidir.
+ */
+private fun scanRtsp(ctx: Context, baseUrl: String, progress: (String) -> Unit): String {
+    val uri = Uri.parse(baseUrl.ifBlank { "rtsp://192.168.0.1:554/livestream/12" })
+    val host = uri.host ?: "192.168.0.1"
+    val port = if (uri.port > 0) uri.port else 554
+    val cm = ctx.getSystemService(ConnectivityManager::class.java)
+    val wifi = findWifiNetwork(cm)
+    val found = ArrayList<String>()   // 200 donenler
+    val auth = ArrayList<String>()    // 401/403 donenler (yol var ama yetki ister)
+    val other = java.util.TreeMap<String, Int>()
+    var timeouts = 0
+    var tested = 0
+    for (path in SCAN_PATHS) {
+        progress("Taranıyor… ${tested + 1}/${SCAN_PATHS.size}  ($path)  bulunan: ${found.size}")
+        try {
+            val sock = if (wifi != null) wifi.socketFactory.createSocket() else Socket()
+            sock.use { sk ->
+                sk.connect(InetSocketAddress(host, port), 2_500)
+                sk.soTimeout = 3_000
+                val req = "DESCRIBE rtsp://$host:$port/$path RTSP/1.0\r\nCSeq: 1\r\nAccept: application/sdp\r\nUser-Agent: AldDrive\r\n\r\n"
+                sk.getOutputStream().write(req.toByteArray())
+                sk.getOutputStream().flush()
+                val buf = ByteArray(4096)
+                val n = sk.getInputStream().read(buf)
+                val resp = if (n > 0) String(buf, 0, n) else ""
+                val code = Regex("RTSP/1\\.\\d (\\d{3})").find(resp)?.groupValues?.get(1) ?: "?"
+                val tracks = Regex("(?m)^m=(\\w+)").findAll(resp).joinToString("+") { it.groupValues[1] }
+                when (code) {
+                    "200" -> found += "/$path" + if (tracks.isNotEmpty()) " [$tracks]" else ""
+                    "401", "403" -> auth += "/$path ($code)"
+                    else -> other[code] = (other[code] ?: 0) + 1
+                }
+            }
+        } catch (t: Throwable) {
+            timeouts++
+            other["hata:${t.javaClass.simpleName}"] = (other["hata:${t.javaClass.simpleName}"] ?: 0) + 1
+            if (timeouts >= 4 && found.isEmpty()) break
+        }
+        tested++
+        try { Thread.sleep(300) } catch (_: InterruptedException) { break }
+    }
+    val sb = StringBuilder("Tarama bitti: $tested yol denendi ($host:$port, ${if (wifi != null) "Wi-Fi" else "varsayılan ağ"}).\n")
+    sb.append(if (found.isEmpty()) "Yanıt veren (200) yol YOK.\n" else "VAR olan yollar: ${found.joinToString(", ")}\n")
+    if (auth.isNotEmpty()) sb.append("Yetki isteyen: ${auth.joinToString(", ")}\n")
+    if (other.isNotEmpty()) sb.append("Diğer yanıtlar: ${other.entries.joinToString(", ") { "${it.key}×${it.value}" }}")
+    return sb.toString()
+}
+
 /**
  * Tek kamera kanali (VLC oynatici motoru): kameranin RTSP akisini VLC ile ayni sekilde acar.
  * Goruntu yoksa durum metni gosterir; kamerayi kayittan alikoyan hicbir komut gondermez (yalnizca izler).
@@ -195,7 +252,10 @@ internal fun DashcamView(
     var draftFront by remember(frontUrl) { mutableStateOf(frontUrl) }
     var draftRear by remember(rearUrl) { mutableStateOf(rearUrl) }
     val shape = RoundedCornerShape(if (expanded) 0.dp else 12.dp)
-    val channels = listOf("ÖN" to frontUrl, "ARKA" to rearUrl).filter { it.second.isNotBlank() }
+    var scanning by remember { mutableStateOf(false) }
+    var scanText by remember { mutableStateOf("") }
+    // Tarama sirasinda canli yayinlar kapatilir: kamera tek oturum tasiyor olabilir.
+    val channels = if (scanning) emptyList() else listOf("ÖN" to frontUrl, "ARKA" to rearUrl).filter { it.second.isNotBlank() }
 
     Box(modifier.clip(shape).background(Color.Black).border(if (expanded) 0.dp else 2.dp, Color(0xFF3A4652), shape)) {
         val sideBySide = expanded && landscape
@@ -208,8 +268,11 @@ internal fun DashcamView(
                 for ((label, url) in channels) DashcamPane(url, label, attempt, expanded, Modifier.weight(1f).fillMaxWidth())
             }
         }
-        if (channels.isEmpty()) {
-            Text("Kamera adresi girilmedi", color = Color.White, modifier = Modifier.align(Alignment.Center))
+        if (channels.isEmpty() || scanText.isNotEmpty()) {
+            Text(
+                if (scanText.isNotEmpty()) scanText else "Kamera adresi girilmedi", color = Color.White, fontSize = 13.sp,
+                modifier = Modifier.align(Alignment.Center).padding(16.dp).background(Color(0x99000000), RoundedCornerShape(8.dp)).padding(10.dp)
+            )
         }
         Row(Modifier.align(Alignment.TopEnd).padding(6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             for ((label, action) in listOf("⟳" to { attempt++ }, (if (expanded) "▭" else "⤢") to onToggleExpand, "✕" to onClose)) {
@@ -228,7 +291,19 @@ internal fun DashcamView(
                 Text("KAMERA ADRESLERİ (RTSP) — boş bırakılan kanal gösterilmez", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 OutlinedTextField(draftFront, { draftFront = it }, label = { Text("Ön kamera") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(draftRear, { draftRear = it }, label = { Text("Arka kamera") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                Button(onClick = { onUrlsChange(draftFront.trim(), draftRear.trim()) }) { Text("BAĞLAN") }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { scanText = ""; onUrlsChange(draftFront.trim(), draftRear.trim()) }) { Text("BAĞLAN") }
+                    Button(enabled = !scanning, onClick = {
+                        scanning = true; scanText = "Tarama başlıyor…"
+                        val h = android.os.Handler(android.os.Looper.getMainLooper())
+                        val app = viewCtx.applicationContext
+                        val base = draftFront.trim().ifBlank { frontUrl }
+                        Thread {
+                            val result = try { scanRtsp(app, base) { m -> h.post { scanText = m } } } catch (t: Throwable) { "Tarama başarısız: ${t.javaClass.simpleName} ${(t.message ?: "").take(60)}" }
+                            h.post { scanText = result; scanning = false }
+                        }.start()
+                    }) { Text("YAYIN ADRESİ TARA") }
+                }
             }
         }
     }
