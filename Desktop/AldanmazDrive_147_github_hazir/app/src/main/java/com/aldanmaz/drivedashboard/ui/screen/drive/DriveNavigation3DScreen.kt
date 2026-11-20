@@ -698,6 +698,9 @@ internal fun DriveNavigation3DScreen(
                 }) {
                     Text(if (camOpen) "KAMERA: AÇIK" else "KAMERA", color = C.accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
+                TextButton(onClick = { open70MaiRearCamera(appCtx) }) {
+                    Text("70mai ARKA", color = C.accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
                 TextButton(onClick = {
                     northUp = !northUp
                     runCatching { prefs.edit().putBoolean("north_up", northUp).apply() }
