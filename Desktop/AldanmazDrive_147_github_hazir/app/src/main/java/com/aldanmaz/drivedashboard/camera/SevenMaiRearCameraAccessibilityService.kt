@@ -48,8 +48,7 @@ class SevenMaiRearCameraAccessibilityService : AccessibilityService() {
             retries = 0
         }
         if (switchedInCurrentVisit) return
-        handler.removeCallbacks(attemptSwitch)
-        handler.postDelayed(attemptSwitch, 900L)
+        if (!handler.hasCallbacks(attemptSwitch)) handler.postDelayed(attemptSwitch, 900L)
     }
 
     private fun trySelectRearCamera() {
@@ -70,6 +69,7 @@ class SevenMaiRearCameraAccessibilityService : AccessibilityService() {
         if (retries < MAX_RETRIES) {
             handler.postDelayed(attemptSwitch, RETRY_DELAY_MS)
         } else {
+            switchedInCurrentVisit = true
             Log.w(TAG, "70mai ekraninda erisilebilir arka kamera dugmesi bulunamadi")
             Toast.makeText(this, "Arka kamera düğmesi otomatik bulunamadı; 70mai ekranı açık.", Toast.LENGTH_LONG).show()
         }
