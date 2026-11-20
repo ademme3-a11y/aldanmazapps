@@ -56,13 +56,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: AldanmazDrive_2011261446-1_APK
-          path: Desktop/AldanmazDrive_1911261752-1.apk
+          path: Desktop/AldanmazDrive_2011261446-1.apk
           if-no-files-found: error
           retention-days: 30
       - name: Upload source ZIP
         uses: actions/upload-artifact@v4
         with:
           name: AldanmazDrive_2011261446-1_ZIP
-          path: Desktop/AldanmazDrive_1911261752-1.zip
+          path: Desktop/AldanmazDrive_2011261446-1.zip
           if-no-files-found: error
           retention-days: 30
