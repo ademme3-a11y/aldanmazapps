@@ -7,7 +7,6 @@ import android.content.Intent
 import android.provider.Settings
 import android.os.Handler
 import android.os.Looper
-import android.os.SystemClock
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
@@ -34,7 +33,7 @@ class SevenMaiRearCameraAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         val packageName = event?.packageName?.toString() ?: return
         if (!packageName.startsWith(PACKAGE_PREFIX)) {
-            if (activeCameraPackage != null) {
+            if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && activeCameraPackage != null) {
                 activeCameraPackage = null
                 switchedInCurrentVisit = false
                 retries = 0
@@ -78,7 +77,7 @@ class SevenMaiRearCameraAccessibilityService : AccessibilityService() {
 
     private fun findRearButton(root: AccessibilityNodeInfo): AccessibilityNodeInfo? {
         val labels = listOf(
-            "arka kamera", "arka", "rear camera", "rear", "back camera", "back",
+            "arka kamera", "rear camera", "back camera",
             "switch camera", "camera switch", "change camera", "flip camera",
             "kamerayi degistir", "kamerayı değiştir", "kamera degistir", "kamera değiştir"
         )
@@ -88,7 +87,7 @@ class SevenMaiRearCameraAccessibilityService : AccessibilityService() {
                 append(' ')
                 append(node.contentDescription?.toString().orEmpty())
             }.lowercase()
-            val matches = labels.any { label.contains(it) }
+            val matches = labels.any { label.contains(it) } || label.trim() == "arka" || label.trim() == "rear"
             if (matches) {
                 if (node.isClickable) return node
                 var parent = node.parent
@@ -102,8 +101,8 @@ class SevenMaiRearCameraAccessibilityService : AccessibilityService() {
             for (index in 0 until node.childCount) {
                 val child = node.getChild(index) ?: continue
                 val found = visit(child)
-                child.recycle()
                 if (found != null) return found
+                child.recycle()
             }
             return null
         }
