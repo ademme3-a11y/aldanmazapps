@@ -13,6 +13,7 @@ import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Toast
 
 /**
+ * Build trigger after correcting artifact upload paths.
  * 70mai uygulamasi acildiginda yalnizca acikca "arka/rear/back" kamerayi belirten
  * tiklanabilir erisilebilirlik dugmesini bir kez secer. Dugme bulunamazsa on kamerayi
  * degistirmeden birakir; ekrana tahmini koordinatla dokunmaz.
