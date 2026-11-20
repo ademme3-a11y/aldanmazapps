@@ -1,5 +1,7 @@
 package com.aldanmaz.drivedashboard.ui.screen.drive
 
+import com.aldanmaz.drivedashboard.camera.open70MaiRearCamera
+
 import android.content.Context
 import android.net.Uri
 import android.os.Build
