@@ -6,7 +6,7 @@ on:
     paths:
       - '.github/workflows/analyze-70mai.yml'
 permissions:
-  contents: read
+  contents: write
 jobs:
   analyze:
     runs-on: ubuntu-latest
@@ -18,14 +18,26 @@ jobs:
           mkdir -p /opt/jadx && unzip -q /tmp/jadx.zip -d /opt/jadx
           chmod +x /opt/jadx/bin/jadx
           echo "/opt/jadx/bin" >> "$GITHUB_PATH"
-      - name: Decompile and inspect camera code
+      - name: Decompile and create inspection report
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           jadx --deobf --show-bad-code -d /tmp/70mai-src 70mai-analysis/classes.dex 70mai-analysis/classes2.dex || true
-          echo "===== APP PACKAGE FILES ====="
-          find /tmp/70mai-src/sources/com/banyac/midrive/app -type f | grep -Ei 'camera|preview|device|record|video|p2p|player|home|main|live' | head -300 || true
-          echo "===== GROUP CATEGORY DEFINITION ====="
-          grep -RinE -C 12 'enum GroupCategory|class GroupCategory|RearviewDashCam|RearviewMirror' /tmp/70mai-src/sources/com/banyac/midrive/app/model /tmp/70mai-src/sources/com/banyac/midrive/app 2>/dev/null | head -500 || true
-          echo "===== CAMERA LABEL RESOURCE REFERENCES ====="
-          grep -RinE -C 3 'rearview|rear_view|rear.?camera|back.?camera|switch.?camera|camera.?switch|dual.?channel|rear.?channel|后摄|后置|后视|后镜|后路' /tmp/70mai-src/resources /tmp/70mai-src/sources/com/banyac/midrive/app 2>/dev/null | head -1800 || true
-          echo "===== APP MANIFEST ACTIVITIES AND SERVICES ====="
-          grep -RinE 'activity|service|receiver|intent-filter|exported|permission' /tmp/70mai-src/resources/AndroidManifest.xml 2>/dev/null | head -500 || true
+          R=70mai-analysis/inspection-report.txt
+          {
+            echo '=== CLASSES RELATED TO CAMERA / PREVIEW / DEVICE / P2P ==='
+            find /tmp/70mai-src/sources/com/banyac -type f | grep -Ei 'camera|preview|device|record|video|p2p|player|live|stream|iotc' | head -600 || true
+            echo '=== CAMERA / STREAM / CHANNEL CONTROL CALLS ==='
+            grep -RinE -C 7 'getChannelId|setChannelId|getStreamTypes|startPreview|stopPreview|switch.*(camera|channel|stream)|camera.*switch|rear.*(camera|channel|stream)|channel.*(rear|camera)|stream.*(type|channel)|P2P|IOTC|Iotc|AVAPIs|avClient|connectDevice|deviceId|deviceType|preview' /tmp/70mai-src/sources/com/banyac 2>/dev/null | head -5000 || true
+            echo '=== UI CLICK LISTENERS / CAMERA ACTIONS ==='
+            grep -RinE -C 6 'setOnClickListener|onClick\(|onClick =|click.*(camera|preview)|camera.*(click|toggle)|video.*(click|toggle)' /tmp/70mai-src/sources/com/banyac/midrive/app 2>/dev/null | head -3000 || true
+            echo '=== RESOURCE FILES ==='
+            find /tmp/70mai-src/resources -type f | head -250 || true
+            echo '=== STRING KEYS THAT MAY DESCRIBE REAR CAMERA ==='
+            grep -RinE 'rear|back.?camera|dual.?channel|channel.?[12]|后摄|后置|后视|后镜' /tmp/70mai-src/resources 2>/dev/null | head -1000 || true
+          } > "$R"
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add "$R"
+          git commit -m "Add 70mai camera code inspection report" || true
+          git push
