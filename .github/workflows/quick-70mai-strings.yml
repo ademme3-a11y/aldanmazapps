@@ -1,0 +1,20 @@
+name: Quick 70mai DEX strings
+on:
+  push:
+    branches:
+      - feature/70mai-rear-camera-switch
+    paths:
+      - '.github/workflows/quick-70mai-strings.yml'
+permissions:
+  contents: read
+jobs:
+  strings:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract camera strings from DEX
+        run: |
+          echo "===== CLASSES.DEX CAMERA STRINGS ====="
+          strings -n 4 70mai-analysis/classes.dex | grep -Ei 'rear|back.?camera|switch.?camera|camera.?switch|camera.?mode|camera.?position|sub.?camera|secondary|front.?camera|av5|channel|preview|record|stream|device.?id|intent|broadcast|后摄|后置|副摄' | sort -u | head -1200 || true
+          echo "===== CLASSES2.DEX CAMERA STRINGS ====="
+          strings -n 4 70mai-analysis/classes2.dex | grep -Ei 'rear|back.?camera|switch.?camera|camera.?switch|camera.?mode|camera.?position|sub.?camera|secondary|front.?camera|av5|channel|preview|record|stream|device.?id|intent|broadcast|后摄|后置|副摄' | sort -u | head -1200 || true
