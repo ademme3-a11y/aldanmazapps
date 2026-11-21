@@ -129,6 +129,58 @@ private fun scanRtsp(ctx: Context, baseUrl: String, progress: (String) -> Unit):
 }
 
 /**
+ * 70mai uygulamasinin kodunda on = /livestream/12, arka = /livestream/13. Bu tani, ikisine de DESCRIBE gonderip
+ * kameranin TAM yanit satirlarini gosterir; ayrica uygulamanin her birkac saniyede yaptigi HTTP "register" cagrisini
+ * (imzasiz) dener ve ardindan /13'u yeniden sorar. Yalnizca sorgular, kayit/ayar degistirmez.
+ */
+private fun diagRear(ctx: Context, baseUrl: String, progress: (String) -> Unit): String {
+    val uri = Uri.parse(baseUrl.ifBlank { "rtsp://192.168.0.1:554/livestream/12" })
+    val host = uri.host ?: "192.168.0.1"
+    val port = if (uri.port > 0) uri.port else 554
+    val cm = ctx.getSystemService(ConnectivityManager::class.java)
+    val wifi = findWifiNetwork(cm)
+    fun sock(): Socket = if (wifi != null) wifi.socketFactory.createSocket() else Socket()
+    fun describe(path: String): String = try {
+        sock().use { sk ->
+            sk.connect(InetSocketAddress(host, port), 2_500); sk.soTimeout = 3_000
+            sk.getOutputStream().write("DESCRIBE rtsp://$host:$port/$path RTSP/1.0\r\nCSeq: 1\r\nAccept: application/sdp\r\nUser-Agent: AldDrive\r\n\r\n".toByteArray())
+            sk.getOutputStream().flush()
+            val buf = ByteArray(4096); var total = 0
+            try { while (total < buf.size) { val n = sk.getInputStream().read(buf, total, buf.size - total); if (n <= 0) break; total += n; if (total > 600) break } } catch (_: java.net.SocketTimeoutException) { }
+            val resp = String(buf, 0, total)
+            val head = resp.lineSequence().take(3).joinToString(" | ") { it.trim() }
+            val media = Regex("(?m)^m=(\\w+)[^\\r\\n]*").findAll(resp).joinToString(" ; ") { it.value.trim().take(40) }
+            if (head.isBlank()) "yanıt yok (bağlantı hemen kapandı)" else head + if (media.isNotEmpty()) "  [$media]" else ""
+        }
+    } catch (t: Throwable) { "hata: ${t.javaClass.simpleName} ${(t.message ?: "").take(40)}" }
+    fun http(path: String): String = try {
+        var localIp = "192.168.0.100"
+        sock().use { sk ->
+            sk.connect(InetSocketAddress(host, 80), 2_500); sk.soTimeout = 3_000
+            localIp = sk.localAddress?.hostAddress ?: localIp
+            sk.getOutputStream().write("GET $path HTTP/1.1\r\nHost: $host\r\nConnection: close\r\n\r\n".toByteArray())
+            sk.getOutputStream().flush()
+            val buf = ByteArray(1024); var total = 0
+            try { while (total < buf.size) { val n = sk.getInputStream().read(buf, total, buf.size - total); if (n <= 0) break; total += n } } catch (_: java.net.SocketTimeoutException) { }
+            val resp = String(buf, 0, total)
+            val status = resp.lineSequence().firstOrNull()?.trim() ?: ""
+            val body = resp.substringAfter("\r\n\r\n", "").replace("\n", " ").trim().take(120)
+            "$status  gövde: $body  (yerel IP $localIp)"
+        }
+    } catch (t: Throwable) { "hata: ${t.javaClass.simpleName} ${(t.message ?: "").take(40)}" }
+    val sb = StringBuilder()
+    progress("Tanı: /livestream/12 …"); sb.append("12: ").append(describe("livestream/12")).append("\n")
+    progress("Tanı: /livestream/13 …"); sb.append("13: ").append(describe("livestream/13")).append("\n")
+    progress("Tanı: HTTP register …")
+    val reg = http("/cgi-bin/client.cgi?&-operation=register&-ip=192.168.0.100")
+    sb.append("register: ").append(reg).append("\n")
+    progress("Tanı: /livestream/13 (tekrar) …"); sb.append("13 (register sonrası): ").append(describe("livestream/13")).append("\n")
+    progress("Tanı: getdeviceattr …")
+    sb.append("cihaz: ").append(http("/cgi-bin/getdeviceattr.cgi")).append("\n")
+    return sb.toString()
+}
+
+/**
  * Tek kamera kanali (VLC oynatici motoru): kameranin RTSP akisini VLC ile ayni sekilde acar.
  * Goruntu yoksa durum metni gosterir; kamerayi kayittan alikoyan hicbir komut gondermez (yalnizca izler).
  */
@@ -303,6 +355,16 @@ internal fun DashcamView(
                             h.post { scanText = result; scanning = false }
                         }.start()
                     }) { Text("YAYIN ADRESİ TARA") }
+                    Button(enabled = !scanning, onClick = {
+                        scanning = true; scanText = "Tanı başlıyor…"
+                        val h = android.os.Handler(android.os.Looper.getMainLooper())
+                        val app = viewCtx.applicationContext
+                        val base = draftFront.trim().ifBlank { frontUrl }
+                        Thread {
+                            val result = try { diagRear(app, base) { m -> h.post { scanText = m } } } catch (t: Throwable) { "Tanı başarısız: ${t.javaClass.simpleName} ${(t.message ?: "").take(60)}" }
+                            h.post { scanText = result; scanning = false }
+                        }.start()
+                    }) { Text("ARKA TANI") }
                 }
             }
         }
