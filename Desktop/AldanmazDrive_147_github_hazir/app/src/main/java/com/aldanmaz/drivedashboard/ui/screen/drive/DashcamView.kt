@@ -9,6 +9,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateListOf
+import android.content.ClipData
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -185,11 +192,12 @@ private fun diagRear(ctx: Context, baseUrl: String, progress: (String) -> Unit):
  * Goruntu yoksa durum metni gosterir; kamerayi kayittan alikoyan hicbir komut gondermez (yalnizca izler).
  */
 @Composable
-private fun DashcamPane(url: String, label: String, attempt: Int, big: Boolean, modifier: Modifier) {
+private fun DashcamPane(url: String, label: String, attempt: Int, big: Boolean, showStatus: Boolean, onLog: (String) -> Unit, modifier: Modifier) {
     val ctx = LocalContext.current
     var status by remember { mutableStateOf("Bağlanıyor…") }
     val layout = remember { VLCVideoLayout(ctx) }
     var retryKey by remember(url, attempt) { mutableIntStateOf(0) }
+    LaunchedEffect(status) { if (status.isNotEmpty() && !status.startsWith("Bağlanıyor… (arabellek")) onLog("$label: $status") }
     // Aktarim kipi: 0 = VLC varsayilani, 1 = RTSP over TCP, 2 = TCP + yazilim kod cozme. Hata olursa sirayla denenir.
     var mode by remember(url, attempt) { mutableIntStateOf(0) }
 
@@ -271,7 +279,7 @@ private fun DashcamPane(url: String, label: String, attempt: Int, big: Boolean, 
             label, color = Color.White, fontSize = if (big) 14.sp else 10.sp, fontWeight = FontWeight.Bold,
             modifier = Modifier.align(Alignment.TopStart).padding(6.dp).background(Color(0x99000000), RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 2.dp)
         )
-        if (status.isNotEmpty()) {
+        if (showStatus && status.isNotEmpty()) {
             Text(
                 status, color = Color.White, fontSize = if (big) 14.sp else 10.sp,
                 modifier = Modifier.align(Alignment.Center).padding(12.dp).background(Color(0x99000000), RoundedCornerShape(8.dp)).padding(8.dp)
@@ -305,7 +313,15 @@ internal fun DashcamView(
     var draftRear by remember(rearUrl) { mutableStateOf(rearUrl) }
     val shape = RoundedCornerShape(if (expanded) 0.dp else 12.dp)
     var scanning by remember { mutableStateOf(false) }
-    var scanText by remember { mutableStateOf("") }
+    var scanStatus by remember { mutableStateOf("") }   // tarama/tani sirasindaki tek satirlik ilerleme
+    val logs = remember { mutableStateListOf<String>() }
+    fun addLog(msg: String) {
+        val t = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+        val line = "[$t] $msg"
+        if (logs.lastOrNull()?.substringAfter("] ") == msg) return
+        logs.add(line)
+        while (logs.size > 200) logs.removeAt(0)
+    }
     // Tarama sirasinda canli yayinlar kapatilir: kamera tek oturum tasiyor olabilir.
     val channels = if (scanning) emptyList() else listOf("ÖN" to frontUrl, "ARKA" to rearUrl).filter { it.second.isNotBlank() }
 
@@ -313,16 +329,16 @@ internal fun DashcamView(
         val sideBySide = expanded && landscape
         if (sideBySide) {
             Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                for ((label, url) in channels) DashcamPane(url, label, attempt, true, Modifier.weight(1f).fillMaxSize())
+                for ((label, url) in channels) DashcamPane(url, label, attempt, true, !expanded, { addLog(it) }, Modifier.weight(1f).fillMaxSize())
             }
         } else {
             Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                for ((label, url) in channels) DashcamPane(url, label, attempt, expanded, Modifier.weight(1f).fillMaxWidth())
+                for ((label, url) in channels) DashcamPane(url, label, attempt, expanded, !expanded, { addLog(it) }, Modifier.weight(1f).fillMaxWidth())
             }
         }
-        if (channels.isEmpty() || scanText.isNotEmpty()) {
+        if (channels.isEmpty() && !expanded) {
             Text(
-                if (scanText.isNotEmpty()) scanText else "Kamera adresi girilmedi", color = Color.White, fontSize = 13.sp,
+                "Kamera adresi girilmedi", color = Color.White, fontSize = 13.sp,
                 modifier = Modifier.align(Alignment.Center).padding(16.dp).background(Color(0x99000000), RoundedCornerShape(8.dp)).padding(10.dp)
             )
         }
@@ -337,34 +353,53 @@ internal fun DashcamView(
         }
         if (expanded) {
             Column(
-                Modifier.align(Alignment.BottomCenter).padding(12.dp).background(Color(0xDD000000), RoundedCornerShape(12.dp)).padding(10.dp),
+                Modifier.align(Alignment.BottomCenter).padding(12.dp).heightIn(max = 380.dp)
+                    .background(Color(0xEE000000), RoundedCornerShape(12.dp)).padding(10.dp)
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text("KAMERA ADRESLERİ (RTSP) — boş bırakılan kanal gösterilmez", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Text("KAMERA AYARLARI — adresler (RTSP), boş bırakılan kanal gösterilmez", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 OutlinedTextField(draftFront, { draftFront = it }, label = { Text("Ön kamera") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(draftRear, { draftRear = it }, label = { Text("Arka kamera") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { scanText = ""; onUrlsChange(draftFront.trim(), draftRear.trim()) }) { Text("BAĞLAN") }
+                    Button(onClick = { onUrlsChange(draftFront.trim(), draftRear.trim()) }) { Text("BAĞLAN") }
                     Button(enabled = !scanning, onClick = {
-                        scanning = true; scanText = "Tarama başlıyor…"
+                        scanning = true; scanStatus = "Tarama başlıyor…"
                         val h = android.os.Handler(android.os.Looper.getMainLooper())
                         val app = viewCtx.applicationContext
                         val base = draftFront.trim().ifBlank { frontUrl }
                         Thread {
-                            val result = try { scanRtsp(app, base) { m -> h.post { scanText = m } } } catch (t: Throwable) { "Tarama başarısız: ${t.javaClass.simpleName} ${(t.message ?: "").take(60)}" }
-                            h.post { scanText = result; scanning = false }
+                            val result = try { scanRtsp(app, base) { m -> h.post { scanStatus = m } } } catch (t: Throwable) { "Tarama başarısız: ${t.javaClass.simpleName} ${(t.message ?: "").take(60)}" }
+                            h.post { addLog("TARAMA SONUCU:\n$result"); scanStatus = ""; scanning = false }
                         }.start()
-                    }) { Text("YAYIN ADRESİ TARA") }
+                    }) { Text("ADRES TARA") }
                     Button(enabled = !scanning, onClick = {
-                        scanning = true; scanText = "Tanı başlıyor…"
+                        scanning = true; scanStatus = "Tanı başlıyor…"
                         val h = android.os.Handler(android.os.Looper.getMainLooper())
                         val app = viewCtx.applicationContext
                         val base = draftFront.trim().ifBlank { frontUrl }
                         Thread {
-                            val result = try { diagRear(app, base) { m -> h.post { scanText = m } } } catch (t: Throwable) { "Tanı başarısız: ${t.javaClass.simpleName} ${(t.message ?: "").take(60)}" }
-                            h.post { scanText = result; scanning = false }
+                            val result = try { diagRear(app, base) { m -> h.post { scanStatus = m } } } catch (t: Throwable) { "Tanı başarısız: ${t.javaClass.simpleName} ${(t.message ?: "").take(60)}" }
+                            h.post { addLog("ARKA TANI:\n$result"); scanStatus = ""; scanning = false }
                         }.start()
                     }) { Text("ARKA TANI") }
+                }
+                if (scanStatus.isNotEmpty()) Text(scanStatus, color = Color(0xFFFFD54F), fontSize = 12.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("GÜNLÜK (basılı tutup seçebilirsiniz)", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Button(onClick = {
+                        runCatching {
+                            val cmgr = viewCtx.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                            cmgr.setPrimaryClip(ClipData.newPlainText("kamera günlüğü", logs.joinToString("\n")))
+                        }
+                    }) { Text("KOPYALA") }
+                    Button(onClick = { logs.clear() }) { Text("TEMİZLE") }
+                }
+                SelectionContainer {
+                    Text(
+                        if (logs.isEmpty()) "(günlük boş)" else logs.joinToString("\n"),
+                        color = Color(0xFFE0E0E0), fontSize = 12.sp
+                    )
                 }
             }
         }
