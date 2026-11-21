@@ -11,21 +11,21 @@ jobs:
   analyze:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
       - name: Install JADX
         run: |
           curl -L --fail --retry 3 -o /tmp/jadx.zip https://github.com/skylot/jadx/releases/download/v1.5.2/jadx-1.5.2.zip
-          mkdir -p /opt/jadx
-          unzip -q /tmp/jadx.zip -d /opt/jadx
+          mkdir -p /opt/jadx && unzip -q /tmp/jadx.zip -d /opt/jadx
           chmod +x /opt/jadx/bin/jadx
           echo "/opt/jadx/bin" >> "$GITHUB_PATH"
       - name: Decompile and inspect camera code
         run: |
           jadx --deobf --show-bad-code -d /tmp/70mai-src 70mai-analysis/classes.dex 70mai-analysis/classes2.dex || true
-          echo "===== CAMERA / REARVIEW SOURCE FILES ====="
-          find /tmp/70mai-src/sources -type f | grep -Ei 'camera|rear|dashcam|preview|video|device|p2p' | head -250 || true
-          echo "===== REARVIEW MODEL AND CAMERA CONTROL REFERENCES ====="
-          grep -RinE -C 5 'RearviewDashCam|RearviewMirror|RearView|rearview|RearCamera|rearCamera|rear_camera|cameraSwitch|switchCamera|setCamera|Camera.{0,25}(type|mode|channel|index)|channel.{0,25}(camera|video)|av5|subStream|sub_stream|videoChannel|streamType|startPreview|preview.{0,25}(camera|stream)' /tmp/70mai-src/sources 2>/dev/null | head -2200 || true
-          echo "===== CAMERA PACKAGE CLASS NAMES ====="
-          grep -RilE 'RearviewDashCam|RearviewMirror|rearview|cameraSwitch|switchCamera|startPreview|av5' /tmp/70mai-src/sources 2>/dev/null | head -150 || true
+          echo "===== APP PACKAGE FILES ====="
+          find /tmp/70mai-src/sources/com/banyac/midrive/app -type f | grep -Ei 'camera|preview|device|record|video|p2p|player|home|main|live' | head -300 || true
+          echo "===== GROUP CATEGORY DEFINITION ====="
+          grep -RinE -C 12 'enum GroupCategory|class GroupCategory|RearviewDashCam|RearviewMirror' /tmp/70mai-src/sources/com/banyac/midrive/app/model /tmp/70mai-src/sources/com/banyac/midrive/app 2>/dev/null | head -500 || true
+          echo "===== CAMERA LABEL RESOURCE REFERENCES ====="
+          grep -RinE -C 3 'rearview|rear_view|rear.?camera|back.?camera|switch.?camera|camera.?switch|dual.?channel|rear.?channel|后摄|后置|后视|后镜|后路' /tmp/70mai-src/resources /tmp/70mai-src/sources/com/banyac/midrive/app 2>/dev/null | head -1800 || true
+          echo "===== APP MANIFEST ACTIVITIES AND SERVICES ====="
+          grep -RinE 'activity|service|receiver|intent-filter|exported|permission' /tmp/70mai-src/resources/AndroidManifest.xml 2>/dev/null | head -500 || true
