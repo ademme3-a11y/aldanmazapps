@@ -1,0 +1,45 @@
+name: Kamera Testi 2111262145-1
+
+on:
+  push:
+    paths:
+      - 'Desktop/KameraTesti/**'
+      - '.github/workflows/kameratesti.yml'
+  workflow_dispatch:
+
+jobs:
+  build-debug:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: Desktop/KameraTesti
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Verify signing key
+        run: |
+          test -s app/kameratest-debug.keystore || { echo "Keystore is missing."; exit 1; }
+          keytool -list -keystore app/kameratest-debug.keystore -storepass android -alias androiddebugkey >/dev/null
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --no-daemon
+      - name: Verify APK exists
+        run: test -s app/build/outputs/apk/debug/app-debug.apk
+      - name: Verify APK signing
+        run: |
+          $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/debug/app-debug.apk
+      - name: Copy uniquely named APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk ../KameraTesti_2111262145-1.apk
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: KameraTesti_2111262145-1_APK
+          path: Desktop/KameraTesti_2111262145-1.apk
+          if-no-files-found: error
+          retention-days: 30
