@@ -1,4 +1,4 @@
-name: Kamera Testi 2111262145-1
+name: Kamera Testi 2111262147-1
 
 on:
   push:
@@ -35,11 +35,11 @@ jobs:
         run: |
           $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/debug/app-debug.apk
       - name: Copy uniquely named APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk ../KameraTesti_2111262145-1.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk ../KameraTesti_2111262147-1.apk
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: KameraTesti_2111262145-1_APK
-          path: Desktop/KameraTesti_2111262145-1.apk
+          name: KameraTesti_2111262147-1_APK
+          path: Desktop/KameraTesti_2111262147-1.apk
           if-no-files-found: error
           retention-days: 30

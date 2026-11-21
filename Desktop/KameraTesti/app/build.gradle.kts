@@ -1,6 +1,5 @@
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
@@ -14,7 +13,7 @@ android {
         // libvlc tum islemci mimarilerini icerir; boyutu sinirlamak icin yalnizca ARM (telefon / multimedya) tutulur.
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
         versionCode = 1
-        versionName = "2111262145-1"
+        versionName = "2111262147-1"
     }
     signingConfigs {
         create("stableDebug") {
