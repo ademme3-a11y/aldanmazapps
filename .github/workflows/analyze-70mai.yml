@@ -1,0 +1,35 @@
+name: Analyze 70mai DEX
+on:
+  push:
+    branches:
+      - feature/70mai-rear-camera-switch
+    paths:
+      - '70mai-analysis/**'
+      - '.github/workflows/analyze-70mai.yml'
+permissions:
+  contents: read
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install JADX
+        run: |
+          set -e
+          curl -L --fail --retry 3 -o /tmp/jadx.zip https://github.com/skylot/jadx/releases/download/v1.5.2/jadx-1.5.2.zip
+          mkdir -p /opt/jadx
+          unzip -q /tmp/jadx.zip -d /opt/jadx
+          chmod +x /opt/jadx/bin/jadx
+          echo "/opt/jadx/bin" >> "$GITHUB_PATH"
+      - name: Decompile and report camera-related code
+        run: |
+          set -e
+          jadx --version
+          jadx --deobf --show-bad-code -d /tmp/70mai-src 70mai-analysis/classes.dex 70mai-analysis/classes2.dex
+          echo "===== CAMERA RELATED FILES ====="
+          grep -RilE 'rear.?camera|back.?camera|switch.?camera|camera.?switch|后摄|后置|副摄|camera.*position|position.*camera' /tmp/70mai-src/sources /tmp/70mai-src/resources 2>/dev/null | head -100 || true
+          echo "===== MATCHING SOURCE SNIPPETS ====="
+          grep -RinE -C 5 'rear.?camera|back.?camera|switch.?camera|camera.?switch|后摄|后置|副摄|camera.*position|position.*camera' /tmp/70mai-src/sources 2>/dev/null | head -1800 || true
+          echo "===== CAMERA ACTIVITY / SERVICE / INTENT STRINGS ====="
+          grep -RinE -C 3 'camera.*(activity|service|receiver)|intent.*camera|camera.*intent|ACTION_.*CAMERA|broadcast.*camera|av5|channel.?id|stream.?type' /tmp/70mai-src/sources 2>/dev/null | head -1200 || true
