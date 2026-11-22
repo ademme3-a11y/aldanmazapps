@@ -55,7 +55,7 @@ jobs:
       - name: Decompile and search DEX
         run: |
           mkdir -p /tmp/70mai-src
-          jadx --deobf --show-bad-code -d /tmp/70mai-src 70mai-analysis/classes2.dex || true
+          /opt/jadx/bin/jadx --deobf --show-bad-code -d /tmp/70mai-src 70mai-analysis/classes2.dex || true
           R=70mai-analysis/rear-switch-focused-report.txt
           {
             echo '=== EXACT COMMAND / SIGNATURE REFERENCES IN DECOMPILED SOURCES ==='
