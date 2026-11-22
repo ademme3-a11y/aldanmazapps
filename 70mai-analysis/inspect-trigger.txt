@@ -1,1 +1,1 @@
-Run focused JADX decompilation of classes2.dex.
+Run focused JADX decompilation of classes2.dex. Retry with corrected executable path.
