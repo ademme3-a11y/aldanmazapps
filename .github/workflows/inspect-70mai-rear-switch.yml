@@ -33,6 +33,17 @@ jobs:
             echo '=== FLUTTER / DART / NATIVE FILES ==='
             find /tmp/70mai-assets -type f |
               grep -Ei '\.(so|dill|snapshot|blob|dat|json|js|bundle|bin)$|flutter|kernel' || true
+            echo '=== NATIVE ASSETS MANIFEST ==='
+            cat /tmp/70mai-assets/assets/flutter_assets/NativeAssetsManifest.json || true
+            echo
+            echo '=== 70MAI DEVICE CONFIG MATCHES ==='
+            grep -Ein -C 3 'DR2821|DR2820|A800|camera|stream|sensor|rtsp|wifi|command|channel|rear|back|front' /tmp/70mai-assets/assets/70mai_device.json | head -500 || true
+            echo '=== APP CONFIG ==='
+            cat /tmp/70mai-assets/assets/config/app_config.json || true
+            echo
+            echo '=== RELEVANT FLUTTER ASSET NAMES ==='
+            find /tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam -type f |
+              grep -Ei 'camera|player|stream|video|rear|back|front|multi|wifi|live' | sort || true
           } > 70mai-analysis/assets-inspection-report.txt
       - name: Install JADX
         run: |
@@ -52,6 +63,11 @@ jobs:
             for f in 70mai-analysis/classes.dex 70mai-analysis/classes2.dex; do
               echo "--- $f ---"
               strings -n 4 "$f" | grep -Ei 'setwifistream|signkey|connectKey|mult_cam_back|mult_cam_front|livestream|sensor|rear|back.?camera|front.?camera|camera.?switch|sign.?key|timestamp' | sort -u | head -2000 || true
+            done
+            echo '=== ALL DEX STRINGS RELATED TO CAMERA / FLUTTER / NETWORK / COMMAND ==='
+            for f in 70mai-analysis/classes.dex 70mai-analysis/classes2.dex; do
+              echo "--- $f ---"
+              strings -n 3 "$f" | grep -Ei 'camera|camcorder|dashcam|rear|front|backcam|back_cam|stream|rtsp|wifi|channel|methodcall|flutter|invokeMethod|http|cgi|sensor|connectkey|signkey|timestamp|command|video|player|multi' | sort -fu | head -6000 || true
             done
             echo '=== INPUT FILES ==='
             find 70mai-analysis -maxdepth 2 -type f -printf '%p %s bytes\n' | sort
