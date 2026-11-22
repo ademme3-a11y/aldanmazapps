@@ -54,7 +54,7 @@ jobs:
       - name: Decompile and search DEX
         run: |
           mkdir -p /tmp/70mai-src
-          jadx --deobf --show-bad-code -d /tmp/70mai-src 70mai-analysis/classes.dex 70mai-analysis/classes2.dex || true
+          jadx --deobf --show-bad-code -d /tmp/70mai-src 70mai-analysis/classes2.dex || true
           R=70mai-analysis/rear-switch-focused-report.txt
           {
             echo '=== EXACT COMMAND / SIGNATURE REFERENCES IN DECOMPILED SOURCES ==='
@@ -69,6 +69,10 @@ jobs:
               echo "--- $f ---"
               strings -n 3 "$f" | grep -Ei 'camera|camcorder|dashcam|rear|front|backcam|back_cam|stream|rtsp|wifi|channel|methodcall|flutter|invokeMethod|http|cgi|sensor|connectkey|signkey|timestamp|command|video|player|multi' | sort -fu | head -6000 || true
             done
+            echo '=== DECOMPILED CAMERA / FLUTTER PLUGIN REFERENCES ==='
+            grep -RinE -C 10 'Flutter70maiBasePlugin|MIDRIVE_CHANNEL|deviceChannel|methodChannel|invokeMethod|setMethodCallHandler|createPlayer|setLiveVideo|setVideoPalyerActivity|rtsp|stream|camera' /tmp/70mai-src/sources 2>/dev/null | head -18000 || true
+            echo '=== DECOMPILED CLASS FILES ==='
+            find /tmp/70mai-src/sources -type f -name '*.java' | head -300 || true
             echo '=== INPUT FILES ==='
             find 70mai-analysis -maxdepth 2 -type f -printf '%p %s bytes\n' | sort
             echo '=== DECOMPILE SUMMARY ==='
