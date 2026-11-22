@@ -244,10 +244,15 @@ updateTimestamp
 uploadTimestamp
 upload_timestamp_millis
 uriTimestamps
-=== POTENTIAL FLUTTER / NATIVE ASSETS IN REPOSITORY INPUTS ===
+=== INPUT FILES ===
+70mai-analysis/assets-analysis-report.txt 779008 bytes
+70mai-analysis/assets-inspection-report.txt 409583 bytes
+70mai-analysis/assets.zip.part-aa 20971520 bytes
+70mai-analysis/assets.zip.part-ab 20971520 bytes
+70mai-analysis/assets.zip.part-ac 15212938 bytes
 70mai-analysis/classes.dex 9162092 bytes
 70mai-analysis/classes2.dex 8482504 bytes
 70mai-analysis/inspection-report.txt 706943 bytes
-70mai-analysis/rear-switch-focused-report.txt 10189 bytes
+70mai-analysis/rear-switch-focused-report.txt 10146 bytes
 === DECOMPILE SUMMARY ===
 0
