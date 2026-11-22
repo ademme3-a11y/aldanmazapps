@@ -1,0 +1,58 @@
+name: Analyze uploaded 70mai assets
+on:
+  push:
+    branches:
+      - feature/70mai-rear-camera-switch
+    paths:
+      - '.github/workflows/analyze-70mai-assets.yml'
+      - '70mai-analysis/assets.zip.part-*'
+permissions:
+  contents: write
+  actions: read
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reassemble and inspect assets archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat 70mai-analysis/assets.zip.part-aa 70mai-analysis/assets.zip.part-ab 70mai-analysis/assets.zip.part-ac > /tmp/assets.zip
+          unzip -t /tmp/assets.zip
+          mkdir -p /tmp/70mai-assets
+          unzip -q /tmp/assets.zip -d /tmp/70mai-assets
+          R=70mai-analysis/assets-analysis-report.txt
+          {
+            echo '=== ARCHIVE VALIDATION ==='
+            unzip -t /tmp/assets.zip | tail -2
+            echo
+            echo '=== FILE INVENTORY (first 5000) ==='
+            find /tmp/70mai-assets -type f -printf '%p | %s bytes\n' | sort | head -5000
+            echo
+            echo '=== LARGE / NATIVE / EXECUTABLE FILES ==='
+            find /tmp/70mai-assets -type f -size +256k -printf '%p | %s bytes\n' | sort
+            echo
+            echo '=== CAMERA SWITCH / STREAM / SIGNATURE STRINGS ==='
+            find /tmp/70mai-assets -type f -print0 | while IFS= read -r -d '' f; do
+              if file "$f" | grep -Eqi 'text|json|xml|javascript|html|binary|shared object|ELF'; then
+                strings -a -n 4 "$f" 2>/dev/null | grep -Ei 'setwifistream|signkey|connectKey|mult_cam_back|mult_cam_front|livestream|rear.?camera|back.?camera|front.?camera|camera.?switch|sensor=0|sensor=1|rtsp|stream.?url|channel.?id|timestamp' | sed "s#^#$f: #" || true
+              fi
+            done | head -12000
+            echo
+            echo '=== FILE TYPE SUMMARY ==='
+            find /tmp/70mai-assets -type f -print0 | xargs -0 file | sed -n '1,3000p'
+          } > "$R"
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add "$R"
+          git commit -m "Add extracted 70mai assets analysis report" || true
+          git push
+      - name: Upload extracted assets and report
+        uses: actions/upload-artifact@v4
+        with:
+          name: 70mai-assets-analysis
+          path: |
+            /tmp/assets.zip
+            70mai-analysis/assets-analysis-report.txt
+          if-no-files-found: error
