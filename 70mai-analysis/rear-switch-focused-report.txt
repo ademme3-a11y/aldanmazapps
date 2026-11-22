@@ -1881,6 +1881,7 @@ _CodedInputStream encountered an embedded string or message which claimed to hav
 70mai-analysis/assets.zip.part-ac 15212938 bytes
 70mai-analysis/classes.dex 9162092 bytes
 70mai-analysis/classes2.dex 8482504 bytes
+70mai-analysis/inspect-trigger.txt 48 bytes
 70mai-analysis/inspection-report.txt 706943 bytes
 70mai-analysis/rear-switch-focused-report.txt 92979 bytes
 === DECOMPILE SUMMARY ===
