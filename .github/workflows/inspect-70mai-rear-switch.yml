@@ -1,0 +1,43 @@
+name: Inspect 70mai rear stream switch
+on:
+  push:
+    branches:
+      - feature/70mai-rear-camera-switch
+    paths:
+      - '.github/workflows/inspect-70mai-rear-switch.yml'
+permissions:
+  contents: write
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install JADX
+        run: |
+          curl -L --fail --retry 3 -o /tmp/jadx.zip https://github.com/skylot/jadx/releases/download/v1.5.2/jadx-1.5.2.zip
+          mkdir -p /opt/jadx
+          unzip -q /tmp/jadx.zip -d /opt/jadx
+          chmod +x /opt/jadx/bin/jadx
+      - name: Decompile and search exact camera switch implementation
+        run: |
+          mkdir -p /tmp/70mai-src
+          jadx --deobf --show-bad-code -d /tmp/70mai-src 70mai-analysis/classes.dex 70mai-analysis/classes2.dex || true
+          R=70mai-analysis/rear-switch-focused-report.txt
+          {
+            echo '=== EXACT COMMAND / SIGNATURE REFERENCES IN DECOMPILED SOURCES ==='
+            grep -RinE -C 12 'setwifistream|signkey|connectKey|mult_cam_back|mult_cam_front|sensor[=:]0|sensor[=:]1|livestream' /tmp/70mai-src/sources /tmp/70mai-src/resources 2>/dev/null | head -12000 || true
+            echo '=== EXACT STRINGS IN DEX FILES ==='
+            for f in 70mai-analysis/classes.dex 70mai-analysis/classes2.dex; do
+              echo "--- $f ---"
+              strings -n 4 "$f" | grep -Ei 'setwifistream|signkey|connectKey|mult_cam_back|mult_cam_front|livestream|sensor|rear|back.?camera|front.?camera|camera.?switch|sign.?key|timestamp' | sort -u | head -2000 || true
+            done
+            echo '=== POTENTIAL FLUTTER / NATIVE ASSETS IN REPOSITORY INPUTS ==='
+            find 70mai-analysis -maxdepth 3 -type f -printf '%p %s bytes\n' | sort
+            echo '=== DECOMPILE SUMMARY ==='
+            find /tmp/70mai-src/sources -type f -name '*.java' | wc -l
+          } > "$R"
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add "$R"
+          git commit -m "Add focused 70mai rear stream switch report" || true
+          git push
