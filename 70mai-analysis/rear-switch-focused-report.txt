@@ -1,0 +1,253 @@
+=== EXACT COMMAND / SIGNATURE REFERENCES IN DECOMPILED SOURCES ===
+=== EXACT STRINGS IN DEX FILES ===
+--- 70mai-analysis/classes.dex ---
+	timestamp
+ Landroid/hardware/SensorManager;
+"Timestamp should a positive value.
+#Invalid GPS Timestamp array. array=
+-GPS Timestamp format is not rational. format=
+GPSTimeStamp
+SensorBottomBorder
+SensorLeftBorder
+SensorRightBorder
+SensorTopBorder
+Timestamp should not be null.
+getLastChangedTimestamp
+requireArguments
+sensor
+--- 70mai-analysis/classes2.dex ---
+	LF_Sensor
+	LR_Sensor
+	RF_Sensor
+	RR_Sensor
+	Timestamp
+	getSensor
+	setSensor
+	timeStamp
+	timestamp
+ Landroid/hardware/SensorManager;
+ app_id,bundle_end_timestamp,data
+ timestamp regression last=
+!app_id,name,data,timestamp_millis
+!commandGetGSensorSensitivity hex:
+!commandSetGSensorSensitivity hex:
+" timestamp="
+"commandSetSensorIdInLearnMode hex:
+"deviceInfo" ("DEVICE_ID" TEXT PRIMARY KEY NOT NULL ,"FRONT_PRESSURE" INTEGER,"REAR_PRESSURE" INTEGER,"FRONT_TEMPERATURE" INTEGER,"REAR_TEMPERATURE" INTEGER,"LFSENSOR_ID" TEXT,"RFSENSOR_ID" TEXT,"LRSENSOR_ID" TEXT,"RRSENSOR_ID" TEXT,"FWVERSION" TEXT);
+#android.hardware.sensor.hinge_angle
+$ timestamp fallback to arrival, raw=
+$deferred_attribution_cache_timestamp
+$previous_bundle_end_timestamp_millis
+%select max(timestamp) from raw_events
+%tp_device_setting_pressure_rear_range
+&Landroid/hardware/SensorEventListener;
+&last_received_uri_timestamps_by_source
+&previous_bundle_start_timestamp_millis
+&tp_device_setting_pressure_rear_stanrd
+' trigger URIs. appId, source, timestamp
+', timestamp=
+'Uri sources and timestamps do not match
+'referrer_click_timestamp_server_seconds
+(Lcom/banyac/tirepressure/model/SensorID;
+(tp_device_setting_temperature_rear_alarm
+*android.permission.BODY_SENSORS_BACKGROUND
+*app_id,trigger_uri,source,timestamp_millis
+*tp_device_setting_pressure_rear_select_tip
++select max(bundle_end_timestamp) from queue
+, Timestamp=
+-Application backgrounded at: timestamp_millis
+-app_id=? and source=? and timestamp_millis<=?
+-tp_device_setting_temperature_rear_select_tip
+.abs(timestamp_millis - ?) > cast(? as integer)
+/app_id,name,timestamp,metadata_fingerprint,data
+1_timestamp_ms
+2Lcom/banyac/tirepressure/model/TirePressureSensor;
+2abs(bundle_end_timestamp - ?) > cast(? as integer)
+3app_id=? AND timestamp_millis <= CAST(? AS INTEGER)
+8(upload_type = %d AND ABS(creation_timestamp - %d) > %d)
+9(upload_type != %d AND ABS(creation_timestamp - %d) > %d)
+:measurement.audience.refresh_event_count_filters_timestamp
+;Lcom/banyac/midrive/app/model/GroupCategory$RearviewMirror;
+;Trigger URI source and timestamp array lengths do not match
+< SET retry_count = retry_count + 1, last_upload_timestamp = 
+<Lcom/banyac/midrive/app/model/GroupCategory$RearviewDashCam;
+=ALTER TABLE events ADD COLUMN last_bundled_timestamp INTEGER;
+=Event created with reverse previous/current timestamps. appId
+>Service response is missing Install Referrer install timestamp
+@ALTER TABLE apps ADD COLUMN last_bundle_start_timestamp INTEGER;
+Ameasurement.audience.use_bundle_timestamp_for_event_count_filters
+BALTER TABLE upload_queue ADD COLUMN last_upload_timestamp INTEGER;
+CACHE_KEY_REQUEST_TIMESTAMP
+CEvent created with reverse previous/current timestamps. appId, name
+CREATE TABLE IF NOT EXISTS apps ( app_id TEXT NOT NULL, app_instance_id TEXT, gmp_app_id TEXT, resettable_device_id_hash TEXT, last_bundle_index INTEGER NOT NULL, last_bundle_end_timestamp INTEGER NOT NULL, PRIMARY KEY (app_id)) ;
+CREATE TABLE IF NOT EXISTS conditional_properties ( app_id TEXT NOT NULL, origin TEXT NOT NULL, name TEXT NOT NULL, value BLOB NOT NULL, creation_timestamp INTEGER NOT NULL, active INTEGER NOT NULL, trigger_event_name TEXT, trigger_timeout INTEGER NOT NULL, timed_out_event BLOB,triggered_event BLOB, triggered_timestamp INTEGER NOT NULL, time_to_live INTEGER NOT NULL, expired_event BLOB, PRIMARY KEY (app_id, name)) ;
+CREATE TABLE IF NOT EXISTS events ( app_id TEXT NOT NULL, name TEXT NOT NULL, lifetime_count INTEGER NOT NULL, current_bundle_count INTEGER NOT NULL, last_fire_timestamp INTEGER NOT NULL, PRIMARY KEY (app_id, name)) ;
+CREATE TABLE IF NOT EXISTS events_snapshot ( app_id TEXT NOT NULL, name TEXT NOT NULL, lifetime_count INTEGER NOT NULL, current_bundle_count INTEGER NOT NULL, last_fire_timestamp INTEGER NOT NULL, last_bundled_timestamp INTEGER, last_bundled_day INTEGER, last_sampled_complex_event_id INTEGER, last_sampling_rate INTEGER, last_exempt_from_sampling INTEGER, current_session_count INTEGER, PRIMARY KEY (app_id, name)) ;
+CREATE TABLE IF NOT EXISTS no_data_mode_events ( app_id TEXT NOT NULL, name TEXT NOT NULL, data BLOB NOT NULL, timestamp_millis INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS raw_events ( app_id TEXT NOT NULL, name TEXT NOT NULL, timestamp INTEGER NOT NULL, metadata_fingerprint INTEGER NOT NULL, data BLOB NOT NULL);
+CREATE TABLE IF NOT EXISTS trigger_uris ( app_id TEXT NOT NULL, trigger_uri TEXT NOT NULL, timestamp_millis INTEGER NOT NULL, source INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS upload_queue ( app_id TEXT NOT NULL, upload_uri TEXT NOT NULL, upload_headers TEXT NOT NULL, upload_type INTEGER NOT NULL, measurement_batch BLOB NOT NULL, retry_count INTEGER NOT NULL, creation_timestamp INTEGER NOT NULL );
+CREATE TABLE IF NOT EXISTS user_attributes ( app_id TEXT NOT NULL, name TEXT NOT NULL, set_timestamp INTEGER NOT NULL, value BLOB NOT NULL, PRIMARY KEY (app_id, name)) ;
+CREATE TABLE events (_id INTEGER PRIMARY KEY, context_id INTEGER NOT NULL, transport_name TEXT NOT NULL, timestamp_ms INTEGER NOT NULL, uptime_ms INTEGER NOT NULL, payload BLOB NOT NULL, code INTEGER, num_attempts INTEGER NOT NULL,FOREIGN KEY (context_id) REFERENCES transport_contexts(_id) ON DELETE CASCADE)
+CachedTimestamp
+Capp_id,name,lifetime_count,current_bundle_count,last_fire_timestamp
+ConnectKey
+CreateTimeStamp
+EVENT_PARAM_TIMESTAMP
+Factive<>0 and app_id=? and abs(? - triggered_timestamp) > time_to_live
+GLorg/apache/log4j/pattern/RelativeTimePatternConverter$CachedTimestamp;
+Gactive=0 and app_id=? and abs(? - creation_timestamp) > trigger_timeout
+LAST_TIMESTAMP
+LFSENSOR_ID
+LFSensorId
+LRSENSOR_ID
+LRSensorId
+LStoring bundle outside of the max uploading time span. appId, now, timestamp
+Landroid/hardware/Sensor;
+Landroid/hardware/SensorEvent;
+Omeasurement.audience.use_bundle_end_timestamp_for_non_sequence_property_filters
+PARAM_TIMESTAMP
+QStoring trigger URI outside of the max retention time span. appId, now, timestamp
+REAR_PRESSURE
+REAR_TEMPERATURE
+RFSENSOR_ID
+RFSensorId
+RRSENSOR_ID
+RRSensorId
+RearPressure
+RearTemperature
+SENSORS
+Sensor
+Sensor1
+Sensor2
+Sensor3
+TScheduling upload for context %s in %dms(Backend next call timestamp %d). Attempt %d
+UpdateTimeStamp
+ZSELECT COUNT(*), transport_name FROM events WHERE timestamp_ms < ? GROUP BY transport_name
+[select rowid from raw_events where app_id = ? and timestamp < ? order by rowid desc limit 1
+]app_id,upload_uri,upload_headers,upload_type,measurement_batch,retry_count,creation_timestamp
+aactive=0 and app_id=? and trigger_event_name=? and abs(? - creation_timestamp) <= trigger_timeout
+android.permission.BODY_SENSORS
+app_id,name,lifetime_count,current_bundle_count,last_fire_timestamp,last_bundled_timestamp,last_bundled_day,last_sampled_complex_event_id,last_sampling_rate,last_exempt_from_sampling,current_session_count
+app_id,name,set_timestamp,value
+app_id,origin,name,value,active,trigger_event_name,trigger_timeout,creation_timestamp,timed_out_event,triggered_event,triggered_timestamp,time_to_live,expired_event
+bScheduling upload for context %s with jobId=%d in %dms(Backend next call timestamp %d). Attempt %d
+batching_timestamp_millis
+bundle_end_timestamp
+car_left_rear
+car_left_rear_battery
+car_left_rear_data
+car_left_rear_wheel
+car_right_rear
+car_right_rear_battery
+car_right_rear_data
+car_right_rear_wheel
+click_timestamp
+commandGetSensorId hex:
+commandSetSensorId hex:
+commandSyncTimestamp hex:
+connectKey
+createTimeStamp
+createTimestamp
+creation_timestamp
+creation_timestamp ASC
+delete from user_attributes where app_id=? and name in (select name from user_attributes where app_id=? and name like '!_ltv!_%' escape '!'order by set_timestamp desc limit ?,10);
+detected timestamp unit=
+dynamic_filter_timestamps: {
+end_timestamp_millis
+gapp_id,app_instance_id,gmp_app_id,resettable_device_id_hash,last_bundle_index,last_bundle_end_timestamp
+getConnectKey
+getCreateTimeStamp
+getCreateTimestamp
+getDefaultSensor
+getJMSTimestamp
+getLFSensorId
+getLF_Sensor
+getLRSensorId
+getLR_Sensor
+getRFSensorId
+getRF_Sensor
+getRRSensorId
+getRR_Sensor
+getRearPressure
+getRearTemperature
+getSensor1
+getSensor2
+getSensor3
+getTimeStamp
+getTimestamp
+getUpdateTimeStamp
+getUpdateTimestamp
+getUploadTimestamp
+install_begin_timestamp_seconds
+install_timestamp
+isTimestampValid
+isValidTimestamp
+iselect count(*) from raw_events where app_id=? and timestamp >= ? and name like '!_%' escape '!' limit 1;
+lastTimestamp
+last_bundle_end_timestamp
+last_bundle_start_timestamp
+last_bundled_timestamp
+last_fire_timestamp
+last_timestamp
+last_upload_timestamp
+mCreationTimestamp
+mTimeStamp
+mTriggeredTimestamp
+model_request_timestamp
+mselect count(*) from raw_events where app_id=? and timestamp >= ? and name not like '!_%' escape '!' limit 1;
+onSensorChanged
+previous_timestamp_millis
+sensor
+sensorManager
+sequence_filter_timestamps: {
+setConnectKey
+setCreateTimeStamp
+setCreateTimestamp
+setLFSensorId
+setLF_Sensor
+setLRSensorId
+setLR_Sensor
+setRFSensorId
+setRF_Sensor
+setRRSensorId
+setRR_Sensor
+setRearPressure
+setRearTemperature
+setSensor1
+setSensor2
+setSensor3
+setTimestamp
+setUpdateTimeStamp
+setUpdateTimestamp
+setUploadTimestamp
+set_timestamp
+set_timestamp_millis
+start_timestamp_millis
+tCREATE TABLE IF NOT EXISTS queue ( app_id TEXT NOT NULL, bundle_end_timestamp INTEGER NOT NULL, data BLOB NOT NULL);
+timestampOfLastCheck
+timestamp_millis
+timestamp_ms
+timestamp_ms < ?
+timestamp_regression
+tp_ic_home_car_left_rear_wheel
+tp_ic_home_car_right_rear_wheel
+tp_lf_sensor_id
+tp_lr_sensor_id
+tp_rf_sensor_id
+tp_rr_sensor_id
+tp_sensor_id
+trigger_uri_timestamp
+triggered_timestamp
+updateTimeStamp
+updateTimestamp
+uploadTimestamp
+upload_timestamp_millis
+uriTimestamps
+=== POTENTIAL FLUTTER / NATIVE ASSETS IN REPOSITORY INPUTS ===
+70mai-analysis/classes.dex 9162092 bytes
+70mai-analysis/classes2.dex 8482504 bytes
+70mai-analysis/inspection-report.txt 706943 bytes
+70mai-analysis/rear-switch-focused-report.txt 10189 bytes
+=== DECOMPILE SUMMARY ===
+0
