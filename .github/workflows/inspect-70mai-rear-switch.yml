@@ -5,6 +5,7 @@ on:
       - feature/70mai-rear-camera-switch
     paths:
       - '.github/workflows/inspect-70mai-rear-switch.yml'
+      - '70mai-analysis/assets.zip.part-*'
 permissions:
   contents: write
 jobs:
@@ -12,13 +13,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Reassemble and inspect uploaded assets archive
+        run: |
+          set -e
+          cat 70mai-analysis/assets.zip.part-aa 70mai-analysis/assets.zip.part-ab 70mai-analysis/assets.zip.part-ac > /tmp/70mai-assets.zip
+          unzip -t /tmp/70mai-assets.zip
+          mkdir -p /tmp/70mai-assets
+          unzip -q /tmp/70mai-assets.zip -d /tmp/70mai-assets
+          {
+            echo '=== ARCHIVE CONTENTS ==='
+            find /tmp/70mai-assets -type f -printf '%p %s bytes\n' | sort | head -10000
+            echo '=== MATCHING TEXT IN ALL ASSETS ==='
+            find /tmp/70mai-assets -type f -size -100M -print0 |
+              while IFS= read -r -d '' f; do
+                strings -n 5 "$f" 2>/dev/null |
+                  grep -Ei 'setwifistream|signkey|connectKey|mult_cam_back|mult_cam_front|livestream|camera.?switch|rear.?camera|back.?camera|sensor[=:][01]' &&
+                  echo " [FILE: $f]" || true
+              done
+            echo '=== FLUTTER / DART / NATIVE FILES ==='
+            find /tmp/70mai-assets -type f |
+              grep -Ei '\.(so|dill|snapshot|blob|dat|json|js|bundle|bin)$|flutter|kernel' || true
+          } > 70mai-analysis/assets-inspection-report.txt
       - name: Install JADX
         run: |
           curl -L --fail --retry 3 -o /tmp/jadx.zip https://github.com/skylot/jadx/releases/download/v1.5.2/jadx-1.5.2.zip
           mkdir -p /opt/jadx
           unzip -q /tmp/jadx.zip -d /opt/jadx
           chmod +x /opt/jadx/bin/jadx
-      - name: Decompile and search exact camera switch implementation
+      - name: Decompile and search DEX
         run: |
           mkdir -p /tmp/70mai-src
           jadx --deobf --show-bad-code -d /tmp/70mai-src 70mai-analysis/classes.dex 70mai-analysis/classes2.dex || true
@@ -31,13 +53,13 @@ jobs:
               echo "--- $f ---"
               strings -n 4 "$f" | grep -Ei 'setwifistream|signkey|connectKey|mult_cam_back|mult_cam_front|livestream|sensor|rear|back.?camera|front.?camera|camera.?switch|sign.?key|timestamp' | sort -u | head -2000 || true
             done
-            echo '=== POTENTIAL FLUTTER / NATIVE ASSETS IN REPOSITORY INPUTS ==='
-            find 70mai-analysis -maxdepth 3 -type f -printf '%p %s bytes\n' | sort
+            echo '=== INPUT FILES ==='
+            find 70mai-analysis -maxdepth 2 -type f -printf '%p %s bytes\n' | sort
             echo '=== DECOMPILE SUMMARY ==='
             find /tmp/70mai-src/sources -type f -name '*.java' | wc -l
           } > "$R"
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git add "$R"
-          git commit -m "Add focused 70mai rear stream switch report" || true
+          git add 70mai-analysis/assets-inspection-report.txt "$R"
+          git commit -m "Inspect uploaded 70mai assets archive" || true
           git push
