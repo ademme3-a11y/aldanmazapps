@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/inspect-70mai-rear-switch.yml'
       - '70mai-analysis/assets.zip.part-*'
+      - '70mai-analysis/inspect-trigger.txt'
 permissions:
   contents: write
 jobs:
