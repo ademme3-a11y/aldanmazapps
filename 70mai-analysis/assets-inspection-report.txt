@@ -4304,3 +4304,370 @@ Fpackages/flutter_70mai_dashcam/images/ic_mult_cam_front_unselected.png
 /tmp/70mai-assets/assets/flutter_assets/packages/fijkplayer/assets/fonts/rs_font.ttf
 /tmp/70mai-assets/assets/flutter_assets/FontManifest.json
 /tmp/70mai-assets/assets/flutter_assets/AssetManifest.bin
+=== NATIVE ASSETS MANIFEST ===
+{"format-version":[1,0,0],"native-assets":{}}
+=== 70MAI DEVICE CONFIG MATCHES ===
+18-    {
+19-      "type": 125,
+20-      "module": 125002,
+21:      "des": "有屏记录仪  70mai Dash Cam A800 Nano 海外 DR2841"
+22-    }
+23-  ],
+24-  "betaDevices": [
+--
+59-      "des": " 有屏记录仪 70mai Dash Cam 4K A900 Ultra DR2852 海外"
+60-    },
+61-    {
+62:      "name": "70mai Dash Cam A800 Nano",
+63-      "category": "dashcam",
+64-      "isBle": 1,
+65-      "isFlutterBind": 1,
+--
+67-      "module": 125002,
+68-      "groupName": "有屏记录仪",
+69-      "groupCategory": "ScreenDashCam",
+70:      "des": "有屏记录仪  70mai Dash Cam A800 Nano 海外 DR2841"
+71-    },
+72-    {
+73-      "name": "70mai Dash Cam 4K A900",
+--
+112-      "expandModules": [
+113-        116004
+114-      ],
+115:      "channel": 116002001,
+116-      "groupName": "有屏记录仪",
+117-      "groupCategory": "ScreenDashCam",
+118-      "des": "有屏记录仪  70mai Dash Cam A810 Lite DR2860  海外"
+--
+126-      "module": 105001,
+127-      "groupName": "有屏记录仪",
+128-      "groupCategory": "ScreenDashCam",
+129:      "des": "有屏记录仪  70mai Dash Cam A800SE DR2821  海外 电子狗"
+130-    },
+131-    {
+132-      "name": "70mai Dash Cam M310 Plus 4K",
+--
+217-      "des": "无屏记录仪 70mai Dash Cam M310 Plus 3K DR1400 B51 海外 3K"
+218-    },
+219-    {
+220:      "name": "70mai Rearview Dash Cam S410 ",
+221-      "category": "dashcam",
+222-      "isBle": 0,
+223-      "isFlutterBind": 1,
+224-      "type": 98,
+225-      "module": 98002,
+226-      "groupName": "后视镜记录仪",
+227:      "groupCategory": "RearviewDashCam",
+228:      "des": "后视镜记录仪 70mai Rearview Dash Cam S410  DR3400 海外"
+229-    },
+230-    {
+231-      "name": "70mai Dash Cam M800",
+--
+239-      "des": "无屏记录仪 70mai Dash Cam M800 DR1800 海外"
+240-    },
+241-    {
+242:      "name": "70mai Dash Cam A800SE",
+243-      "category": "dashcam",
+244-      "isBle": 1,
+245-      "isFlutterBind": 1,
+--
+248-      "expandModules": [
+249-        95003
+250-      ],
+251:      "channel": 95002001,
+252-      "groupName": "有屏记录仪",
+253-      "groupCategory": "ScreenDashCam",
+254:      "des": "有屏记录仪  70mai Dash Cam A800SE DR2820  海外"
+255-    },
+256-    {
+257-      "name": "70mai Dash Cam A410",
+--
+298-      "des": "无屏记录仪 70mai Dash Cam M310 DR1310 海外"
+299-    },
+300-    {
+301:      "name": "70mai Rearview Dash Cam S500 ",
+302-      "category": "dashcam",
+303-      "isBle": 0,
+304-      "isFlutterBind": 1,
+305-      "type": 68,
+306-      "module": 68002,
+307-      "groupName": "后视镜记录仪",
+308:      "groupCategory": "RearviewDashCam",
+309:      "des": " 后视镜记录仪70mai Rearview Dash Cam S500  DR3500 海外"
+310-    },
+311-    {
+312-      "name": "70mai Dash Cam A200",
+--
+362-      "groupName": "有屏记录仪",
+363-      "groupCategory": "ScreenDashCam",
+364-      "des": " 有屏记录仪 70mai Dash Cam Lite 2 DR0010_A04 海外",
+365:      "channel": 29002001
+366-    },
+367-    {
+368-      "name": "70迈智能记录仪M300",
+--
+375-      "module": 38001,
+376-      "groupName": "无屏记录仪",
+377-      "groupCategory": "NoScreenDashCam",
+378:      "des": "无屏记录仪 70迈智能记录仪M300 DR1300  module:国内[ 01、03 ] 海外 [ 01、02、04] module_01对应channel :[ 01、02 ] 海外 其它  如果支持设备页改版 需要考虑失败页跳转兼容",
+379:      "channel": 38001003,
+380-      "overwriteSupports": [
+381-        {
+382-          "type": 38,
+383-          "module": 38001,
+384:          "channels": [
+385-            38001003
+386-          ]
+387-        },
+388-        {
+389-          "type": 38,
+390-          "module": 38002,
+391:          "channels": []
+392-        },
+393-        {
+394-          "type": 38,
+395-          "module": 38004,
+396:          "channels": []
+397-        }
+398-      ]
+399-    },
+--
+409-      "groupName": "无屏记录仪",
+410-      "groupCategory": "NoScreenDashCam",
+411-      "des": "无屏记录仪 70迈智能记录仪M500 DR1500 国内 module:国内[ 01、03 ] 海外",
+412:      "channel": 42002003
+413-    },
+414-    {
+415-      "name": "70迈智能记录仪A400",
+--
+423-      "groupName": "有屏记录仪",
+424-      "groupCategory": "ScreenDashCam",
+425-      "des": "有屏记录仪 70迈智能记录仪A400-DR2400",
+426:      "channel": 40001003
+427-    },
+428-    {
+429:      "name": "70迈智能记录仪A800S",
+430-      "category": "dashcam",
+431-      "isBle": 0,
+432-      "isFlutterBind": 0,
+--
+436-      "module": 39001,
+437-      "groupName": "有屏记录仪",
+438-      "groupCategory": "ScreenDashCam",
+439:      "des": "有屏记录仪 70迈智能记录仪A800S-DR2800",
+440:      "channel": 39001003
+441-    },
+442-    {
+443-      "name": "70mai Dash Cam Pro Plus+",
+--
+451-      "groupName": "有屏记录仪",
+452-      "groupCategory": "ScreenDashCam",
+453-      "des": "有屏记录仪 70mai Dash Cam Pro Plus+ DR2500 海外",
+454:      "channel": 41002001
+455-    },
+456-    {
+457-      "name": "70迈智能记录仪 A500",
+--
+465-      "groupName": "有屏记录仪",
+466-      "groupCategory": "ScreenDashCam",
+467-      "des": "有屏记录仪 70迈智能记录仪 A500-DR0016",
+468:      "channel": 37001001
+469-    },
+470-    {
+471:      "name": "70迈智能记录仪A800",
+472-      "category": "dashcam",
+473-      "isBle": 0,
+474-      "isFlutterBind": 0,
+--
+478-      "module": 35001,
+479-      "groupName": "有屏记录仪",
+480-      "groupCategory": "ScreenDashCam",
+481:      "des": "有屏记录仪 70迈智能记录仪A800-DR0011",
+482:      "channel": 35001001
+483-    },
+484-    {
+485-      "name": "70迈流媒体记录仪",
+--
+491-      "type": 30,
+492-      "module": 30001,
+493-      "groupName": "后视镜记录仪",
+494:      "groupCategory": "RearviewDashCam",
+495-      "des": "后视镜记录仪 70迈流媒体记录仪-DR0009",
+496:      "channel": 30001001
+497-    },
+498-    {
+499-      "name": "70迈智能记录仪 Pro 星光夜视版",
+--
+507-      "groupName": "有屏记录仪",
+508-      "groupCategory": "ScreenDashCam",
+509-      "des": "有屏记录仪 70迈智能记录仪 Pro 星光夜视版-DR0010",
+510:      "channel": 29001001
+511-    },
+512-    {
+513-      "name": "70迈后视镜记录仪",
+--
+519-      "type": 18,
+520-      "module": 18001,
+521-      "groupName": "后视镜记录仪",
+522:      "groupCategory": "RearviewDashCam",
+523-      "des": "后视镜记录仪 70迈后视镜记录仪-DR0006 海外",
+524:      "channel": 18001001
+525-    },
+526-    {
+527-      "name": "70迈智能记录仪2",
+--
+535-      "groupName": "有屏记录仪",
+536-      "groupCategory": "ScreenDashCam",
+537-      "des": "有屏记录仪 70迈智能记录仪2-DR0007",
+538:      "channel": 26001001
+539-    },
+540-    {
+541-      "name": "70迈智能记录仪 Pro",
+--
+549-      "groupName": "有屏记录仪",
+550-      "groupCategory": "ScreenDashCam",
+551-      "des": "有屏记录仪 70迈智能记录仪 Pro-DR0005",
+552:      "channel": 16001001
+553-    },
+554-    {
+555-      "name": "70迈智能记录仪1S",
+--
+562-      "module": 27001,
+563-      "groupName": "无屏记录仪",
+564-      "groupCategory": "NoScreenDashCam",
+565:      "des": "无屏记录仪 70迈智能记录仪1S-DR0008 module:国内[ 01、02 ] 海外 [ 01、03]    module_01对应channel :[ 01、02 ] 海外 其它",
+566:      "channel": 27001003,
+567-      "overwriteSupports": [
+568-        {
+569-          "type": 27,
+570-          "module": 27001,
+571:          "channels": [
+572-            27001003,
+573-            27001004,
+574-            27001005,
+--
+578-        {
+579-          "type": 27,
+580-          "module": 27003,
+581:          "channels": []
+582-        }
+583-      ]
+584-    },
+--
+594-      "groupName": "无屏记录仪",
+595-      "groupCategory": "NoScreenDashCam",
+596-      "des": "无屏记录仪 70迈智能记录仪-DR0002",
+597:      "channel": 8001001
+598-    },
+599-    {
+600-      "name": "70mai Power Station Hiker 400",
+=== APP CONFIG ===
+{
+  "agreementVersion":3,
+  "min-version-order":"0",
+  "server":{
+    "host":"https://int-api.70mai.com",
+    "backup-host":"https://int-api.70mai.com",
+    "resource":"https://int-resourceapi.70mai.com:443",
+    "backup-resource":"https://int-resourceapi.70mai.com:443",
+    "wx-miniProgram":0
+  },
+  "websit":"https://www.70mai.com",
+  "app-param":{
+    "h5protocol": "https://help.70mai.asia/4206.html",
+    "h5policy": "https://help.70mai.asia/4239.html",
+    "h5deviceHelper": "https://help.70mai.asia/1777.html",
+    "h5DrivingRouteHelp": "https://help.70mai.asia/1457.html",
+    "h5DownloadPage": "https://www.70mai.com/download/",
+    "h5BleScanHelper": "https://help.70mai.asia/1820.html",
+    "h5CloudGalleryHelp": "https://help.70mai.asia/2251.html",
+    "h5WarrantyActivation":"https://www.70mai.com/care",
+    "h5AccountTransfer":"https://ruaccount.70mai.com/description",
+    "h5MySubscriptions":"https://dashcam-h5.70mai.com/service"
+  },
+  "DR2200": {
+    "openTripVideoDownloadAddr": "https://res.70mai.asia/wp-content/uploads/2022/10/Maix_welcome-video8.16-final.mp4",
+    "h5IndicatorLight4GHelp": "https://help.70mai.asia/2267.html"
+  },
+  "DR5800": {
+    "h5IndicatorLight4GHelp": "https://help.70mai.asia/2267.html"
+  },
+  "DR4800": {
+    "h5IndicatorLight4GHelp": "https://help.70mai.asia/2267.html"
+  },
+  "DR2810": {
+    "h5IndicatorLight4GHelp": "https://help.70mai.asia/2267.html"
+  },
+  "DR2510": {
+    "h5IndicatorLight4GHelp": "https://help.70mai.asia/2267.html"
+  },
+  "PS2001": {
+    "h5FaultHelpPage": "https://help.70mai.asia/1668.html"
+  },
+  "PS1001": {
+    "h5FaultHelpPage": "https://help.70mai.asia/2182.html",
+    "h5ShareQrCode": "https://www.70mai.com/powerstation"
+  },
+  "dashCam": {
+    "h5ConnectDeviceHelp": "https://help.70mai.asia/2268.html",
+    "h5IndicatorLight4GHelp": "https://help.70mai.asia/2267.html",
+    "h5FlowRecharge": "https://dashcam-h5.70mai.com/sim"
+  },
+  "afterService": {
+    "emails": [
+      {
+        "region": "ja",
+        "address": "help_jp@70mai.com"
+      },
+      {
+        "region": "global",
+        "address": "help@70mai.com"
+      }
+    ],
+    "whatsApp": "https://api.whatsapp.com/message/AUUS5VG5OELXC1",
+    "line": "https://line.me/R/ti/p/@939dmcgj"
+  }
+}
+=== RELEVANT FLUTTER ASSET NAMES ===
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/alarm/dc_ic_alarm_multi_images.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/alarm/dc_ic_alarm_other_video_mark.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_bg_video_loading.svg
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_ic_1500_wifi_power.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_ic_rs_video_download_normal.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_ic_setting_video_code.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_ic_setting_video_image_style.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_ic_setting_wifi.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_ic_video_event_placeholder.svg
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_ic_video_normal_placeholder.svg
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_ic_video_park_placeholder.svg
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_ic_video_play.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_ic_video_rs_btn.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_ic_video_rs_open_btn.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_ic_video_subscript_event.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_ic_video_subscript_park.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_ic_video_subscript_time_lapse.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_ic_video_time_lapse_placeholder.svg
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_ic_wifi_connect_fail.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_ic_wifi_connect_help_blue_arrow.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_ic_wifi_connect_help_no_screen.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_ic_wifi_connect_help_no_screen_1800.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_ic_wifi_connect_help_with_screen.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_ic_wifi_connect_question.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_ic_wifi_connect_refresh.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_ic_wifi_connect_success_v2.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_ic_wifi_connect_warn.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_wifi_connect_help_android_permission_bg.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_wifi_connect_help_carplay_bg.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_wifi_connect_help_dedicated_car.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_wifi_connect_help_permission_bg.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_wifi_connect_help_ptz.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_wifi_connect_help_touch_mirror.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_wifi_connect_help_wifi_switch_bg.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/dc_wifi_connect_help_wifi_switch_bg_rtl.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/ic_backcam.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/ic_mult_cam_back_selected.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/ic_mult_cam_back_unselected.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/ic_mult_cam_front_selected.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/ic_mult_cam_front_unselected.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/ic_player_change_camera.png
+/tmp/70mai-assets/assets/flutter_assets/packages/flutter_70mai_dashcam/images/ic_select_the_camera_resolution.png

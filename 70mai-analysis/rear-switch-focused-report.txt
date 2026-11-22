@@ -244,15 +244,1642 @@ updateTimestamp
 uploadTimestamp
 upload_timestamp_millis
 uriTimestamps
+=== ALL DEX STRINGS RELATED TO CAMERA / FLUTTER / NETWORK / COMMAND ===
+--- 70mai-analysis/classes.dex ---
+	(?:alley|annex|arcade|ave[.]?|avenue|alameda|bayou|beach|bend|bluffs?|bottom|boulevard|branch|bridge|brooks?|burgs?|bypass|broadway|camino|camp|canyon|cape|causeway|centers?|circles?|cliffs?|club|common|corners?|course|courts?|coves?|creek|crescent|crest|crossing|crossroad|curve|circulo|dale|dam|divide|drives?|estates?|expressway|extensions?|falls?|ferry|fields?|flats?|fords?|forest|forges?|forks?|fort|freeway|gardens?|gateway|glens?|greens?|groves?|harbors?|haven|heights|highway|hills?|hollow|inlet|islands?|isle|junctions?|keys?|knolls?|lakes?|land|landing|lane|lights?|loaf|locks?|lodge|loop|mall|manors?|meadows?|mews|mills?|mission|motorway|mount|mountains?|neck|orchard|oval|overpass|parks?|parkways?|pass|passage|path|pike|pines?|plains?|plaza|points?|ports?|prairie|privada|radial|ramp|ranch|rapids?|rd[.]?|rest|ridges?|river|roads?|route|row|rue|run|shoals?|shores?|skyway|springs?|spurs?|squares?|station|stravenue|stream|st[.]?|streets?|summit|speedway|terrace|throughway|trace|track|trafficway|trail|tunnel|turnpike|underpass|unions?|valleys?|viaduct|views?|villages?|ville|vista|walks?|wall|ways?|wells?|xing|xrd)(?=[,*
+	onCommand
+	timestamp
+      whether the video was actually successfully captured. Use {@link CaptureVideo} instead.
+ does not have multidex support
+ has multidex support
+ http://schemas.android.com/tools
+ Landroid/hardware/SensorManager;
+ Lkotlinx/coroutines/channels/b0;
+ Lkotlinx/coroutines/channels/d0;
+ Lkotlinx/coroutines/channels/d0<
+ Lkotlinx/coroutines/channels/f0;
+ Lkotlinx/coroutines/channels/g0;
+ Lkotlinx/coroutines/channels/g0<
+ SetComposingRegionCommand(start=
+ stream=
+ was used multiple times 
+!AlertDialog_multiChoiceItemLayout
+!degree should be a multiple of 90
+!Failed to sync file output stream
+!Landroid/app/NotificationChannel;
+!TRANSACTION_onMessageChannelReady
+"android.media.action.VIDEO_CAPTURE
+"COMMAND_ARGUMENT_MEDIA_DESCRIPTION
+"ERROR_CODE_CONCURRENT_STREAM_LIMIT
+"Failed to close file output stream
+"Lkotlinx/coroutines/channels/g0$a;
+"mOnMultiWindowModeChangedListeners
+"select_dialog_multichoice_material
+"Timestamp should a positive value.
+#addOnMultiWindowModeChangedListener
+#android.intent.action.SEND_MULTIPLE
+#android.intent.extra.ALLOW_MULTIPLE
+#Invalid GPS Timestamp array. array=
+#listChoiceIndicatorMultipleAnimated
+$Ljava/util/zip/DeflaterOutputStream;
+$mDispatchingOnMultiWindowModeChanged
+$NotificationSideChannelService: Uid 
+$this$commandExecutionContext
+%android.intent.extra.CHANNEL_GROUP_ID
+%call_notification_answer_video_action
+%getLegacyStreamType() failed on API: 
+%Landroid/net/wifi/p2p/WifiP2pManager;
+%TRANSACTION_requestPostMessageChannel
+&command must neither be null nor empty
+&Landroid/app/NotificationChannelGroup;
+&Landroidx/lifecycle/MethodCallsLogger;
+&removeOnMultiWindowModeChangedListener
+'Landroidx/multidex/MultiDexApplication;
+'Ljava/nio/channels/FileChannel$MapMode;
+(((?:(?i:http|https|rtsp)://(?:(?:[a-zA-Z0-9\$\-\_\.\+\!\*\'\(\)\,\;\?\&\=]|(?:\%[a-fA-F0-9]{2})){1,64}(?:\:(?:[a-zA-Z0-9\$\-\_\.\+\!\*\'\(\)\,\;\?\&\=]|(?:\%[a-fA-F0-9]{2})){1,25})?\@)?)?(?:
+((?:\b|$|^)(?:(?:(?i:http|https|rtsp)://(?:(?:[a-zA-Z0-9\$\-\_\.\+\!\*\'\(\)\,\;\?\&\=]|(?:\%[a-fA-F0-9]{2})){1,64}(?:\:(?:[a-zA-Z0-9\$\-\_\.\+\!\*\'\(\)\,\;\?\&\=]|(?:\%[a-fA-F0-9]{2})){1,25})?\@)?)(?:
+(?i:http|https|rtsp)://
+(Landroid/hardware/camera2/CameraManager;
+*http://schemas.android.com/apk/res/android
+*Landroid/widget/MultiAutoCompleteTextView;
++ 1 AndroidMultiParagraphDraw.kt
++ 1 MultiParagraph.kt
++ 1 MultiParagraphIntrinsics.kt
++ 1 MultiWidgetSelectionDelegate.kt
++ 2 Channels.common.kt
+, cameraDistance=
+, multiParagraph=
+, outputStream: 
+-androidx.media.audio_attrs.LEGACY_STREAM_TYPE
+-GPS Timestamp format is not rational. format=
+.android.media.session.extra.LEGACY_STREAM_TYPE
+.android.support.BIND_NOTIFICATION_SIDE_CHANNEL
+.IOException occurred while closing InputStream
+.savePngAttributes starting with (inputStream: 
+.SDKs past 19 have no need for side channeling.
+/android$support$v4$app$INotificationSideChannel
+/saveJpegAttributes starting with (inputStream: 
+/saveWebpAttributes starting with (inputStream: 
+0DeleteSurroundingTextCommand(lengthBeforeCursor=
+0No AudioAttributes#toLegacyStreamType() on API: 
+1Landroid/support/v4/app/INotificationSideChannel;
+2AppCompatTheme_listChoiceIndicatorMultipleAnimated
+2MultiDex is not guaranteed to work in SDK version 
+3Landroid/content/res/AssetManager$AssetInputStream;
+4Ljava/nio/channels/spi/AbstractInterruptibleChannel;
+6Landroid/support/v4/app/INotificationSideChannel$Stub;
+7android.support.v4.media.session.command.ADD_QUEUE_ITEM
+7android.support.v4.media.session.command.ARGUMENT_INDEX
+8Landroidx/core/app/NotificationCompatSideChannelService;
+9android.support.v4.media.session.command.GET_EXTRA_BINDER
+9Landroid/support/v4/app/INotificationSideChannel$Default;
+9Landroid/support/v4/app/INotificationSideChannel$_Parcel;
+:android.support.v4.media.session.command.ADD_QUEUE_ITEM_AT
+:android.support.v4.media.session.command.REMOVE_QUEUE_ITEM
+:Landroidx/core/app/NotificationCompatSideChannelService$a;
+:runtime with built-in multidex capabilty but it's not the 
+<DeleteSurroundingTextInCodePointsCommand(lengthBeforeCursor=
+<Landroid/content/DialogInterface$OnMultiChoiceClickListener;
+<Landroid/support/v4/app/INotificationSideChannel$Stub$Proxy;
+=android.support.v4.media.session.command.REMOVE_QUEUE_ITEM_AT
+>Landroidx/appcompat/widget/AppCompatMultiAutoCompleteTextView;
+>VM has multidex support, MultiDex support library is disabled.
+ACannot read thumbnail from inputstream without mark/reset support
+adjustStreamVolume
+android.callIsVideo
+android.intent.extra.CHANNEL_ID
+android.intent.extra.STREAM
+android.support.useSideChannel
+android:lineSpacingMultiplier
+AndroidMultiParagraphDraw.kt
+androidx.multidex
+androidx/activity/result/contract/ActivityResultContracts$RequestMultiplePermissions
+androidx/activity/result/contract/ActivityResultContracts$TakeVideo
+androidx/compose/foundation/text/selection/MultiWidgetSelectionDelegate
+androidx/compose/ui/text/MultiParagraph
+androidx/compose/ui/text/MultiParagraphIntrinsics
+androidx/compose/ui/text/MultiParagraphIntrinsics$maxIntrinsicWidth$2
+androidx/compose/ui/text/MultiParagraphIntrinsics$minIntrinsicWidth$2
+androidx/compose/ui/text/MultiParagraphIntrinsicsKt
+androidx/compose/ui/text/MultiParagraphKt
+androidx/compose/ui/text/platform/AndroidMultiParagraphDrawKt
+application/octet-stream
+audioStream
+audioStreamType
+B). Please report to Google or use https://goo.gle/compose-feedback
+BackspaceCommand()
+BaselineShift(multiplier=
+bringChildToFront
+C ViewDragHelper did not receive all the events in the event stream.
+camera
+cameraDistance
+CameraOwnerName
+CameraSettingsIFDPointer
+Candroid.support.v4.media.session.command.ARGUMENT_MEDIA_DESCRIPTION
+CFailed to execute command with argument class ViewCommandArgument: 
+channel_id
+cNo ApplicationInfo available, i.e. running on a test Context: MultiDex support library is disabled.
+Command
+COMMAND_ADD_QUEUE_ITEM
+COMMAND_ADD_QUEUE_ITEM_AT
+COMMAND_ARGUMENT_INDEX
+COMMAND_GET_EXTRA_BINDER
+COMMAND_REMOVE_QUEUE_ITEM
+COMMAND_REMOVE_QUEUE_ITEM_AT
+CommitTextCommand(text='
+createFromStream
+createInputStream
+createNotificationChannel
+createNotificationChannelGroup
+createNotificationChannelGroups
+createNotificationChannels
+Dead object in sendCommand.
+decodeStream
+DeleteAllCommand()
+deleteNotificationChannel
+deleteNotificationChannelGroup
+Do not call dispatchMultiWindowModeChanged() on host. Host implements OnMultiWindowModeChangedProvider and automatically dispatches multi-window mode changes to fragments.
+editCommands
+EInvalid zip data. Stream ended after $totalBytesRead bytes. Expected 
+Error closing icon stream for 
+extraCommand
+EXTRA_LEGACY_STREAM_TYPE
+FinishComposingTextCommand()
+FLAG_HANDLES_QUEUE_COMMANDS
+flushPendingCommands
+Front
+frontLayerContent
+getAudioStream
+getCameraDistance
+getCameraDistancePx
+getChannel
+getChannelId
+getChannels
+getFrontLayerScrimColor
+getFrontLayerShape
+getInputStream
+getLastChangedTimestamp
+getLegacyAudioStream
+getLineSpacingMultiplier
+getNotificationChannel
+getNotificationChannelGroup
+getNotificationChannelGroups
+getNotificationChannels
+getOutputStream
+getParentChannelId
+getStreamMaxVolume
+getStreamVolume
+getVolumeControlStream
+GPSTimeStamp
+hasMultipleSigners
+http
+http://
+http://ns.adobe.com/xap/1.0/
+https
+https://
+https://www.example.com
+http[s]?://
+ic_call_answer_video
+ic_call_answer_video_low
+inputStream cannot be null
+inputstream shouldn't be null
+Invalid stream type 
+invokeMethodsForEvent
+isMultiLine
+kotlinx/coroutines/channels/ChannelsKt__Channels_commonKt
+Landroid/net/wifi/WifiManager;
+Landroid/widget/VideoView;
+Landroidx/multidex/a;
+Landroidx/multidex/b$a$a;
+Landroidx/multidex/b$a$b;
+Landroidx/multidex/b$a$c;
+Landroidx/multidex/b$a$d;
+Landroidx/multidex/b$a;
+Landroidx/multidex/b$b;
+Landroidx/multidex/b$c;
+Landroidx/multidex/b;
+Landroidx/multidex/c$a;
+Landroidx/multidex/c$b;
+Landroidx/multidex/c;
+Landroidx/multidex/d;
+Landroidx/multidex/e$a;
+Landroidx/multidex/e;
+Ljava/io/BufferedInputStream;
+Ljava/io/BufferedOutputStream;
+Ljava/io/ByteArrayInputStream;
+Ljava/io/ByteArrayOutputStream;
+Ljava/io/DataInputStream;
+Ljava/io/DataOutputStream;
+Ljava/io/FileInputStream;
+Ljava/io/FileOutputStream;
+Ljava/io/FilterOutputStream;
+Ljava/io/InputStream;
+Ljava/io/OutputStream;
+Ljava/io/PrintStream;
+Ljava/nio/channels/FileChannel;
+Ljava/nio/channels/FileLock;
+Ljava/util/stream/IntStream;
+Ljava/util/zip/ZipOutputStream;
+Lkotlinx/coroutines/channels/i;
+Lkotlinx/coroutines/channels/l;
+Lkotlinx/coroutines/channels/l<
+Lkotlinx/coroutines/channels/n;
+Lkotlinx/coroutines/channels/o;
+Lkotlinx/coroutines/channels/p;
+Lkotlinx/coroutines/channels/r;
+lMultiParagraph(annotatedString, style, placeholders, maxLines, ellipsis, width, density, fontFamilyResolver)
+mAudioStream
+mLocalStream
+Modifier.graphicsLayer(scaleX, scaleY, alpha, translationX, translationY, shadowElevation, rotationX, rotationY, rotationZ, cameraDistance, transformOrigin, shape, clip, null, DefaultShadowColor, DefaultShadowColor)
+MoveCursorCommand(amount=
+MSG_COMMAND
+MultiAutoCompleteTextView
+multiChoiceItemLayout
+MultiDex
+MultiDex installation failed (
+MultiDex installation failure
+MultiDex.lock
+multidex.version
+MultiDexExtractor was closed
+MultiDexExtractor(
+MultiDexExtractor.load(
+MultiParagraph(annotatedString, style, Constraints(maxWidth = ceil(width).toInt()), density, fontFamilyResolver, placeholders, maxLines, ellipsis)
+MultiParagraph.kt
+MultiParagraphIntrinsics.kt
+multiple
+MULTIPLY
+MultiWidgetSelectionDelegate.kt
+MultiWindowModeChangedInfo must be constructed with the constructor that takes a Configuration to access the newConfig. Are you running on an API 26 or higher device that makes this information available?
+onEditCommand
+onMessageChannelReady
+onMultiWindowModeChanged
+onStartCommand
+openInputStream
+performMultiWindowModeChanged
+performPrivateCommand
+postAtFrontOfQueue
+Q(?:(?:(?:aaa|aarp|abb|abbott|abbvie|abc|able|abogado|abudhabi|academy|accenture|accountant|accountants|aco|actor|ads|adult|aeg|aero|aetna|afl|africa|agakhan|agency|aig|airbus|airforce|airtel|akdn|alibaba|alipay|allfinanz|allstate|ally|alsace|alstom|amazon|americanexpress|americanfamily|amex|amfam|amica|amsterdam|analytics|android|anquan|anz|aol|apartments|app|apple|aquarelle|arab|aramco|archi|army|arpa|art|arte|asda|asia|associates|athleta|attorney|auction|audi|audible|audio|auspost|author|auto|autos|avianca|aws|axa|azure|a[cdefgilmoqrstuwxz])|(?:baby|baidu|banamex|bananarepublic|band|bank|bar|barcelona|barclaycard|barclays|barefoot|bargains|baseball|basketball|bauhaus|bayern|bbc|bbt|bbva|bcg|bcn|beats|beauty|beer|bentley|berlin|best|bestbuy|bet|bharti|bible|bid|bike|bing|bingo|bio|biz|black|blackfriday|blockbuster|blog|bloomberg|blue|bms|bmw|bnpparibas|boats|boehringer|bofa|bom|bond|boo|book|booking|bosch|bostik|boston|bot|boutique|box|bradesco|bridgestone|broadway|broker|brother|brussels|build|builders|business|buy|buzz|bzh|b[abdefghijmnorstvwyz])|(?:cab|cafe|cal|call|calvinklein|cam|camera|camp|canon|capetown|capital|capitalone|car|caravan|cards|care|career|careers|cars|casa|case|cash|casino|cat|catering|catholic|cba|cbn|cbre|cbs|center|ceo|cern|cfa|cfd|chanel|channel|charity|chase|chat|cheap|chintai|christmas|chrome|church|cipriani|circle|cisco|citadel|citi|citic|city|cityeats|claims|cleaning|click|clinic|clinique|clothing|cloud|club|clubmed|coach|codes|coffee|college|cologne|com|comcast|commbank|community|company|compare|computer|comsec|condos|construction|consulting|contact|contractors|cooking|cool|coop|corsica|country|coupon|coupons|courses|cpa|credit|creditcard|creditunion|cricket|crown|crs|cruise|cruises|cuisinella|cymru|cyou|c[acdfghiklmnoruvwxyz])|(?:dabur|dad|dance|data|date|dating|datsun|day|dclk|dds|deal|dealer|deals|degree|delivery|dell|deloitte|delta|democrat|dental|dentist|desi|design|dev|dhl|diamonds|diet|digital|direct|directory|discount|discover|dish|diy|dnp|docs|doctor|dog|domains|dot|download|drive|dtv|dubai|dunlop|dupont|durban|dvag|dvr|d[ejkmoz])|(?:earth|eat|eco|edeka|edu|education|email|emerck|energy|engineer|engineering|enterprises|epson|equipment|ericsson|erni|esq|estate|etisalat|eurovision|eus|events|exchange|expert|exposed|express|extraspace|e[cegrstu])|(?:fage|fail|fairwinds|faith|family|fan|fans|farm|farmers|fashion|fast|fedex|feedback|ferrari|ferrero|fidelity|fido|film|final|finance|financial|fire|firestone|firmdale|fish|fishing|fit|fitness|flickr|flights|flir|florist|flowers|fly|foo|food|football|ford|forex|forsale|forum|foundation|fox|free|fresenius|frl|frogans|frontdoor|frontier|ftr|fujitsu|fun|fund|furniture|futbol|fyi|f[ijkmor])|(?:gal|gallery|gallo|gallup|game|games|gap|garden|gay|gbiz|gdn|gea|gent|genting|george|ggee|gift|gifts|gives|giving|glass|gle|global|globo|gmail|gmbh|gmo|gmx|godaddy|gold|goldpoint|golf|goo|goodyear|goog|google|gop|got|gov|grainger|graphics|gratis|green|gripe|grocery|group|guardian|gucci|guge|guide|guitars|guru|g[abdefghilmnpqrstuwy])|(?:hair|hamburg|hangout|haus|hbo|hdfc|hdfcbank|health|healthcare|help|helsinki|here|hermes|hiphop|hisamitsu|hitachi|hiv|hkt|hockey|holdings|holiday|homedepot|homegoods|homes|homesense|honda|horse|hospital|host|hosting|hot|hotels|hotmail|house|how|hsbc|hughes|hyatt|hyundai|h[kmnrtu])|(?:ibm|icbc|ice|icu|ieee|ifm|ikano|imamat|imdb|immo|immobilien|inc|industries|infiniti|info|ing|ink|institute|insurance|insure|int|international|intuit|investments|ipiranga|irish|ismaili|ist|istanbul|itau|itv|i[delmnoqrst])|(?:jaguar|java|jcb|jeep|jetzt|jewelry|jio|jll|jmp|jnj|jobs|joburg|jot|joy|jpmorgan|jprs|juegos|juniper|j[emop])|(?:kaufen|kddi|kerryhotels|kerrylogistics|kerryproperties|kfh|kia|kids|kim|kinder|kindle|kitchen|kiwi|koeln|komatsu|kosher|kpmg|kpn|krd|kred|kuokgroup|kyoto|k[eghimnprwyz])|(?:lacaixa|lamborghini|lamer|lancaster|land|landrover|lanxess|lasalle|lat|latino|latrobe|law|lawyer|lds|lease|leclerc|lefrak|legal|lego|lexus|lgbt|lidl|life|lifeinsurance|lifestyle|lighting|like|lilly|limited|limo|lincoln|link|lipsy|live|living|llc|llp|loan|loans|locker|locus|lol|london|lotte|lotto|love|lpl|lplfinancial|ltd|ltda|lundbeck|luxe|luxury|l[abcikrstuvy])|(?:madrid|maif|maison|makeup|man|management|mango|map|market|marketing|markets|marriott|marshalls|mattel|mba|mckinsey|med|media|meet|melbourne|meme|memorial|men|menu|merckmsd|miami|microsoft|mil|mini|mint|mit|mitsubishi|mlb|mls|mma|mobi|mobile|moda|moe|moi|mom|monash|money|monster|mormon|mortgage|moscow|moto|motorcycles|mov|movie|msd|mtn|mtr|museum|music|m[acdeghklmnopqrstuvwxyz])|(?:nab|nagoya|name|natura|navy|nba|nec|net|netbank|netflix|network|neustar|new|news|next|nextdirect|nexus|nfl|ngo|nhk|nico|nike|nikon|ninja|nissan|nissay|nokia|norton|now|nowruz|nowtv|nra|nrw|ntt|nyc|n[acefgilopruz])|(?:obi|observer|office|okinawa|olayan|olayangroup|oldnavy|ollo|omega|one|ong|onl|online|ooo|open|oracle|orange|org|organic|origins|osaka|otsuka|ott|ovh|om)|(?:page|panasonic|paris|pars|partners|parts|party|pay|pccw|pet|pfizer|pharmacy|phd|philips|phone|photo|photography|photos|physio|pics|pictet|pictures|pid|pin|ping|pink|pioneer|pizza|place|play|playstation|plumbing|plus|pnc|pohl|poker|politie|porn|post|pramerica|praxi|press|prime|pro|prod|productions|prof|progressive|promo|properties|property|protection|pru|prudential|pub|pwc|p[aefghklmnrstwy])|(?:qpon|quebec|quest|qa)|(?:racing|radio|read|realestate|realtor|realty|recipes|red|redstone|redumbrella|rehab|reise|reisen|reit|reliance|ren|rent|rentals|repair|report|republican|rest|restaurant|review|reviews|rexroth|rich|richardli|ricoh|ril|rio|rip|rocher|rocks|rodeo|rogers|room|rsvp|rugby|ruhr|run|rwe|ryukyu|r[eosuw])|(?:saarland|safe|safety|sakura|sale|salon|samsclub|samsung|sandvik|sandvikcoromant|sanofi|sap|sarl|sas|save|saxo|sbi|sbs|sca|scb|schaeffler|schmidt|scholarships|school|schule|schwarz|science|scot|search|seat|secure|security|seek|select|sener|services|seven|sew|sex|sexy|sfr|shangrila|sharp|shaw|shell|shia|shiksha|shoes|shop|shopping|shouji|show|showtime|silk|sina|singles|site|ski|skin|sky|skype|sling|smart|smile|sncf|soccer|social|softbank|software|sohu|solar|solutions|song|sony|soy|spa|space|sport|spot|srl|stada|staples|star|statebank|statefarm|stc|stcgroup|stockholm|storage|store|stream|studio|study|style|sucks|supplies|supply|support|surf|surgery|suzuki|swatch|swiss|sydney|systems|s[abcdeghijklmnorstuvxyz])|(?:tab|taipei|talk|taobao|target|tatamotors|tatar|tattoo|tax|taxi|tci|tdk|team|tech|technology|tel|temasek|tennis|teva|thd|theater|theatre|tiaa|tickets|tienda|tips|tires|tirol|tjmaxx|tjx|tkmaxx|tmall|today|tokyo|tools|top|toray|toshiba|total|tours|town|toyota|toys|trade|trading|training|travel|travelers|travelersinsurance|trust|trv|tube|tui|tunes|tushu|tvs|t[cdfghjklmnortvwz])|(?:ubank|ubs|unicom|university|uno|uol|ups|u[agksyz])|(?:vacations|vana|vanguard|vegas|ventures|verisign|versicherung|vet|viajes|video|vig|viking|villas|vin|vip|virgin|visa|vision|viva|vivo|vlaanderen|vodka|volkswagen|volvo|vote|voting|voto|voyage|v[aceginu])|(?:wales|walmart|walter|wang|wanggou|watch|watches|weather|weatherchannel|webcam|weber|website|wed|wedding|weibo|weir|whoswho|wien|wiki|williamhill|win|windows|wine|winners|wme|wolterskluwer|woodside|work|works|world|wow|wtc|wtf|w[fs])|(?:
+Q(?:(?:aaa|aarp|abb|abbott|abbvie|abc|able|abogado|abudhabi|academy|accenture|accountant|accountants|aco|actor|ads|adult|aeg|aero|aetna|afl|africa|agakhan|agency|aig|airbus|airforce|airtel|akdn|alibaba|alipay|allfinanz|allstate|ally|alsace|alstom|amazon|americanexpress|americanfamily|amex|amfam|amica|amsterdam|analytics|android|anquan|anz|aol|apartments|app|apple|aquarelle|arab|aramco|archi|army|arpa|art|arte|asda|asia|associates|athleta|attorney|auction|audi|audible|audio|auspost|author|auto|autos|avianca|aws|axa|azure|a[cdefgilmoqrstuwxz])|(?:baby|baidu|banamex|bananarepublic|band|bank|bar|barcelona|barclaycard|barclays|barefoot|bargains|baseball|basketball|bauhaus|bayern|bbc|bbt|bbva|bcg|bcn|beats|beauty|beer|bentley|berlin|best|bestbuy|bet|bharti|bible|bid|bike|bing|bingo|bio|biz|black|blackfriday|blockbuster|blog|bloomberg|blue|bms|bmw|bnpparibas|boats|boehringer|bofa|bom|bond|boo|book|booking|bosch|bostik|boston|bot|boutique|box|bradesco|bridgestone|broadway|broker|brother|brussels|build|builders|business|buy|buzz|bzh|b[abdefghijmnorstvwyz])|(?:cab|cafe|cal|call|calvinklein|cam|camera|camp|canon|capetown|capital|capitalone|car|caravan|cards|care|career|careers|cars|casa|case|cash|casino|cat|catering|catholic|cba|cbn|cbre|cbs|center|ceo|cern|cfa|cfd|chanel|channel|charity|chase|chat|cheap|chintai|christmas|chrome|church|cipriani|circle|cisco|citadel|citi|citic|city|cityeats|claims|cleaning|click|clinic|clinique|clothing|cloud|club|clubmed|coach|codes|coffee|college|cologne|com|comcast|commbank|community|company|compare|computer|comsec|condos|construction|consulting|contact|contractors|cooking|cool|coop|corsica|country|coupon|coupons|courses|cpa|credit|creditcard|creditunion|cricket|crown|crs|cruise|cruises|cuisinella|cymru|cyou|c[acdfghiklmnoruvwxyz])|(?:dabur|dad|dance|data|date|dating|datsun|day|dclk|dds|deal|dealer|deals|degree|delivery|dell|deloitte|delta|democrat|dental|dentist|desi|design|dev|dhl|diamonds|diet|digital|direct|directory|discount|discover|dish|diy|dnp|docs|doctor|dog|domains|dot|download|drive|dtv|dubai|dunlop|dupont|durban|dvag|dvr|d[ejkmoz])|(?:earth|eat|eco|edeka|edu|education|email|emerck|energy|engineer|engineering|enterprises|epson|equipment|ericsson|erni|esq|estate|etisalat|eurovision|eus|events|exchange|expert|exposed|express|extraspace|e[cegrstu])|(?:fage|fail|fairwinds|faith|family|fan|fans|farm|farmers|fashion|fast|fedex|feedback|ferrari|ferrero|fidelity|fido|film|final|finance|financial|fire|firestone|firmdale|fish|fishing|fit|fitness|flickr|flights|flir|florist|flowers|fly|foo|food|football|ford|forex|forsale|forum|foundation|fox|free|fresenius|frl|frogans|frontdoor|frontier|ftr|fujitsu|fun|fund|furniture|futbol|fyi|f[ijkmor])|(?:gal|gallery|gallo|gallup|game|games|gap|garden|gay|gbiz|gdn|gea|gent|genting|george|ggee|gift|gifts|gives|giving|glass|gle|global|globo|gmail|gmbh|gmo|gmx|godaddy|gold|goldpoint|golf|goo|goodyear|goog|google|gop|got|gov|grainger|graphics|gratis|green|gripe|grocery|group|guardian|gucci|guge|guide|guitars|guru|g[abdefghilmnpqrstuwy])|(?:hair|hamburg|hangout|haus|hbo|hdfc|hdfcbank|health|healthcare|help|helsinki|here|hermes|hiphop|hisamitsu|hitachi|hiv|hkt|hockey|holdings|holiday|homedepot|homegoods|homes|homesense|honda|horse|hospital|host|hosting|hot|hotels|hotmail|house|how|hsbc|hughes|hyatt|hyundai|h[kmnrtu])|(?:ibm|icbc|ice|icu|ieee|ifm|ikano|imamat|imdb|immo|immobilien|inc|industries|infiniti|info|ing|ink|institute|insurance|insure|int|international|intuit|investments|ipiranga|irish|ismaili|ist|istanbul|itau|itv|i[delmnoqrst])|(?:jaguar|java|jcb|jeep|jetzt|jewelry|jio|jll|jmp|jnj|jobs|joburg|jot|joy|jpmorgan|jprs|juegos|juniper|j[emop])|(?:kaufen|kddi|kerryhotels|kerrylogistics|kerryproperties|kfh|kia|kids|kim|kinder|kindle|kitchen|kiwi|koeln|komatsu|kosher|kpmg|kpn|krd|kred|kuokgroup|kyoto|k[eghimnprwyz])|(?:lacaixa|lamborghini|lamer|lancaster|land|landrover|lanxess|lasalle|lat|latino|latrobe|law|lawyer|lds|lease|leclerc|lefrak|legal|lego|lexus|lgbt|lidl|life|lifeinsurance|lifestyle|lighting|like|lilly|limited|limo|lincoln|link|lipsy|live|living|llc|llp|loan|loans|locker|locus|lol|london|lotte|lotto|love|lpl|lplfinancial|ltd|ltda|lundbeck|luxe|luxury|l[abcikrstuvy])|(?:madrid|maif|maison|makeup|man|management|mango|map|market|marketing|markets|marriott|marshalls|mattel|mba|mckinsey|med|media|meet|melbourne|meme|memorial|men|menu|merckmsd|miami|microsoft|mil|mini|mint|mit|mitsubishi|mlb|mls|mma|mobi|mobile|moda|moe|moi|mom|monash|money|monster|mormon|mortgage|moscow|moto|motorcycles|mov|movie|msd|mtn|mtr|museum|music|m[acdeghklmnopqrstuvwxyz])|(?:nab|nagoya|name|natura|navy|nba|nec|net|netbank|netflix|network|neustar|new|news|next|nextdirect|nexus|nfl|ngo|nhk|nico|nike|nikon|ninja|nissan|nissay|nokia|norton|now|nowruz|nowtv|nra|nrw|ntt|nyc|n[acefgilopruz])|(?:obi|observer|office|okinawa|olayan|olayangroup|oldnavy|ollo|omega|one|ong|onl|online|ooo|open|oracle|orange|org|organic|origins|osaka|otsuka|ott|ovh|om)|(?:page|panasonic|paris|pars|partners|parts|party|pay|pccw|pet|pfizer|pharmacy|phd|philips|phone|photo|photography|photos|physio|pics|pictet|pictures|pid|pin|ping|pink|pioneer|pizza|place|play|playstation|plumbing|plus|pnc|pohl|poker|politie|porn|post|pramerica|praxi|press|prime|pro|prod|productions|prof|progressive|promo|properties|property|protection|pru|prudential|pub|pwc|p[aefghklmnrstwy])|(?:qpon|quebec|quest|qa)|(?:racing|radio|read|realestate|realtor|realty|recipes|red|redstone|redumbrella|rehab|reise|reisen|reit|reliance|ren|rent|rentals|repair|report|republican|rest|restaurant|review|reviews|rexroth|rich|richardli|ricoh|ril|rio|rip|rocher|rocks|rodeo|rogers|room|rsvp|rugby|ruhr|run|rwe|ryukyu|r[eosuw])|(?:saarland|safe|safety|sakura|sale|salon|samsclub|samsung|sandvik|sandvikcoromant|sanofi|sap|sarl|sas|save|saxo|sbi|sbs|sca|scb|schaeffler|schmidt|scholarships|school|schule|schwarz|science|scot|search|seat|secure|security|seek|select|sener|services|seven|sew|sex|sexy|sfr|shangrila|sharp|shaw|shell|shia|shiksha|shoes|shop|shopping|shouji|show|showtime|silk|sina|singles|site|ski|skin|sky|skype|sling|smart|smile|sncf|soccer|social|softbank|software|sohu|solar|solutions|song|sony|soy|spa|space|sport|spot|srl|stada|staples|star|statebank|statefarm|stc|stcgroup|stockholm|storage|store|stream|studio|study|style|sucks|supplies|supply|support|surf|surgery|suzuki|swatch|swiss|sydney|systems|s[abcdeghijklmnorstuvxyz])|(?:tab|taipei|talk|taobao|target|tatamotors|tatar|tattoo|tax|taxi|tci|tdk|team|tech|technology|tel|temasek|tennis|teva|thd|theater|theatre|tiaa|tickets|tienda|tips|tires|tirol|tjmaxx|tjx|tkmaxx|tmall|today|tokyo|tools|top|toray|toshiba|total|tours|town|toyota|toys|trade|trading|training|travel|travelers|travelersinsurance|trust|trv|tube|tui|tunes|tushu|tvs|t[cdfghjklmnortvwz])|(?:ubank|ubs|unicom|university|uno|uol|ups|u[agksyz])|(?:vacations|vana|vanguard|vegas|ventures|verisign|versicherung|vet|viajes|video|vig|viking|villas|vin|vip|virgin|visa|vision|viva|vivo|vlaanderen|vodka|volkswagen|volvo|vote|voting|voto|voyage|v[aceginu])|(?:wales|walmart|walter|wang|wanggou|watch|watches|weather|weatherchannel|webcam|weber|website|wed|wedding|weibo|weir|whoswho|wien|wiki|williamhill|win|windows|wine|winners|wme|wolterskluwer|woodside|work|works|world|wow|wtc|wtf|w[fs])|(?:
+Qmeasure() may not be called multiple times on the same Measurable. Current state 
+QSTREAM_ACCESSIBILITY is not a legacy stream type that was used for audio playback
+requestPostMessageChannel
+requireArguments
+RLandroid/support/v4/media/session/MediaSessionCompat$MediaSessionImplBase$Command;
+rtsp
+rtsp://
+sendCommand
+sensor
+SensorBottomBorder
+SensorLeftBorder
+SensorRightBorder
+SensorTopBorder
+setCameraDistance
+setCameraDistancePx
+SetComposingTextCommand(text='
+setIsVideo
+setLegacyStreamType
+setMultiLine
+SetSelectionCommand(start=
+setStreamVolume
+SFailed to copy the given amount of bytes from the inputstream to the output stream.
+Stream items available: 
+StreamFiles
+STREAM_BLUETOOTH_SCO
+STREAM_SYSTEM_ENFORCED
+textInputCommandEventLoop
+TFailed to read EXIF from HEIF file. Given stream is either malformed or unsupported.
+Timestamp should not be null.
+toLegacyStreamType
+TRANSACTION_extraCommand
+TRANSACTION_sendCommand
+TRA_ALLOW_MULTIPLE, true)
+Unknown command for: 
+video/*
+wifi
+wifip2p
+wNo ApplicationInfo available for instrumentation, i.e. running on a test Context: MultiDex support library is disabled.
+XMultiParagraph that takes maximum allowed width is deprecated, pass constraints instead.
+[Allowing Extra Stream requires also allowing at least  FLAG_GRANT_READ_URI_PERMISSION Flag.
+[MultiParagraph(intrinsics, Constraints(maxWidth = ceil(width).toInt()), maxLines, ellipsis)
+[MultiParagraphIntrinsics(annotatedString, style, placeholders, density, fontFamilyResolver)
+]Cannot create SeekableByteOrderedDataInputStream with stream that does not support mark/reset
+]]]){0,1}\.)+(?:(?:(?:aaa|aarp|abb|abbott|abbvie|abc|able|abogado|abudhabi|academy|accenture|accountant|accountants|aco|actor|ads|adult|aeg|aero|aetna|afl|africa|agakhan|agency|aig|airbus|airforce|airtel|akdn|alibaba|alipay|allfinanz|allstate|ally|alsace|alstom|amazon|americanexpress|americanfamily|amex|amfam|amica|amsterdam|analytics|android|anquan|anz|aol|apartments|app|apple|aquarelle|arab|aramco|archi|army|arpa|art|arte|asda|asia|associates|athleta|attorney|auction|audi|audible|audio|auspost|author|auto|autos|avianca|aws|axa|azure|a[cdefgilmoqrstuwxz])|(?:baby|baidu|banamex|bananarepublic|band|bank|bar|barcelona|barclaycard|barclays|barefoot|bargains|baseball|basketball|bauhaus|bayern|bbc|bbt|bbva|bcg|bcn|beats|beauty|beer|bentley|berlin|best|bestbuy|bet|bharti|bible|bid|bike|bing|bingo|bio|biz|black|blackfriday|blockbuster|blog|bloomberg|blue|bms|bmw|bnpparibas|boats|boehringer|bofa|bom|bond|boo|book|booking|bosch|bostik|boston|bot|boutique|box|bradesco|bridgestone|broadway|broker|brother|brussels|build|builders|business|buy|buzz|bzh|b[abdefghijmnorstvwyz])|(?:cab|cafe|cal|call|calvinklein|cam|camera|camp|canon|capetown|capital|capitalone|car|caravan|cards|care|career|careers|cars|casa|case|cash|casino|cat|catering|catholic|cba|cbn|cbre|cbs|center|ceo|cern|cfa|cfd|chanel|channel|charity|chase|chat|cheap|chintai|christmas|chrome|church|cipriani|circle|cisco|citadel|citi|citic|city|cityeats|claims|cleaning|click|clinic|clinique|clothing|cloud|club|clubmed|coach|codes|coffee|college|cologne|com|comcast|commbank|community|company|compare|computer|comsec|condos|construction|consulting|contact|contractors|cooking|cool|coop|corsica|country|coupon|coupons|courses|cpa|credit|creditcard|creditunion|cricket|crown|crs|cruise|cruises|cuisinella|cymru|cyou|c[acdfghiklmnoruvwxyz])|(?:dabur|dad|dance|data|date|dating|datsun|day|dclk|dds|deal|dealer|deals|degree|delivery|dell|deloitte|delta|democrat|dental|dentist|desi|design|dev|dhl|diamonds|diet|digital|direct|directory|discount|discover|dish|diy|dnp|docs|doctor|dog|domains|dot|download|drive|dtv|dubai|dunlop|dupont|durban|dvag|dvr|d[ejkmoz])|(?:earth|eat|eco|edeka|edu|education|email|emerck|energy|engineer|engineering|enterprises|epson|equipment|ericsson|erni|esq|estate|etisalat|eurovision|eus|events|exchange|expert|exposed|express|extraspace|e[cegrstu])|(?:fage|fail|fairwinds|faith|family|fan|fans|farm|farmers|fashion|fast|fedex|feedback|ferrari|ferrero|fidelity|fido|film|final|finance|financial|fire|firestone|firmdale|fish|fishing|fit|fitness|flickr|flights|flir|florist|flowers|fly|foo|food|football|ford|forex|forsale|forum|foundation|fox|free|fresenius|frl|frogans|frontdoor|frontier|ftr|fujitsu|fun|fund|furniture|futbol|fyi|f[ijkmor])|(?:gal|gallery|gallo|gallup|game|games|gap|garden|gay|gbiz|gdn|gea|gent|genting|george|ggee|gift|gifts|gives|giving|glass|gle|global|globo|gmail|gmbh|gmo|gmx|godaddy|gold|goldpoint|golf|goo|goodyear|goog|google|gop|got|gov|grainger|graphics|gratis|green|gripe|grocery|group|guardian|gucci|guge|guide|guitars|guru|g[abdefghilmnpqrstuwy])|(?:hair|hamburg|hangout|haus|hbo|hdfc|hdfcbank|health|healthcare|help|helsinki|here|hermes|hiphop|hisamitsu|hitachi|hiv|hkt|hockey|holdings|holiday|homedepot|homegoods|homes|homesense|honda|horse|hospital|host|hosting|hot|hotels|hotmail|house|how|hsbc|hughes|hyatt|hyundai|h[kmnrtu])|(?:ibm|icbc|ice|icu|ieee|ifm|ikano|imamat|imdb|immo|immobilien|inc|industries|infiniti|info|ing|ink|institute|insurance|insure|int|international|intuit|investments|ipiranga|irish|ismaili|ist|istanbul|itau|itv|i[delmnoqrst])|(?:jaguar|java|jcb|jeep|jetzt|jewelry|jio|jll|jmp|jnj|jobs|joburg|jot|joy|jpmorgan|jprs|juegos|juniper|j[emop])|(?:kaufen|kddi|kerryhotels|kerrylogistics|kerryproperties|kfh|kia|kids|kim|kinder|kindle|kitchen|kiwi|koeln|komatsu|kosher|kpmg|kpn|krd|kred|kuokgroup|kyoto|k[eghimnprwyz])|(?:lacaixa|lamborghini|lamer|lancaster|land|landrover|lanxess|lasalle|lat|latino|latrobe|law|lawyer|lds|lease|leclerc|lefrak|legal|lego|lexus|lgbt|lidl|life|lifeinsurance|lifestyle|lighting|like|lilly|limited|limo|lincoln|link|lipsy|live|living|llc|llp|loan|loans|locker|locus|lol|london|lotte|lotto|love|lpl|lplfinancial|ltd|ltda|lundbeck|luxe|luxury|l[abcikrstuvy])|(?:madrid|maif|maison|makeup|man|management|mango|map|market|marketing|markets|marriott|marshalls|mattel|mba|mckinsey|med|media|meet|melbourne|meme|memorial|men|menu|merckmsd|miami|microsoft|mil|mini|mint|mit|mitsubishi|mlb|mls|mma|mobi|mobile|moda|moe|moi|mom|monash|money|monster|mormon|mortgage|moscow|moto|motorcycles|mov|movie|msd|mtn|mtr|museum|music|m[acdeghklmnopqrstuvwxyz])|(?:nab|nagoya|name|natura|navy|nba|nec|net|netbank|netflix|network|neustar|new|news|next|nextdirect|nexus|nfl|ngo|nhk|nico|nike|nikon|ninja|nissan|nissay|nokia|norton|now|nowruz|nowtv|nra|nrw|ntt|nyc|n[acefgilopruz])|(?:obi|observer|office|okinawa|olayan|olayangroup|oldnavy|ollo|omega|one|ong|onl|online|ooo|open|oracle|orange|org|organic|origins|osaka|otsuka|ott|ovh|om)|(?:page|panasonic|paris|pars|partners|parts|party|pay|pccw|pet|pfizer|pharmacy|phd|philips|phone|photo|photography|photos|physio|pics|pictet|pictures|pid|pin|ping|pink|pioneer|pizza|place|play|playstation|plumbing|plus|pnc|pohl|poker|politie|porn|post|pramerica|praxi|press|prime|pro|prod|productions|prof|progressive|promo|properties|property|protection|pru|prudential|pub|pwc|p[aefghklmnrstwy])|(?:qpon|quebec|quest|qa)|(?:racing|radio|read|realestate|realtor|realty|recipes|red|redstone|redumbrella|rehab|reise|reisen|reit|reliance|ren|rent|rentals|repair|report|republican|rest|restaurant|review|reviews|rexroth|rich|richardli|ricoh|ril|rio|rip|rocher|rocks|rodeo|rogers|room|rsvp|rugby|ruhr|run|rwe|ryukyu|r[eosuw])|(?:saarland|safe|safety|sakura|sale|salon|samsclub|samsung|sandvik|sandvikcoromant|sanofi|sap|sarl|sas|save|saxo|sbi|sbs|sca|scb|schaeffler|schmidt|scholarships|school|schule|schwarz|science|scot|search|seat|secure|security|seek|select|sener|services|seven|sew|sex|sexy|sfr|shangrila|sharp|shaw|shell|shia|shiksha|shoes|shop|shopping|shouji|show|showtime|silk|sina|singles|site|ski|skin|sky|skype|sling|smart|smile|sncf|soccer|social|softbank|software|sohu|solar|solutions|song|sony|soy|spa|space|sport|spot|srl|stada|staples|star|statebank|statefarm|stc|stcgroup|stockholm|storage|store|stream|studio|study|style|sucks|supplies|supply|support|surf|surgery|suzuki|swatch|swiss|sydney|systems|s[abcdeghijklmnorstuvxyz])|(?:tab|taipei|talk|taobao|target|tatamotors|tatar|tattoo|tax|taxi|tci|tdk|team|tech|technology|tel|temasek|tennis|teva|thd|theater|theatre|tiaa|tickets|tienda|tips|tires|tirol|tjmaxx|tjx|tkmaxx|tmall|today|tokyo|tools|top|toray|toshiba|total|tours|town|toyota|toys|trade|trading|training|travel|travelers|travelersinsurance|trust|trv|tube|tui|tunes|tushu|tvs|t[cdfghjklmnortvwz])|(?:ubank|ubs|unicom|university|uno|uol|ups|u[agksyz])|(?:vacations|vana|vanguard|vegas|ventures|verisign|versicherung|vet|viajes|video|vig|viking|villas|vin|vip|virgin|visa|vision|viva|vivo|vlaanderen|vodka|volkswagen|volvo|vote|voting|voto|voyage|v[aceginu])|(?:wales|walmart|walter|wang|wanggou|watch|watches|weather|weatherchannel|webcam|weber|website|wed|wedding|weibo|weir|whoswho|wien|wiki|williamhill|win|windows|wine|winners|wme|wolterskluwer|woodside|work|works|world|wow|wtc|wtf|w[fs])|(?:
+_Something went wrong when trying to clear old MultiDex extraction, continuing without cleaning.
+--- 70mai-analysis/classes2.dex ---
+	/https://
+	;HttpOnly
+	displayer
+	getSensor
+	HTTP/1.1 
+	HttpPatch
+	LF_Sensor
+	LR_Sensor
+	me/videos
+	MY_VIDEOS
+	RF_Sensor
+	RR_Sensor
+	setSensor
+	Timestamp
+	video/mp4
+	videoSize
+	VideoView
+	video_pop
+	VIDEO_URL
+  wifi onLost 
+ app_id,bundle_end_timestamp,data
+ Cannot decode VP8 video on CrOS.
+ commandGetCriterionPressure hex:
+ commandSetCriterionPressure hex:
+ EVENT_NAME_LIVE_STREAMING_RESUME
+ EVENT_PARAM_LIVE_STREAMING_ERROR
+ Failed to obtain HTTP connection
+ getVideo$facebook_common_release
+ HTTP ERROR(%s) %d ms to fetch %s
+ HttpProxyCacheServer init failed
+ ijk_VideoView_ar_16_9_fit_parent
+ Landroid/hardware/SensorManager;
+ Ljava/util/zip/GZIPOutputStream;
+ Lkotlinx/coroutines/channels/f0;
+ Lkotlinx/coroutines/channels/g0;
+ multipart/form-data; boundary=%s
+ setVideo$facebook_common_release
+ shouldKeepTrackOfMultipleIntents
+ startFlutterPage page=
+ supportsPredictiveItemAnimations
+ timestamp regression last=
+ tp_ic_home_car_right_front_wheel
+ WiFi 
+!AlertDialog_multiChoiceItemLayout
+!app_id,name,data,timestamp_millis
+!commandGetGSensorSensitivity hex:
+!commandSetGSensorSensitivity hex:
+!Error closing socket input stream
+!EVENT_PARAM_LIVE_STREAMING_STATUS
+!getScionFrontendApiImplementation
+!ijk_VideoView_render_surface_view
+!ijk_VideoView_render_texture_view
+!Landroid/app/NotificationChannel;
+!layout_collapseParallaxMultiplier
+!Lio/flutter/view/TextureRegistry;
+!Ljava/security/DigestInputStream;
+!Lorg/apache/http/ProtocolVersion;
+" timestamp="
+"access$validateCameraEffectContent
+"commandSetSensorIdInLearnMode hex:
+"device" ("USER_ID" INTEGER,"TYPE" INTEGER,"DEVICE_ID" TEXT PRIMARY KEY NOT NULL ,"NICK_NAME" TEXT,"SSID" TEXT,"BT_MAC" TEXT,"BT_AES_KEY" TEXT,"CONNECT_KEY" TEXT,"CHANNEL" INTEGER,"MODULE" INTEGER,"BIND_ABLITY" INTEGER,"BIND_ABLITY_NAME" TEXT,"BIND_TYPE" INTEGER,"ACCOUNT_CAR_ID" INTEGER,"BIND_TIME" INTEGER,"LOCAL_DATA" INTEGER,"CREATE_TIME_STAMP" INTEGER,"UPDATE_TIME_STAMP" INTEGER,"WIFI_MAC" TEXT,"WIFI_PUBLIC_KEY" TEXT);
+"device" ("USER_ID" INTEGER,"TYPE" INTEGER,"DEVICE_ID" TEXT PRIMARY KEY NOT NULL ,"NICK_NAME" TEXT,"SSID" TEXT,"CONNECT_KEY" TEXT,"CHANNEL" INTEGER,"MODULE" INTEGER,"BIND_ABLITY" INTEGER,"BIND_ABLITY_NAME" TEXT,"BIND_TYPE" INTEGER,"ACCOUNT_CAR_ID" INTEGER,"BIND_TIME" INTEGER,"LOCAL_DATA" INTEGER,"CREATE_TIME_STAMP" INTEGER,"UPDATE_TIME_STAMP" INTEGER);
+"deviceInfo" ("DEVICE_ID" TEXT PRIMARY KEY NOT NULL ,"FRONT_PRESSURE" INTEGER,"REAR_PRESSURE" INTEGER,"FRONT_TEMPERATURE" INTEGER,"REAR_TEMPERATURE" INTEGER,"LFSENSOR_ID" TEXT,"RFSENSOR_ID" TEXT,"LRSENSOR_ID" TEXT,"RRSENSOR_ID" TEXT,"FWVERSION" TEXT);
+"device_guide_bind_channel_err_info
+"https://www.70mai.com/powerstation
+"ijk_VideoView_ar_aspect_fit_parent
+"Lcom/facebook/RequestOutputStream;
+"Ljava/net/URLStreamHandlerFactory;
+"Ljavax/net/ssl/HttpsURLConnection;
+"mai_player_controller_icon_padding
+"mai_player_layout_vod_control_view
+"registerDeviceWifiTracker failed: 
+"select_dialog_multichoice_material
+"Uploading requested multiple times
+"video_play_network_unavailable_tip
+#android.hardware.sensor.hinge_angle
+#android.intent.action.SEND_MULTIPLE
+#android.net.wifi.WIFI_STATE_CHANGED
+#android.permission.READ_MEDIA_VIDEO
+#commandGetCriterionTemperature hex:
+#commandSetCriterionTemperature hex:
+#denyCacheImageMultipleSizesInMemory
+#fb_sdk_live_streaming_update_status
+#Finished http url fetcher fetch in 
+#ijk_VideoView_ar_aspect_fill_parent
+#Lcom/banyac/dashcam/ui/fragment/l1;
+#Lcom/banyac/dashcam/ui/fragment/m1;
+#Lcom/banyac/dashcam/ui/fragment/n1;
+#Lcom/banyac/dashcam/ui/fragment/o1;
+#Lcom/banyac/dashcam/ui/fragment/p1;
+#Lcom/banyac/dashcam/ui/fragment/q1;
+#Lcom/facebook/ProgressOutputStream;
+#Lcom/google/gson/stream/JsonReader;
+#listChoiceIndicatorMultipleAnimated
+#Ljavax/mail/internet/MimeMultipart;
+#Lorg/apache/http/client/HttpClient;
+#Lorg/apache/http/params/HttpParams;
+#mai_player_layout_live_control_view
+#midrive_media_video_menu_text_color
+#multipart/form-data;boundary=######
+#readHeader: stream.read stopped at 
+#Utils disconnectWifi removeNetwork 
+$ timestamp fallback to arrival, raw=
+$access$getACCEPTABLE_HTTP_RESPONSE$p
+$android.permission.ACCESS_WIFI_STATE
+$android.permission.CHANGE_WIFI_STATE
+$CHANNEL_CONTROL IOTC_Session_Write()
+$Could not open ObjectInputStream to 
+$deferred_attribution_cache_timestamp
+$device.bind.flutterBindAuthorizePage
+$EVENT_NATIVE_DIALOG_TYPE_VIDEO_SHARE
+$Ignoring configuration InputStream [
+$ijk_VideoView_ar_aspect_wrap_content
+$Landroid/hardware/Camera$Parameters;
+$Landroid/net/http/AndroidHttpClient;
+$Landroid/net/wifi/WifiConfiguration;
+$Lcom/google/zxing/MultiFormatWriter;
+$mai_player_controller_seekbar_size_n
+$mai_player_controller_seekbar_size_s
+$mai_player_controller_time_text_size
+$mtrl_alert_select_dialog_multichoice
+$PARAMETER_SHARE_DIALOG_CONTENT_VIDEO
+$previous_bundle_end_timestamp_millis
+$Stream #([0-9]+):([0-9]+).*Data:(.*)
+$Utils disconnectWifi disableNetwork 
+$WiFi
+%Chip does not support multi-line text
+%com.google.protobuf.CodedOutputStream
+%Error creating buffer output stream: 
+%https://www.googleapis.com/auth/drive
+%https://www.googleapis.com/auth/games
+%Lcom/facebook/share/model/ShareVideo;
+%Lio/flutter/plugin/common/MethodCall;
+%Lorg/apache/http/message/BasicHeader;
+%mai_player_layout_standard_controller
+%makeHttpRequest$facebook_core_release
+%select max(timestamp) from raw_events
+%Stream #([0-9]+):([0-9]+).*Audio:(.*)
+%Stream #([0-9]+):([0-9]+).*Video:(.*)
+%tp_device_setting_pressure_rear_range
+&android.permission.NEARBY_WIFI_DEVICES
+&EVENT_PARAM_LIVE_STREAMING_PREV_STATUS
+&Landroid/hardware/SensorEventListener;
+&Landroidx/lifecycle/MethodCallsLogger;
+&last_received_uri_timestamps_by_source
+&Lorg/chromium/net/BidirectionalStream;
+&mai_player_controller_seekbar_max_size
+&mai_player_layout_gesture_control_view
+&mai_player_layout_vod_control_view_new
+&previous_bundle_start_timestamp_millis
+&sizeMultiplier must be between 0 and 1
+&tp_device_setting_pressure_front_range
+&tp_device_setting_pressure_rear_stanrd
+&[Lcom/facebook/share/model/ShareVideo;
+' trigger URIs. appId, source, timestamp
+', timestamp=
+'Attempting to initialize multiple times
+'avClient(%d) start_ipcam_stream ret[%d]
+'Error writing to channel. Bytes written
+'EVENT_NAME_LIVE_STREAMING_UPDATE_STATUS
+'http://schemas.android.com/apk/res-auto
+'https://www.googleapis.com/auth/plus.me
+'Landroid/net/wifi/WifiNetworkSpecifier;
+'Lcom/facebook/ProgressNoopOutputStream;
+'Lio/flutter/plugin/common/EventChannel;
+'Ljava/nio/channels/FileChannel$MapMode;
+'Ljava/nio/channels/WritableByteChannel;
+'Lorg/apache/http/impl/cookie/DateUtils;
+'Lorg/apache/log4j/lf5/util/StreamUtils;
+'referrer_click_timestamp_server_seconds
+'Size multiplier must be between 0 and 1
+'tp_device_setting_pressure_front_stanrd
+'unregister device wifi tracker failed: 
+'Uri sources and timestamps do not match
+(flutter.baseflow.com/permissions/methods
+(fromHttpConnection$facebook_core_release
+(https://www.googleapis.com/auth/appstate
+(Lcom/banyac/tirepressure/model/SensorID;
+(Lcom/bumptech/glide/load/model/stream/a;
+(Lcom/bumptech/glide/load/model/stream/b;
+(Lcom/bumptech/glide/load/model/stream/c;
+(Lcom/bumptech/glide/load/model/stream/d;
+(Lcom/bumptech/glide/load/model/stream/e;
+(Lcom/bumptech/glide/load/model/stream/f;
+(Lcom/bumptech/glide/load/model/stream/g;
+(Lcom/bumptech/glide/load/model/stream/h;
+(Lio/flutter/plugin/common/MethodChannel;
+(Lorg/apache/http/client/methods/HttpGet;
+(Lorg/apache/http/client/methods/HttpPut;
+(Lorg/apache/http/entity/BasicHttpEntity;
+(Lorg/apache/http/entity/ByteArrayEntity;
+(Ltv/danmaku/ijk/media/viewer/VideoUtils;
+(tp_device_setting_temperature_rear_alarm
+)avClient(%d) stop_ipcam_stream failed[%d]
+)CHANNEL_CONTROL IOTC_Session_Write()=[%d]
+)Landroid/provider/MediaStore$Video$Media;
+)Lcom/banyac/midrive/base/model/VideoMenu;
+)Ljavax/xml/transform/stream/StreamResult;
+)Ljavax/xml/transform/stream/StreamSource;
+)Lorg/apache/http/client/methods/HttpHead;
+)Lorg/apache/http/client/methods/HttpPost;
+)Lorg/apache/http/message/BasicStatusLine;
+)tp_device_setting_temperature_front_alarm
+)unsupport_fullscreen_in_multi_window_mode
+){http://xml.apache.org/xslt}indent-amount
+*android.permission.BODY_SENSORS_BACKGROUND
+*app_id,trigger_uri,source,timestamp_millis
+*http://schemas.android.com/apk/res/android
+*https://www.googleapis.com/auth/drive.apps
+*https://www.googleapis.com/auth/drive.file
+*https://www.googleapis.com/auth/games_lite
+*https://www.googleapis.com/auth/plus.login
+*Lcom/banyac/midrive/app/flutter/AppBridge;
+*Lcom/banyac/midrive/download/videoproxy/a;
+*Lcom/banyac/midrive/download/videoproxy/b;
+*Lcom/banyac/midrive/download/videoproxy/c;
+*Lcom/banyac/midrive/download/videoproxy/d;
+*Lcom/banyac/midrive/download/videoproxy/e;
+*Lcom/banyac/midrive/download/videoproxy/f;
+*Lcom/bumptech/glide/load/model/stream/b$a;
+*Lcom/bumptech/glide/load/model/stream/c$a;
+*Lcom/bumptech/glide/load/model/stream/d$a;
+*Lcom/bumptech/glide/load/model/stream/e$a;
+*Lcom/bumptech/glide/load/model/stream/f$a;
+*Lcom/bumptech/glide/load/model/stream/f$a<
+*Lcom/bumptech/glide/load/model/stream/f$b;
+*Lcom/bumptech/glide/load/model/stream/f$c;
+*Lcom/bumptech/glide/load/model/stream/f$d;
+*Lcom/bumptech/glide/load/model/stream/h$a;
+*Lio/flutter/plugin/common/BinaryMessenger;
+*Lorg/apache/http/client/methods/HttpTrace;
+*Ltv/danmaku/ijk/media/player/IjkLibLoader;
+*Ltv/danmaku/ijk/media/player/IMediaPlayer;
+*measurement.sgtm.upload.backoff_http_codes
+*tp_device_setting_pressure_rear_select_tip
++ 1 CameraEffectJSONUtility.kt
++ 1 ShareVideoContent.kt
++Account type must be a valid Http/Https URI
++android.net.wifi.CONFIGURED_NETWORKS_CHANGE
++android.net.wifi.LINK_CONFIGURATION_CHANGED
++android.net.wifi.WifiManager$ActionListener
++com.banyac.midrive.remote.VideoInfoCallback
++exception creating output stream on socket.
++Failed to encode data onto the OutputStream
++getHTTP_RANGE_SUCCESS$facebook_core_release
++Lcom/banyac/midrive/app/model/VideoQuality;
++Lcom/banyac/midrive/remote/FFmpegVideoInfo;
++Lorg/apache/http/client/methods/HttpDelete;
++Lorg/apache/http/message/BasicHttpResponse;
++Ltv/danmaku/ijk/media/player/pragma/Pragma;
++mai_player_layout_vod_control_view_new_port
++select max(bundle_end_timestamp) from queue
++tp_device_setting_pressure_front_select_tip
+, additionalHttpHeaders=
+, density multiplier: 
+, httpMethod: 
+, safecaseVideoCount=
+, safecaseVideoSize=
+, Timestamp=
+, videoCount=
+, videoSize=
+, videoUrl='
+,Lcom/banyac/midrive/app/flutter/AppBridge$a;
+,Lcom/banyac/midrive/download/videoproxy/b$a;
+,Lcom/banyac/midrive/download/videoproxy/c$a;
+,Lcom/banyac/midrive/download/videoproxy/c$b;
+,Lcom/banyac/midrive/download/videoproxy/f$a;
+,Lcom/facebook/share/model/ShareVideoContent;
+,Lorg/apache/http/client/methods/HttpOptions;
+,Lorg/apache/http/message/BasicNameValuePair;
+,Ltv/danmaku/ijk/media/player/IjkMediaPlayer;
+,[Lcom/banyac/midrive/remote/FFmpegVideoInfo;
+-Application backgrounded at: timestamp_millis
+-app_id=? and source=? and timestamp_millis<=?
+-https://www.googleapis.com/auth/drive.appdata
+-Lcom/banyac/dashcam/ui/activity/MainActivity;
+-Lcom/banyac/midrive/app/gallery/shortvideo/a;
+-Lcom/banyac/midrive/remote/FFmpegVideoInfo$a;
+-Lcom/banyac/midrive/volley/toolbox/HttpStack;
+-Lcom/facebook/share/model/ShareVideo$Builder;
+-Lorg/apache/http/params/HttpConnectionParams;
+-makeHttpRequest$facebook_core_release$default
+-ShareVideo does not have a LocalUrl specified
+-tp_device_setting_temperature_rear_select_tip
+-[Lcom/facebook/share/model/ShareVideoContent;
+.abs(timestamp_millis - ?) > cast(? as integer)
+.Content Url must be an http:// or https:// url
+.https://www.googleapis.com/auth/userinfo.email
+.Landroid/provider/MediaStore$Video$Thumbnails;
+.Lio/flutter/view/TextureRegistry$TextureEntry;
+.Lorg/apache/http/conn/ClientConnectionManager;
+.Lorg/apache/http/conn/ConnectTimeoutException;
+.Lorg/chromium/net/BidirectionalStream$Builder;
+.tp_device_setting_temperature_front_select_tip
+/app/videoTrim
+/app_id,name,timestamp,metadata_fingerprint,data
+/avClient(%d) stop_ipcam_audio_stream failed[%d]
+/createResponsesFromStream$facebook_core_release
+/http://
+/https://facebook.com/device?user_code=%1$s&qr=1
+/https://www.googleapis.com/auth/datastoremobile
+/Landroid/net/wifi/WifiNetworkSpecifier$Builder;
+/Lcom/banyac/midrive/app/view/VideoDurationView;
+/Lcom/banyac/midrive/app/view/VideoSnapShotView;
+/Lcom/banyac/midrive/viewer/RtspMediaController;
+/Lcom/facebook/share/model/CameraEffectTextures;
+/Lcom/facebook/share/model/ShareVideo$Companion;
+/Lio/flutter/plugin/common/MethodChannel$Result;
+/Lorg/apache/http/client/methods/HttpUriRequest;
+/Lorg/apache/http/impl/client/DefaultHttpClient;
+/Lorg/chromium/net/BidirectionalStream$Callback;
+/videos
+0avClient(%d) start_ipcam_audio_stream failed[%d]
+0https://www.googleapis.com/auth/games.firstparty
+0https://www.googleapis.com/auth/userinfo.profile
+0Lcom/banyac/midrive/base/service/AppWifiManager;
+0Lcom/banyac/midrive/remote/FFmpegVideoTrackInfo;
+0Lcom/facebook/share/model/CameraEffectArguments;
+0Ljava/nio/channels/OverlappingFileLockException;
+0Lorg/apache/http/impl/cookie/DateParseException;
+0medium must be either a SharePhoto or ShareVideo
+0Multiple nonzero corner radii not yet supported.
+0[Lcom/facebook/share/model/CameraEffectTextures;
+1Got multiple records for app, expected one. appId
+1Lcom/banyac/midrive/app/view/HomeStreamEmptyView;
+1Lcom/banyac/midrive/app/view/VideoDurationView$a;
+1Lcom/banyac/midrive/app/view/VideoDurationView$b;
+1Lcom/banyac/midrive/app/view/VideoDurationView$c;
+1Lcom/banyac/midrive/app/view/VideoSnapShotView$a;
+1Lcom/banyac/midrive/app/view/VideoSnapShotView$b;
+1Lcom/banyac/midrive/app/view/VideoSnapShotView$c;
+1Lcom/banyac/midrive/app/view/VideoSnapShotView$d;
+1Lcom/banyac/midrive/app/view/VideoSnapShotView$e;
+1Lcom/banyac/midrive/app/view/VideoSnapShotView$f;
+1Lcom/banyac/midrive/app/view/VideoSnapShotView$g;
+1Lcom/banyac/midrive/app/view/VideoSnapShotView$h;
+1Lcom/banyac/midrive/app/view/VideoSnapShotView$i;
+1Lcom/banyac/midrive/app/view/VideoSnapShotView$j;
+1Lcom/banyac/midrive/app/view/VideoSnapShotView$k;
+1Lcom/banyac/midrive/app/view/VideoSnapShotView$l;
+1Lcom/banyac/midrive/viewer/RtspMediaController$a;
+1Lcom/banyac/midrive/viewer/RtspMediaController$b;
+1Lcom/banyac/midrive/viewer/RtspMediaController$c;
+1Lcom/facebook/internal/FileLruCache$StreamHeader;
+1Lcom/facebook/share/internal/CameraEffectFeature;
+1Lio/flutter/plugin/common/EventChannel$EventSink;
+1Ltv/danmaku/ijk/media/player/AbstractMediaPlayer;
+1[Lcom/banyac/midrive/remote/FFmpegVideoTrackInfo;
+1[Lcom/facebook/share/model/CameraEffectArguments;
+1_timestamp_ms
+2abs(bundle_end_timestamp - ?) > cast(? as integer)
+2AppCompatTheme_listChoiceIndicatorMultipleAnimated
+2avClient(%d) start_ipcam_av_channel(%d) failed[%d]
+2com.facebook.platform.action.request.CAMERA_EFFECT
+2https://accounts.google.com/o/oauth2/revoke?token=
+2InputStreamReader(buffer
+2Lcom/banyac/midrive/app/view/HomeStreamUnKnowView;
+2Lcom/banyac/midrive/base/service/AppWifiManager$a;
+2Lcom/banyac/midrive/base/service/AppWifiManager$b;
+2Lcom/banyac/midrive/base/service/AppWifiManager$c;
+2Lcom/banyac/midrive/base/service/AppWifiManager$d;
+2Lcom/banyac/midrive/base/service/AppWifiManager$e;
+2Lcom/banyac/midrive/base/service/AppWifiManager$f;
+2Lcom/banyac/midrive/base/service/AppWifiManager$g;
+2Lcom/banyac/midrive/remote/FFmpegVideoTrackInfo$a;
+2Lcom/banyac/tirepressure/model/TirePressureSensor;
+2Lorg/apache/log4j/ConsoleAppender$SystemErrStream;
+2Lorg/apache/log4j/ConsoleAppender$SystemOutStream;
+2Lorg/chromium/net/ExperimentalBidirectionalStream;
+2Ltv/danmaku/ijk/media/viewer/VideoSpeedChoiceView;
+2StringBuilder("{HttpStat
+2[Lcom/facebook/share/internal/CameraEffectFeature;
+3app_id=? AND timestamp_millis <= CAST(? AS INTEGER)
+3CollapsingToolbarLayout_extraMultilineHeightEnabled
+3Lcom/banyac/midrive/app/view/HomeStreamEmptyView$a;
+3Lcom/banyac/midrive/base/model/MidriveHttpResponse;
+3Lcom/banyac/midrive/volley/toolbox/HttpClientStack;
+3Lcom/facebook/share/model/ShareCameraEffectContent;
+3Lio/flutter/embedding/engine/plugins/FlutterPlugin;
+3Ltv/danmaku/ijk/media/player/misc/IMediaDataSource;
+3Releasing input stream
+4Could not read configuration file from InputStream [
+4Lcom/banyac/midrive/volley/toolbox/HttpHeaderParser;
+4Lcom/facebook/share/model/ShareVideoContent$Builder;
+4Ljava/nio/channels/spi/AbstractInterruptibleChannel;
+4Ltv/danmaku/ijk/media/player/misc/PipedOutputStream;
+4Ltv/danmaku/ijk/media/viewer/IVideoSnapshotListener;
+4You must provide an InputStream that supports mark()
+4[Lcom/facebook/share/model/ShareCameraEffectContent;
+5common_google_play_services_notification_channel_name
+5Lcom/banyac/midrive/app/model/DeviceCategory$Dashcam;
+5Lcom/facebook/share/internal/CameraEffectJSONUtility;
+5Lio/flutter/plugin/common/EventChannel$StreamHandler;
+5Lio/flutter/view/TextureRegistry$SurfaceTextureEntry;
+5No output stream or file set for the appender named [
+5org.videolan.libvlc.media.VlcRtspStreamPlayerFragment
+6Cannot share ShareVideoContent via web sharing dialogs
+6Landroid/os/ParcelFileDescriptor$AutoCloseInputStream;
+6Lcom/facebook/share/model/ShareVideoContent$Companion;
+6Low memory max size multiplier must be between 0 and 1
+6Permission denied: android.permission.READ_MEDIA_VIDEO
+7Lcom/banyac/midrive/app/model/GroupCategory$NewDashCam;
+7Lcom/banyac/midrive/app/model/GroupCategory$PTZDashCam;
+7Lcom/facebook/internal/FileLruCache$CopyingInputStream;
+7Lcom/facebook/share/model/CameraEffectTextures$Builder;
+7ShareVideo must reference a video that is on the device
+7tv.danmaku.ijk.media.viewer.IjkHttpStreamPlayerFragment
+7tv.danmaku.ijk.media.viewer.IjkRtspStreamPlayerFragment
+8(upload_type = %d AND ABS(creation_timestamp - %d) > %d)
+8Can't change HTTP method on request with overridden URL.
+8Could not retrieve response code from HttpUrlConnection.
+8Got multiple records for app config, expected one. appId
+8Lcom/banyac/midrive/base/ui/route/IDashCamBridgeProvide;
+8Lcom/facebook/internal/FileLruCache$StreamCloseCallback;
+8Lcom/facebook/share/model/CameraEffectArguments$Builder;
+9(upload_type != %d AND ABS(creation_timestamp - %d) > %d)
+9Lcom/facebook/share/model/CameraEffectTextures$Companion;
+9Lcom/facebook/share/model/ShareVideo$Companion$CREATOR$1;
+9Ltv/danmaku/ijk/media/player/IMediaPlayer$OnInfoListener;
+:Lcom/banyac/midrive/app/model/GroupCategory$ScreenDashCam;
+:Lcom/facebook/share/model/CameraEffectArguments$Companion;
+:Lio/flutter/plugin/common/MethodChannel$MethodCallHandler;
+:Lorg/chromium/net/ExperimentalBidirectionalStream$Builder;
+:Ltv/danmaku/ijk/media/player/IMediaPlayer$OnErrorListener;
+:measurement.audience.refresh_event_count_filters_timestamp
+:org/apache/log4j/lf5/viewer/images/channelexplorer_new.gif
+;Got multiple records for conditional property, expected one
+;Got multiple records for user property, expected one. appId
+;Lcom/banyac/midrive/app/model/GroupCategory$RearviewMirror;
+;Lcom/facebook/share/model/ShareCameraEffectContent$Builder;
+;Lcom/facebook/share/widget/ShareDialog$CameraEffectHandler;
+;Ltv/danmaku/ijk/media/videoplayer/component/VodControlView;
+;Trigger URI source and timestamp array lengths do not match
+< SET retry_count = retry_count + 1, last_upload_timestamp = 
+<Get multiple raw event metadata records, expected one. appId
+<Landroid/content/DialogInterface$OnMultiChoiceClickListener;
+<Lcom/banyac/midrive/app/model/GroupCategory$NoScreenDashCam;
+<Lcom/banyac/midrive/app/model/GroupCategory$RearviewDashCam;
+<Lcom/facebook/share/internal/CameraEffectJSONUtility$Setter;
+<Lio/flutter/embedding/engine/plugins/activity/ActivityAware;
+<Ltv/danmaku/ijk/media/videoplayer/controller/ControlWrapper;
+<MultiTransformation must contain at least one Transformation
+=ALTER TABLE events ADD COLUMN last_bundled_timestamp INTEGER;
+=Cannot share video content with place IDs using the share api
+=Event created with reverse previous/current timestamps. appId
+=Lcom/banyac/midrive/volley/toolbox/HttpClientStack$HttpPatch;
+=Lcom/facebook/share/model/ShareCameraEffectContent$Companion;
+=Ltv/danmaku/ijk/media/player/IMediaPlayer$OnPreparedListener;
+=readHeader: stream.read returned -1 while reading header size
+>Cannot share video content with people IDs using the share api
+>Got multiple records for event aggregates, expected one. appId
+>Lcom/facebook/internal/FileLruCache$CloseCallbackOutputStream;
+>Service response is missing Install Referrer install timestamp
+?com.bumptech.glide.load.model.stream.HttpGlideUrlLoader.Timeout
+?Lcom/facebook/share/internal/CameraEffectJSONUtility$SETTERS$1;
+?Lcom/facebook/share/internal/CameraEffectJSONUtility$SETTERS$2;
+?Lcom/facebook/share/internal/CameraEffectJSONUtility$SETTERS$3;
+?Lorg/apache/http/client/methods/HttpEntityEnclosingRequestBase;
+?Ltv/danmaku/ijk/media/player/IMediaPlayer$OnCompletionListener;
+?null cannot be cast to non-null type java.net.HttpURLConnection
+@ALTER TABLE apps ADD COLUMN last_bundle_start_timestamp INTEGER;
+@Cannot share video content with referrer URL using the share api
+@CollapsingToolbarLayout_Layout_layout_collapseParallaxMultiplier
+@Exception trying to extract track info for a webm video on CrOS.
+@Lcom/banyac/midrive/app/model/GroupCategory$DedicatedCarDashCam;
+@Lcom/banyac/midrive/volley/toolbox/PoolingByteArrayOutputStream;
+@Lcom/facebook/share/model/ShareVideoContent$Companion$CREATOR$1;
+@Lcom/nostra13/universalimageloader/core/display/BitmapDisplayer;
+@Lio/flutter/plugin/common/PluginRegistry$ActivityResultListener;
+A ContentProvider for this app was not set up in the AndroidManifest.xml, please add %s as a provider to your AndroidManifest.xml file. See https://developers.facebook.com/docs/sharing/android for more info.
+A request for permissions is already running, please wait for it to finish before doing another request (note that you can request multiple permissions at the same time).
+A valid Facebook client token must be set in the AndroidManifest.xml or set by calling FacebookSdk.setClientToken before initializing the sdk. Visit https://developers.facebook.com/docs/android/getting-started#add-app_id for more information.
+A/org/apache/log4j/lf5/viewer/images/channelexplorer_satellite.gif
+aactive=0 and app_id=? and trigger_event_name=? and abs(? - creation_timestamp) <= trigger_timeout
+ACCEPTABLE_HTTP_RESPONSE
+access$getHTTP_RANGE_SUCCESS$cp
+access$validateVideo
+access$validateVideoContent
+ACTION_CAMERA_EFFECT
+additionalHttpHeaders
+advertiseViaMulticastDNS
+Ahttps://pagead2.googlesyndication.com/pagead/gen_204?id=gmob-apps
+ALio/flutter/embedding/engine/plugins/FlutterPlugin$FlutterAssets;
+ALtv/danmaku/ijk/media/player/IMediaPlayer$OnSeekCompleteListener;
+Ameasurement.audience.use_bundle_timestamp_for_event_count_filters
+android.hardware.camera.flash
+android.intent.extra.STREAM
+android.net.wifi.SCAN_RESULTS
+android.net.wifi.STATE_CHANGE
+android.permission.BODY_SENSORS
+android.permission.CAMERA
+android.settings.WIFI_SETTINGS
+AndroidVideoCache.db
+App measurement deactivated via resources. This method is being deprecated. Please refer to https://firebase.google.com/support/guides/disable-analytics
+application/octet-stream
+Apps that target Android API 30+ (Android 11+) cannot call Facebook native apps unless the package visibility needs are declared. Please follow https://developers.facebook.com/docs/android/troubleshooting/#faq_267321845055988 to make the declaration.
+AppWifiManager
+app_id,name,lifetime_count,current_bundle_count,last_fire_timestamp,last_bundled_timestamp,last_bundled_day,last_sampled_complex_event_id,last_sampling_rate,last_exempt_from_sampling,current_session_count
+app_id,name,set_timestamp,value
+app_id,origin,name,value,active,trigger_event_name,trigger_timeout,creation_timestamp,timed_out_event,triggered_event,triggered_timestamp,time_to_live,expired_event
+Argument 'consumer' of type Utils.Consumer<CommandResult> (#3 out of 4, zero-based) is marked by @androidx.annotation.NonNull but got null for it
+Bad channel to read from
+BALTER TABLE upload_queue ADD COLUMN last_upload_timestamp INTEGER;
+batching_timestamp_millis
+befovy.com/fijkplayer/
+befovy.com/fijkplayer/event/
+BError closing HTTP compressed POST connection output stream. appId
+bg_video_default
+bg_video_scale_ratio
+bindToWifiSync 
+BLcom/facebook/internal/ImageResponseCache$BufferedHttpInputStream;
+ble_device_channel
+BottomSheetBehavior now supports multiple callbacks. `setBottomSheetCallback()` removes all existing callbacks, including ones set internally by library authors, which may result in unintended behavior. This may change in the future. Please use `addBottomSheetCallback()` and `removeBottomSheetCallback()` instead to set your own callbacks.
+bringChildToFront
+bringToFront
+bScheduling upload for context %s with jobId=%d in %dms(Backend next call timestamp %d). Attempt %d
+BufferedHttpInputStream
+BufferedInputStream is closed
+buildEffectCameraAppInfoList
+bundle_end_timestamp
+CachedTimestamp
+CACHE_KEY_REQUEST_TIMESTAMP
+call createPlayer:
+CAMERA
+cameraEffectContent
+CameraEffectHandler
+CameraEffectJSONUtility.kt
+camera_error_check_tip
+camera_error_tip
+Cannot share a null ShareVideo
+Capp_id,name,lifetime_count,current_bundle_count,last_fire_timestamp
+car_left_front
+car_left_front_battery
+car_left_front_data
+car_left_front_wheel
+car_left_rear
+car_left_rear_battery
+car_left_rear_data
+car_left_rear_wheel
+car_right_front
+car_right_front_battery
+car_right_front_data
+car_right_front_wheel
+car_right_rear
+car_right_rear_battery
+car_right_rear_data
+car_right_rear_wheel
+CEvent created with reverse previous/current timestamps. appId, name
+cGi
+CHANNEL
+channel=
+channelUserId
+checkWifiState CONNECT
+checkWifiState count:
+checkWifiState NO CONNECT
+CLcom/facebook/share/model/CameraEffectTextures$Companion$CREATOR$1;
+click_timestamp
+CloseCallbackOutputStream
+com.banyac.dashcam.flutter.open
+com.facebook.arstudio.player
+com.unity3d.player.UnityPlayer
+com/facebook/share/internal/CameraEffectJSONUtility$SETTERS$3
+com/facebook/share/model/ShareVideoContent$Builder
+command
+Command not found: %s
+Command not implemented: 
+Command not supported
+commandBind hex:
+commandFactoryReset hex:
+commandGetChannel hex:
+commandGetLcdBackLight hex:
+commandGetLearnMode hex:
+commandGetSensorId hex:
+commandGetSubVersion hex:
+commandGetVersion hex:
+commandLoadHistory hex:
+commandSetLcd hex:
+commandSetLearnMode hex:
+commandSetSensorId hex:
+commandSyncTimestamp hex:
+commandUserConfirm hex:
+commandVerify hex:
+connection.inputStream
+ConnectKey
+connectWifiApi29 start ssid=
+ContentLengthStream
+convertSpecialChars
+convertToCameraEffectArguments
+copyAndCloseInputStream
+CopyingInputStream
+Could not close stream
+CountingInputStream
+CREATE TABLE events (_id INTEGER PRIMARY KEY, context_id INTEGER NOT NULL, transport_name TEXT NOT NULL, timestamp_ms INTEGER NOT NULL, uptime_ms INTEGER NOT NULL, payload BLOB NOT NULL, code INTEGER, num_attempts INTEGER NOT NULL,FOREIGN KEY (context_id) REFERENCES transport_contexts(_id) ON DELETE CASCADE)
+CREATE TABLE IF NOT EXISTS apps ( app_id TEXT NOT NULL, app_instance_id TEXT, gmp_app_id TEXT, resettable_device_id_hash TEXT, last_bundle_index INTEGER NOT NULL, last_bundle_end_timestamp INTEGER NOT NULL, PRIMARY KEY (app_id)) ;
+CREATE TABLE IF NOT EXISTS conditional_properties ( app_id TEXT NOT NULL, origin TEXT NOT NULL, name TEXT NOT NULL, value BLOB NOT NULL, creation_timestamp INTEGER NOT NULL, active INTEGER NOT NULL, trigger_event_name TEXT, trigger_timeout INTEGER NOT NULL, timed_out_event BLOB,triggered_event BLOB, triggered_timestamp INTEGER NOT NULL, time_to_live INTEGER NOT NULL, expired_event BLOB, PRIMARY KEY (app_id, name)) ;
+CREATE TABLE IF NOT EXISTS events ( app_id TEXT NOT NULL, name TEXT NOT NULL, lifetime_count INTEGER NOT NULL, current_bundle_count INTEGER NOT NULL, last_fire_timestamp INTEGER NOT NULL, PRIMARY KEY (app_id, name)) ;
+CREATE TABLE IF NOT EXISTS events_snapshot ( app_id TEXT NOT NULL, name TEXT NOT NULL, lifetime_count INTEGER NOT NULL, current_bundle_count INTEGER NOT NULL, last_fire_timestamp INTEGER NOT NULL, last_bundled_timestamp INTEGER, last_bundled_day INTEGER, last_sampled_complex_event_id INTEGER, last_sampling_rate INTEGER, last_exempt_from_sampling INTEGER, current_session_count INTEGER, PRIMARY KEY (app_id, name)) ;
+CREATE TABLE IF NOT EXISTS no_data_mode_events ( app_id TEXT NOT NULL, name TEXT NOT NULL, data BLOB NOT NULL, timestamp_millis INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS raw_events ( app_id TEXT NOT NULL, name TEXT NOT NULL, timestamp INTEGER NOT NULL, metadata_fingerprint INTEGER NOT NULL, data BLOB NOT NULL);
+CREATE TABLE IF NOT EXISTS trigger_uris ( app_id TEXT NOT NULL, trigger_uri TEXT NOT NULL, timestamp_millis INTEGER NOT NULL, source INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS upload_queue ( app_id TEXT NOT NULL, upload_uri TEXT NOT NULL, upload_headers TEXT NOT NULL, upload_type INTEGER NOT NULL, measurement_batch BLOB NOT NULL, retry_count INTEGER NOT NULL, creation_timestamp INTEGER NOT NULL );
+CREATE TABLE IF NOT EXISTS user_attributes ( app_id TEXT NOT NULL, name TEXT NOT NULL, set_timestamp INTEGER NOT NULL, value BLOB NOT NULL, PRIMARY KEY (app_id, name)) ;
+createHttpRequest
+createPlayer
+CreateTimeStamp
+createURLStreamHandlerFactory
+createWebMessageChannel
+CREATE_WEB_MESSAGE_CHANNEL
+creation_timestamp
+creation_timestamp ASC
+dc_ic_wifi_connect_success
+Decoded GIF from stream in 
+decodeResourceStream
+decodeStream
+DEFAULT_STREAM_BUFFER_SIZE
+delete from user_attributes where app_id=? and name in (select name from user_attributes where app_id=? and name like '!_ltv!_%' escape '!'order by set_timestamp desc limit ?,10);
+delete_all_video_reminder
+delete_select_video_reminder
+delete_video
+delete_video_reminder
+detected timestamp unit=
+device.add.flutterAddListPage
+deviceChannel
+device_guide_bind_channel_err
+DIALOG_HTTPS_REDIRECT_URI
+displayError
+DLcom/facebook/share/model/CameraEffectArguments$Companion$CREATOR$1;
+DLio/flutter/embedding/engine/plugins/activity/ActivityPluginBinding;
+DLtv/danmaku/ijk/media/player/IMediaPlayer$OnBufferingUpdateListener;
+DROPPED_WAITING_VIDEO
+dynamic_filter_timestamps: {
+Ecom.bumptech.glide.load.resource.bitmap.VideoBitmapDecode.FrameOption
+Ecom.bumptech.glide.load.resource.bitmap.VideoBitmapDecode.TargetFrame
+effectCameraAppInfoList
+ELorg/chromium/net/apihelpers/UploadDataProviders$FileChannelProvider;
+ELtv/danmaku/ijk/media/player/IMediaPlayer$OnVideoSizeChangedListener;
+enableHttp2
+enableHttpCache
+endOfStream
+end_timestamp_millis
+Enull cannot be cast to non-null type com.facebook.RequestOutputStream
+Error closing stream
+Error pinging server (attempts: %d, max timeout: %d). If you see this message, please, email me danikula@gmail.com or create issue here https://github.com/danikula/AndroidVideoCache/issues
+Error reading data from stream
+EVENT_NAME_LIVE_STREAMING_ERROR
+EVENT_NAME_LIVE_STREAMING_PAUSE
+EVENT_NAME_LIVE_STREAMING_START
+EVENT_NAME_LIVE_STREAMING_STOP
+EVENT_PARAM_TIMESTAMP
+existed wifiConfig 
+extraMultilineHeightEnabled
+f<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+FacebookActivity is not declared in the AndroidManifest.xml. If you are using the facebook-common module or dependent modules please add com.facebook.FacebookActivity to your AndroidManifest.xml file. See https://developers.facebook.com/docs/android/getting-started for more info.
+Factive<>0 and app_id=? and abs(? - triggered_timestamp) > time_to_live
+Failed to obtain InputStream
+Failed to read from channel
+Failed to write to channel
+fb_dialogs_present_share_video
+fb_sdk_live_streaming_error
+fb_sdk_live_streaming_pause
+fb_sdk_live_streaming_resume
+fb_sdk_live_streaming_start
+fb_sdk_live_streaming_stop
+feed_video_play_pos
+feed_video_quality
+fetchUpstream cancelled 
+fetchUpstream error 
+fetchUpstream skip cancelled 
+FIJKPLAYER
+FileChannelProvider
+file_delete_progress_multiple
+file_download_progress_multiple
+filterStream error
+FLcom/banyac/midrive/volley/toolbox/DiskBasedCache$CountingInputStream;
+FLcom/facebook/appevents/AppEventDiskStore$MovedClassObjectInputStream;
+FLcom/nostra13/universalimageloader/core/display/SimpleBitmapDisplayer;
+FLtv/danmaku/ijk/media/viewer/VideoSpeedChoiceView$SpeedChangeListener;
+FLUTTER
+Flutter70maiBasePlugin
+FlutterOpen t=
+flutterPluginBinding
+flutter_70mai_base
+forName(UNITY_PLAYER_CLASS)
+FrontPressure
+FrontTemperature
+FRONT_PRESSURE
+FRONT_TEMPERATURE
+f_video_quality
+Gactive=0 and app_id=? and abs(? - creation_timestamp) > trigger_timeout
+gapp_id,app_instance_id,gmp_app_id,resettable_device_id_hash,last_bundle_index,last_bundle_end_timestamp
+genDeviceChannel
+genPipedOutputStream
+GET /(.*) HTTP
+getActionCommand
+getBackoffMultiplier
+getCachedImageStream
+getChannel
+getChannels
+getChannelUserId
+getConnectKey
+getCreateTimeStamp
+getDefaultChannel
+getDefaultSensor
+getDeviceChannel
+getDisplayErrorStringRes
+getDownstreamThroughputKbps
+getErrorStream
+getFileStreamPath
+getFlutterAssets
+getFrontPressure
+getFrontTemperature
+getGenDeviceChannel
+getGraphVideoUrlBase
+getHttpMethod
+getHttpRttMs
+getHttpStatusCode
+getHttpStatusText
+getInnerStream
+getInputStream
+getInputStreamReader
+getJMSTimestamp
+getLFSensorId
+getLF_Sensor
+getLineSpacingMultiplier
+getLRSensorId
+getLR_Sensor
+getNotificationChannel
+getOutputStream
+getprop wifi.interface
+getRearPressure
+getRearTemperature
+getResourceAsStream
+getRFSensorId
+getRF_Sensor
+getRRSensorId
+getRR_Sensor
+getSafecaseVideoCount
+getSafecaseVideoSize
+getSensor1
+getSensor2
+getSensor3
+getSpacingMultiplier
+getStreamFromNetwork
+getStreamMaxVolume
+getStreamMinVolume
+getStreamTypes
+getStreamVolume
+getSystemResourceAsStream
+getTimeStamp
+getUnityPlayerClass
+getUpdateTimeStamp
+getUploadDeviceChannel
+getUploadTimestamp
+getVideo
+getVideoCodec
+getVideoCount
+getVideoCoverHeight
+getVideoCoverSize
+getVideoCoverUrl
+getVideoCoverWidth
+getVideoSize
+getVideoUrl
+getWifiMac
+getWifiNetwork 
+getWifiPublicKey
+getWifiSSIDPrefix
+getWifiSSidPrefixs
+getWifiState
+GLcom/facebook/share/model/ShareCameraEffectContent$Companion$CREATOR$1;
+GLorg/apache/log4j/pattern/RelativeTimePatternConverter$CachedTimestamp;
+GRAPH_VIDEO_URL_FORMAT
+greenChannel
+hasChangeWifiStatePermission
+HASH_MULTIPLIER
+hasMultipleSigners
+hasWiFiPermission
+HCodedOutputStream was writing to a flat byte array and ran out of space.
+hicam_video_player
+HLcom/nostra13/universalimageloader/core/assist/ContentLengthInputStream;
+HLio/flutter/embedding/engine/plugins/FlutterPlugin$FlutterPluginBinding;
+home_stream_empty_layout
+home_stream_unknow_layout
+HSee http://logging.apache.org/log4j/1.2/faq.html#noconfig for more info.
+HTTP
+Http Engine Exception
+Http request failed
+Http Timeout
+http-detect-range-support
+http.agent
+HTTP/1.1 200 OK
+HTTP/1.1 206 PARTIAL CONTENT
+http://
+http://%s:%d/%s
+http://127.0.0.1:
+httpDelete url 
+httpForm url 
+httpGet url 
+httpGetImage url 
+httpMethod
+httpPost requestBody 
+httpPost url 
+HttpProxyCacheServer error
+httpResponseCode: 
+https
+https://
+https://.facebook.com
+https://accounts.google.com
+https://app-measurement.com/a
+https://app-measurement.com/s/d
+https://facebook.com
+https://google.com/search?
+https://graph-video.%s
+https://graph.%s
+https://login.live.com
+https://login.yahoo.com
+https://plus.google.com/
+https://twitter.com
+https://www.
+https://www.facebook.com
+https://www.google.com
+https://www.linkedin.com
+https://www.paypal.com
+https_redirect_uri
+HttpUrlFetcher
+HttpUrlPinger
+HttpUrlSource{sourceInfo='
+HTTP_CACHE_DISABLED
+HTTP_CACHE_DISK
+HTTP_CACHE_DISK_NO_HTTP
+HTTP_CACHE_IN_MEMORY
+HTTP_RANGE_SUCCESS
+HUnable to create a JSON Object from the provided CameraEffectArguments: 
+ijk_mi_channels
+ijk_mi_player
+ijk_mi_stream_fmt1
+ijk_mi__selected_video_track
+ijk_TrackType_video
+ijk_VideoView_ar_4_3_fit_parent
+ijk_VideoView_ar_match_parent
+ijk_VideoView_render_none
+ijk_video_cached_packets
+illegal_video
+INCLUDE_VIDEO_DATA
+innerStream
+input stream [
+InputStream is null for 
+install_begin_timestamp_seconds
+install_timestamp
+interceptAndCacheImageStream
+INVALID_HTTP_STATUS_CODE
+invokeMethod
+invokeMethodQuietly
+iotc_channel_id
+IOTC_Session_Channel_OFF
+IOTC_Session_Channel_ON
+isAdvertiseViaMulticastDNS
+iselect count(*) from raw_events where app_id=? and timestamp >= ? and name like '!_%' escape '!' limit 1;
+isMultiProcessEnabled
+isRtsp
+isTimestampValid
+isValidTimestamp
+isWifiAvailable 
+isWifiEnabled
+item_list_multi
+item_list_multi_big
+item_video_menu
+item_video_qulity
+Jandroid-app://com.google.android.googlequicksearchbox/https/www.google.com
+JCodedOutputStream was writing to a flat byte array and ran out of space.: 
+JLio/flutter/plugin/common/PluginRegistry$RequestPermissionsResultListener;
+key_feed_video_autoplay_mobile
+kind = 1 AND video_id = ?
+KLcom/facebook/internal/FileLruCache$openPutStream$renameToTargetCallback$1;
+KLcom/facebook/share/widget/ShareDialog$CameraEffectHandler$createAppCall$1;
+Landroid/graphics/Camera;
+Landroid/hardware/Camera;
+Landroid/hardware/Sensor;
+Landroid/hardware/SensorEvent;
+Landroid/net/http/SslError;
+Landroid/net/wifi/ScanResult;
+Landroid/net/wifi/WifiInfo;
+Landroid/net/wifi/WifiManager;
+lastTimestamp
+last_bundled_timestamp
+last_bundle_end_timestamp
+last_bundle_start_timestamp
+last_fire_timestamp
+LAST_TIMESTAMP
+last_upload_timestamp
+layout_video_snapshot
+layout_video_snapshot_port
+Lcom/banyac/dashcam/manager/o;
+Lcom/banyac/dashcam/model/f;
+Lcom/banyac/dashcam/ui/view/v0;
+Lcom/banyac/dashcam/utils/h;
+Lcom/befovy/fijkplayer/a;
+Lcom/befovy/fijkplayer/b;
+Lcom/befovy/fijkplayer/c;
+Lcom/befovy/fijkplayer/d;
+Lcom/befovy/fijkplayer/e;
+Lcom/befovy/fijkplayer/f;
+Lcom/befovy/fijkplayer/g;
+Lcom/befovy/fijkplayer/h;
+Lcom/befovy/fijkplayer/i$a;
+Lcom/befovy/fijkplayer/i;
+Lcom/befovy/fijkplayer/j;
+Lcom/befovy/fijkplayer/k;
+Lcom/befovy/fijkplayer/l;
+Lcom/befovy/fijkplayer/m;
+Lcom/befovy/fijkplayer/n;
+Lcom/befovy/fijkplayer/o;
+Lcom/befovy/fijkplayer/p;
+Lcom/befovy/fijkplayer/q;
+Lcom/befovy/fijkplayer/r$a;
+Lcom/befovy/fijkplayer/r;
+Lcom/befovy/fijkplayer/s$a;
+Lcom/befovy/fijkplayer/s$b;
+Lcom/befovy/fijkplayer/s;
+Lcom/befovy/fijkplayer/t;
+Lcom/befovy/fijkplayer/u;
+Lcom/befovy/fijkplayer/v$a;
+Lcom/befovy/fijkplayer/v$b;
+Lcom/befovy/fijkplayer/v$c;
+Lcom/befovy/fijkplayer/v;
+Lcom/befovy/fijkplayer/w;
+Lcom/facebook/HttpMethod;
+Lcom/idlefish/flutterboost/c;
+LFSensorId
+LFSENSOR_ID
+limited_device_channel_list
+live_streaming_error
+live_streaming_prev_status
+live_streaming_status
+Ljava/awt/AWTEventMulticaster;
+Ljava/io/BufferedInputStream;
+Ljava/io/BufferedOutputStream;
+Ljava/io/ByteArrayInputStream;
+Ljava/io/ByteArrayOutputStream;
+Ljava/io/DataInputStream;
+Ljava/io/DataOutputStream;
+Ljava/io/FileInputStream;
+Ljava/io/FileOutputStream;
+Ljava/io/FilterInputStream;
+Ljava/io/FilterOutputStream;
+Ljava/io/InputStream;
+Ljava/io/InputStreamReader;
+Ljava/io/ObjectInputStream;
+Ljava/io/ObjectOutputStream;
+Ljava/io/ObjectStreamClass;
+Ljava/io/ObjectStreamException;
+Ljava/io/OutputStream;
+Ljava/io/OutputStreamWriter;
+Ljava/io/PrintStream;
+Ljava/net/HttpCookie;
+Ljava/net/HttpURLConnection;
+Ljava/nio/channels/Channels;
+Ljava/nio/channels/FileChannel;
+Ljava/nio/channels/FileLock;
+Ljava/util/zip/GZIPInputStream;
+Ljava/util/zip/ZipOutputStream;
+Ljavax/mail/Multipart;
+Lkotlinx/coroutines/channels/i;
+Lkotlinx/coroutines/channels/l;
+Lkotlinx/coroutines/channels/n;
+Lkotlinx/coroutines/channels/p;
+loadLocalVideoGpsInfo
+loadMultipleRootFragment
+Lokhttp3/c0$a;
+Lokhttp3/c0;
+Lokhttp3/d0;
+Lokhttp3/e0$a;
+Lokhttp3/e0;
+Lokhttp3/e;
+Lokhttp3/f0;
+Lokhttp3/g0$a;
+Lokhttp3/g0;
+Lokhttp3/h0;
+Lokhttp3/internal/connection/i;
+Lokhttp3/internal/http2/a;
+Lokhttp3/logging/a$a;
+Lokhttp3/logging/a$b;
+Lokhttp3/logging/a;
+Lokhttp3/m;
+Lokhttp3/n;
+Lokhttp3/u;
+Lokhttp3/v;
+Lokhttp3/w$a;
+Lokhttp3/w;
+Lokhttp3/x;
+Lokhttp3/y;
+Lorg/apache/http/Header;
+Lorg/apache/http/HttpEntity;
+Lorg/apache/http/HttpResponse;
+Lorg/apache/http/NameValuePair;
+Lorg/apache/http/StatusLine;
+LRSensorId
+LRSENSOR_ID
+LStoring bundle outside of the max uploading time span. appId, now, timestamp
+mai_player_controller_height
+mai_player_controller_text_size
+mai_player_default_spacing
+mai_player_layout_complete_view
+mai_player_layout_error_view
+mai_player_layout_prepare_view
+mai_player_layout_title_view
+mai_player_play_btn_size
+mBackoffMultiplier
+mChannel
+mCreationTimestamp
+mDefaultChannel
+methodChannel
+mHttpStack
+MIDRIVE_CHANNEL
+midrive_ic_media_center_player
+midrive_ijk_preview_player
+midrive_ijk_video_player
+midrive_media_bg_video_menu
+midrive_media_video_speed_05x
+midrive_media_video_speed_1x
+midrive_media_video_speed_2x
+midrive_rtsp_bg
+midrive_video_controller
+midrive_vlc_preview_player
+MMissing google_app_id. Firebase Analytics disabled. See https://goo.gl/NAOOOI
+model_request_timestamp
+MovedClassObjectInputStream
+moveToFront
+mResponseBodyChannel
+mResponseBodyStream
+mselect count(*) from raw_events where app_id=? and timestamp >= ? and name not like '!_%' escape '!' limit 1;
+mTimeStamp
+mTriggeredTimestamp
+multiChoiceItemLayout
+MultiClassKey{first=
+MULTIMEDIA
+MultiModelLoader{modelLoaders=
+multipart/form-data
+Multiple charsets provided: 
+Multiplier must be >= 0
+MULTIPLY
+MULTI_COOKIE_HEADER_NAME
+MULTI_COOKIE_VALUE_SEPARATOR
+MULTI_PROCESS_QUERY
+MULTI_PROFILE
+nativeDecodeStream
+Ncom.bumptech.glide.integration.webp.decoder.StreamWebpDecoder.DisableAnimation
+network-http-complete
+NETWORK_WIFI
+newBidirectionalStreamBuilder
+newChannel
+No Client Token found, please set the Client Token. Please follow https://developers.facebook.com/docs/android/getting-started/#client-access-token to get the token and fill it in AndroidManifest.xml
+Omeasurement.audience.use_bundle_end_timestamp_for_non_sequence_property_filters
+onMethodCall
+onPlayerStateChanged
+onReceivedHttpError
+onRequestPermissionsResult is called without results. This is probably caused by interfering request codes. If you see this error, please file an issue in flutter-permission-handler, including a list of plugins used by this application: https://github.com/Baseflow/flutter-permission-handler/issues
+onSensorChanged
+onStartCommand
+onStreamReady
+onVideoSizeChanged
+openContactPhotoInputStream
+openInputStream
+openOutputStream
+openPutStream
+openPutStream$default
+openStream
+Other Http Error Code
+outputStream
+overwrite_channel
+PARAM_TIMESTAMP
+pauseVideo
+permission_name_camera
+permission_name_camera_tip_des
+playerBackgroundColor
+player_load_error
+player_surface
+PLcom/facebook/appevents/AppEventDiskStore$MovedClassObjectInputStream$Companion;
+postAtFrontOfQueue
+previous_timestamp_millis
+QHTTP response for request=<%s> [lifetime=%d], [size=%s], [rc=%d], [retryCount=%s]
+QStoring trigger URI outside of the max retention time span. appId, now, timestamp
+query: path: video  exists
+readStreamToString
+RearPressure
+RearTemperature
+REAR_PRESSURE
+REAR_TEMPERATURE
+RECEIVE_HTTP_ERROR
+releasePlayer
+resumeVideo
+RETRY_EVENTS_HTTP_RESPONSE
+RFSensorId
+RFSENSOR_ID
+RRSensorId
+RRSENSOR_ID
+RtspMediaController
+safecaseVideoCount
+safecaseVideoSize
+saveVideoToAlbum: 
+ScionFrontendApi
+select_video
+sendMessageAtFrontOfQueue
+Sensor
+Sensor1
+Sensor2
+Sensor3
+sensorManager
+SENSORS
+sequence_filter_timestamps: {
+Set-Cookie-Multivalue
+setAdvertiseViaMulticastDNS
+setChannel
+setChannelUserId
+setChunkedStreamingMode
+setConnectKey
+setCreateTimeStamp
+setDefaultChannel
+setDefaultNotificationChannelId
+setDefaultVideoImgUrl
+setDeviceChannel
+setExtraMultilineHeightEnabled
+setFixedLengthStreamingMode
+setFrontPressure
+setFrontTemperature
+setGenDeviceChannel
+setHttpMethod
+setLFSensorId
+setLF_Sensor
+setLineSpacingMultiplier
+setLiveVideo
+setLRSensorId
+setLR_Sensor
+setMediaPlayer
+setMethodCallHandler
+setMultiSelectionEnabled
+setOnVideoSizeChangedListener
+setPremultiplied
+setRearPressure
+setRearTemperature
+setRFSensorId
+setRF_Sensor
+setRRSensorId
+setRR_Sensor
+setSafecaseVideoCount
+setSafecaseVideoSize
+setSensor1
+setSensor2
+setSensor3
+setStreamHandler
+setStreamVolume
+setTimestamp
+setUpdateTimeStamp
+setUploadDeviceChannel
+setUploadTimestamp
+setVideo
+setVideoCodec
+setVideoCount
+setVideoCoverHeight
+setVideoCoverSize
+setVideoCoverUrl
+setVideoCoverWidth
+setVideoPalyerActivity
+setVideoQualityListener
+setVideoSize
+setVideoSpeedChangedListener
+setWifiEnabled
+setWifiMac
+setWifiPublicKey
+set_timestamp
+set_timestamp_millis
+ShareVideoContent.kt
+SHARE_CAMERA_EFFECT
+SHARE_TYPE_VIDEO
+Starting with v13 of the SDK, a client token must be embedded in your client code before making Graph API calls. Visit https://developers.facebook.com/docs/android/getting-started#client-token to learn how to implement this change.
+start_timestamp_millis
+stream
+Stream is closed
+StreamClient(%d) exit...
+StreamClient(%d) start...
+StreamCloseCallback
+StreamEncoder
+StreamGifDecoder
+StreamHeader
+streamToBytes
+STREAM_PRIORITY_HIGHEST
+STREAM_PRIORITY_IDLE
+STREAM_PRIORITY_LOW
+STREAM_PRIORITY_LOWEST
+STREAM_PRIORITY_MEDIUM
+supportFlutterBind
+SystemErrStream
+SystemOutStream
+tCREATE TABLE IF NOT EXISTS queue ( app_id TEXT NOT NULL, bundle_end_timestamp INTEGER NOT NULL, data BLOB NOT NULL);
+ThumbStreamOpener
+timestampOfLastCheck
+timestamp_millis
+timestamp_ms
+timestamp_ms < ?
+timestamp_regression
+toHttpConnection
+tp_ic_home_car_left_front_wheel
+tp_ic_home_car_left_rear_wheel
+tp_ic_home_car_right_rear_wheel
+tp_lf_sensor_id
+tp_lr_sensor_id
+tp_rf_sensor_id
+tp_rr_sensor_id
+tp_sensor_id
+triggered_timestamp
+trigger_uri_timestamp
+TScheduling upload for context %s in %dms(Backend next call timestamp %d). Attempt %d
+tv_video_type
+Unable to decode stream: 
+unityPlayer
+UNITY_PLAYER_CLASS
+Unrecognized http method code.
+Unsupported commandId %s
+unsupported_video_codec
+UpdateTimeStamp
+uploadDeviceChannel
+uploadTimestamp
+upload_timestamp_millis
+uriTimestamps
+val$inputStream
+validateCameraEffectContent
+validateVideo
+validateVideoContent
+VIDEO
+Video Thread
+video/
+video/*
+video/3gpp
+video/mpeg
+video/quicktime
+video/vnd.mpegurl
+video/webm
+video/x-m4v
+video/x-ms-asf
+video/x-msvideo
+video/x-vnd.on2.vp8
+videoCodec
+videoContainer
+videoContent
+videoCount
+videoCoverHeight
+videoCoverSize
+videoCoverUrl
+videoCoverWidth
+VideoDecoder
+VideoDurationView
+VideoGpsInfo{isGpsExist=
+VideoMenu{grade='
+VideoSnapShotView
+VIDEOS_SUFFIX
+videoUrl
+VideoView_enableAudioFocus
+VideoView_looping
+VideoView_playerBackgroundColor
+VideoView_screenScaleType
+video_back
+video_path_with_rs
+video_play_continue
+video_play_mobile_cellular_tip
+video_play_on_mobile_network
+video_quality
+video_quality_fluent
+video_quality_hd
+video_speed
+video_thumb_path_with_rs
+vist: http://127.0.0.1:
+Vlog4j called after unloading, see http://logging.apache.org/log4j/1.2/faq.html#unload.
+Wait... but why? WTF!? Really shouldn't happen any more after fixing https://github.com/danikula/AndroidVideoCache/issues/43. If you read it on your device log, please, notify me danikula@gmail.com or create issue here https://github.com/danikula/AndroidVideoCache/issues.
+WIFI
+Wifi connected 
+Wifi disconnected!
+Wifi Reflex connect fail
+Wifi Reflex connect success
+Wifi Reflex invoke fail 
+Wifi Reflex reconnect 
+WiFi=
+wifiInfo
+WifiMac
+WifiPublicKey
+WIFI_MAC
+WIFI_P2P
+WIFI_PUBLIC_KEY
+wifi_state
+wrapToMarkSupportedStream
+writeVideo_io_error
+xhttps://www.googleadservices.com/pagead/conversion/app/deeplink?id_type=adid&sdk_version=%s&rdid=%s&bundleid=%s&retry=%s
+You haven't set a value for AdvertiserIDCollectionEnabled. Set the flag to TRUE if you want to collect Advertiser ID for better advertising and analytics results. To request user consent before collecting data, set the flag value to FALSE, then change to TRUE once user consent is received. Learn more: https://developers.facebook.com/docs/app-events/getting-started-app-events-android#disable-auto-events.
+ZInvalid google_app_id. Firebase Analytics disabled. See https://goo.gl/NAOOOI. provided id
+ZSELECT COUNT(*), transport_name FROM events WHERE timestamp_ms < ? GROUP BY transport_name
+[, dataForwardingNotAllowedResolver=null, multipleProductIdGroupsResolver=null, filePurpose=
+[Lcom/facebook/HttpMethod;
+[Ljava/io/InputStream;
+[Lokhttp3/d0;
+[Lorg/apache/http/Header;
+[select rowid from raw_events where app_id = ? and timestamp < ? order by rowid desc limit 1
+] upstream failed status=
+]app_id,upload_uri,upload_headers,upload_type,measurement_batch,retry_count,creation_timestamp
+_CodedInputStream encountered an embedded string or message which claimed to have negative size.
+`Value(%s) must be equal to valueFrom(%s) plus a multiple of stepSize(%s) when using stepSize(%s)
+{Argument 'command' of type Runnable (#0 out of 1, zero-based) is marked by @androidx.annotation.NonNull but got null for it
+{HttpStatus: 
 === INPUT FILES ===
 70mai-analysis/assets-analysis-report.txt 779008 bytes
-70mai-analysis/assets-inspection-report.txt 409583 bytes
+70mai-analysis/assets-inspection-report.txt 424625 bytes
 70mai-analysis/assets.zip.part-aa 20971520 bytes
 70mai-analysis/assets.zip.part-ab 20971520 bytes
 70mai-analysis/assets.zip.part-ac 15212938 bytes
 70mai-analysis/classes.dex 9162092 bytes
 70mai-analysis/classes2.dex 8482504 bytes
 70mai-analysis/inspection-report.txt 706943 bytes
-70mai-analysis/rear-switch-focused-report.txt 10146 bytes
+70mai-analysis/rear-switch-focused-report.txt 92894 bytes
 === DECOMPILE SUMMARY ===
 0
