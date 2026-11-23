@@ -3,6 +3,7 @@ package com.aldanmaz.drivedashboard.ui.screen.drive
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -32,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -46,6 +49,7 @@ import android.net.Uri
 import android.os.Build
 import java.net.InetSocketAddress
 import java.net.Socket
+import kotlinx.coroutines.delay
 import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
@@ -192,7 +196,7 @@ private fun diagRear(ctx: Context, baseUrl: String, progress: (String) -> Unit):
  * Goruntu yoksa durum metni gosterir; kamerayi kayittan alikoyan hicbir komut gondermez (yalnizca izler).
  */
 @Composable
-private fun DashcamPane(url: String, label: String, attempt: Int, big: Boolean, showStatus: Boolean, onLog: (String) -> Unit, modifier: Modifier) {
+private fun DashcamPane(url: String, label: String, attempt: Int, big: Boolean, showStatus: Boolean, uiVisible: Boolean, onLog: (String) -> Unit, modifier: Modifier) {
     val ctx = LocalContext.current
     var status by remember { mutableStateOf("Bağlanıyor…") }
     val layout = remember { VLCVideoLayout(ctx) }
@@ -275,11 +279,13 @@ private fun DashcamPane(url: String, label: String, attempt: Int, big: Boolean, 
 
     Box(modifier.background(Color.Black)) {
         AndroidView(factory = { layout }, modifier = Modifier.fillMaxSize())
-        Text(
-            label, color = Color.White, fontSize = if (big) 14.sp else 10.sp, fontWeight = FontWeight.Bold,
-            modifier = Modifier.align(Alignment.TopStart).padding(6.dp).background(Color(0x99000000), RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 2.dp)
-        )
-        if (showStatus && status.isNotEmpty()) {
+        if (uiVisible) {
+            Text(
+                label, color = Color.White, fontSize = if (big) 14.sp else 10.sp, fontWeight = FontWeight.Bold,
+                modifier = Modifier.align(Alignment.TopStart).padding(6.dp).background(Color(0x99000000), RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 2.dp)
+            )
+        }
+        if (showStatus && uiVisible && status.isNotEmpty()) {
             Text(
                 status, color = Color.White, fontSize = if (big) 14.sp else 10.sp,
                 modifier = Modifier.align(Alignment.Center).padding(12.dp).background(Color(0x99000000), RoundedCornerShape(8.dp)).padding(8.dp)
@@ -315,6 +321,15 @@ internal fun DashcamView(
     var scanning by remember { mutableStateOf(false) }
     var scanStatus by remember { mutableStateOf("") }   // tarama/tani sirasindaki tek satirlik ilerleme
     val logs = remember { mutableStateListOf<String>() }
+
+    // Kamera calisirken ekranda sadece goruntu kalsin diye: etiket/dugme/ayar satirlari 3 sn sonra kaybolur.
+    // Ekrana 3 kez hizlica dokununca (ucuncu tikta) tum kontroller geri gelir ve sayac yeniden baslar.
+    var controlsVisible by remember { mutableStateOf(true) }
+    var hideToken by remember { mutableIntStateOf(0) }
+    var tapCount by remember { mutableIntStateOf(0) }
+    var lastTapAt by remember { mutableLongStateOf(0L) }
+    fun revealControls() { controlsVisible = true; hideToken++ }
+    LaunchedEffect(hideToken) { delay(3_000L); controlsVisible = false }
     fun addLog(msg: String) {
         val t = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
         val line = "[$t] $msg"
@@ -325,15 +340,25 @@ internal fun DashcamView(
     // Tarama sirasinda canli yayinlar kapatilir: kamera tek oturum tasiyor olabilir.
     val channels = if (scanning) emptyList() else listOf("ÖN" to frontUrl, "ARKA" to rearUrl).filter { it.second.isNotBlank() }
 
-    Box(modifier.clip(shape).background(Color.Black).border(if (expanded) 0.dp else 2.dp, Color(0xFF3A4652), shape)) {
+    Box(
+        modifier.clip(shape).background(Color.Black).border(if (expanded) 0.dp else 2.dp, Color(0xFF3A4652), shape)
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = {
+                    val now = System.currentTimeMillis()
+                    tapCount = if (now - lastTapAt > 600L) 1 else tapCount + 1
+                    lastTapAt = now
+                    if (tapCount >= 3) { tapCount = 0; revealControls() }
+                })
+            }
+    ) {
         val sideBySide = expanded && landscape
         if (sideBySide) {
             Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                for ((label, url) in channels) DashcamPane(url, label, attempt, true, !expanded, { addLog(it) }, Modifier.weight(1f).fillMaxSize())
+                for ((label, url) in channels) DashcamPane(url, label, attempt, true, !expanded, controlsVisible, { addLog(it) }, Modifier.weight(1f).fillMaxSize())
             }
         } else {
             Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                for ((label, url) in channels) DashcamPane(url, label, attempt, expanded, !expanded, { addLog(it) }, Modifier.weight(1f).fillMaxWidth())
+                for ((label, url) in channels) DashcamPane(url, label, attempt, expanded, !expanded, controlsVisible, { addLog(it) }, Modifier.weight(1f).fillMaxWidth())
             }
         }
         if (channels.isEmpty() && !expanded) {
@@ -342,16 +367,18 @@ internal fun DashcamView(
                 modifier = Modifier.align(Alignment.Center).padding(16.dp).background(Color(0x99000000), RoundedCornerShape(8.dp)).padding(10.dp)
             )
         }
-        Row(Modifier.align(Alignment.TopEnd).padding(6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            for ((label, action) in listOf("⟳" to { attempt++ }, (if (expanded) "▭" else "⤢") to onToggleExpand, "✕" to onClose)) {
-                Text(
-                    label, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold,
-                    modifier = Modifier.background(Color(0xAA000000), RoundedCornerShape(8.dp))
-                        .clickable { action() }.padding(horizontal = 10.dp, vertical = 4.dp)
-                )
+        if (controlsVisible) {
+            Row(Modifier.align(Alignment.TopEnd).padding(6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                for ((label, action) in listOf("⟳" to { attempt++ }, (if (expanded) "▭" else "⤢") to onToggleExpand, "✕" to onClose)) {
+                    Text(
+                        label, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold,
+                        modifier = Modifier.background(Color(0xAA000000), RoundedCornerShape(8.dp))
+                            .clickable { revealControls(); action() }.padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
+                }
             }
         }
-        if (expanded) {
+        if (expanded && controlsVisible) {
             Column(
                 Modifier.align(Alignment.BottomCenter).padding(12.dp).heightIn(max = 380.dp)
                     .background(Color(0xEE000000), RoundedCornerShape(12.dp)).padding(10.dp)
@@ -359,11 +386,12 @@ internal fun DashcamView(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text("KAMERA AYARLARI — adresler (RTSP), boş bırakılan kanal gösterilmez", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                OutlinedTextField(draftFront, { draftFront = it }, label = { Text("Ön kamera") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(draftRear, { draftRear = it }, label = { Text("Arka kamera") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(draftFront, { draftFront = it; revealControls() }, label = { Text("Ön kamera") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(draftRear, { draftRear = it; revealControls() }, label = { Text("Arka kamera") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { onUrlsChange(draftFront.trim(), draftRear.trim()) }) { Text("BAĞLAN") }
+                    Button(onClick = { revealControls(); onUrlsChange(draftFront.trim(), draftRear.trim()) }) { Text("BAĞLAN") }
                     Button(enabled = !scanning, onClick = {
+                        revealControls()
                         scanning = true; scanStatus = "Tarama başlıyor…"
                         val h = android.os.Handler(android.os.Looper.getMainLooper())
                         val app = viewCtx.applicationContext
@@ -374,6 +402,7 @@ internal fun DashcamView(
                         }.start()
                     }) { Text("ADRES TARA") }
                     Button(enabled = !scanning, onClick = {
+                        revealControls()
                         scanning = true; scanStatus = "Tanı başlıyor…"
                         val h = android.os.Handler(android.os.Looper.getMainLooper())
                         val app = viewCtx.applicationContext
@@ -388,12 +417,13 @@ internal fun DashcamView(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("GÜNLÜK (basılı tutup seçebilirsiniz)", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     Button(onClick = {
+                        revealControls()
                         runCatching {
                             val cmgr = viewCtx.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                             cmgr.setPrimaryClip(ClipData.newPlainText("kamera günlüğü", logs.joinToString("\n")))
                         }
                     }) { Text("KOPYALA") }
-                    Button(onClick = { logs.clear() }) { Text("TEMİZLE") }
+                    Button(onClick = { revealControls(); logs.clear() }) { Text("TEMİZLE") }
                 }
                 SelectionContainer {
                     Text(
