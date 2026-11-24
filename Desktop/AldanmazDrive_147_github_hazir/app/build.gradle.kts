@@ -30,10 +30,10 @@ val localProperties = Properties().apply {
     if (localPropertiesFile.exists()) localPropertiesFile.inputStream().use { load(it) }
 }
 val tomTomApiKey = localProperties.getProperty("TOMTOM_API_KEY", "")
-    .filterNot { it == '\\r' || it == '\\n' }
+    .filterNot { it == '\r' || it == '\n' }
     .trim()
 fun javaStringLiteral(value: String): String =
-    "\"" + value.replace("\\\\", "\\\\\\\\").replace("\"", "\\\\"") + "\""
+    "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
 val hereApiKey = "XxFmf94n6m2-uI8bkUWv5RFnears4QND0dGMDYu_13M"
 fun navProp(key: String, default: String): String = localProperties.getProperty(key, default).trim()
 
