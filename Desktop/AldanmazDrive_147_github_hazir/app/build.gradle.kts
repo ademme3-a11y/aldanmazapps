@@ -30,6 +30,10 @@ val localProperties = Properties().apply {
     if (localPropertiesFile.exists()) localPropertiesFile.inputStream().use { load(it) }
 }
 val tomTomApiKey = localProperties.getProperty("TOMTOM_API_KEY", "")
+    .filterNot { it == '\\r' || it == '\\n' }
+    .trim()
+fun javaStringLiteral(value: String): String =
+    "\"" + value.replace("\\\\", "\\\\\\\\").replace("\"", "\\\\"") + "\""
 val hereApiKey = "XxFmf94n6m2-uI8bkUWv5RFnears4QND0dGMDYu_13M"
 fun navProp(key: String, default: String): String = localProperties.getProperty(key, default).trim()
 
@@ -42,10 +46,10 @@ android {
         targetSdk = 37
         // libvlc tum islemci mimarilerini icerir; boyutu sinirlamak icin yalnizca ARM (telefon / multimedya) tutulur.
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
-        versionCode = 288
-        versionName = "2411261600-1"
+        versionCode = 289
+        versionName = "2411261805-1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "TOMTOM_API_KEY", "\"$tomTomApiKey\"")
+        buildConfigField("String", "TOMTOM_API_KEY", javaStringLiteral(tomTomApiKey))
         buildConfigField("String", "HERE_API_KEY", "\"$hereApiKey\"" )
         // 3D navigasyon saglayicilari: hepsi local.properties'ten degistirilebilir, API anahtari gerekmez.
         buildConfigField("String", "NAV_STYLE_URL", "\"${navProp("NAV_STYLE_URL", "https://tiles.openfreemap.org/styles/liberty")}\"")
