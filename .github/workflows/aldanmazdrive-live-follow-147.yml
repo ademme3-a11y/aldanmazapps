@@ -1,4 +1,4 @@
-name: Aldanmaz Drive 2311260638-1 Native 3D Navigation
+name: Aldanmaz Drive 2411261600-1 Native 3D Navigation
 
 on:
   push:
@@ -34,9 +34,9 @@ jobs:
           HERE_API_KEY: ${{ secrets.HERE_API_KEY }}
         run: |
           test -n "$TOMTOM_API_KEY" || { echo "TOMTOM2 secret is missing."; exit 1; }
-          printf 'TOMTOM_API_KEY=%s\n' "$TOMTOM_API_KEY" > local.properties
+          printf 'TOMTOM_API_KEY=%s\\n' "$TOMTOM_API_KEY" > local.properties
           if [ -n "$HERE_API_KEY" ]; then
-            printf 'HERE_API_KEY=%s\n' "$HERE_API_KEY" >> local.properties
+            printf 'HERE_API_KEY=%s\\n' "$HERE_API_KEY" >> local.properties
             echo "TomTom and HERE keys are configured."
           else
             echo "::warning::HERE_API_KEY secret is missing; HERE provider code is preserved but will not return results until the secret is configured."
@@ -49,20 +49,20 @@ jobs:
         run: |
           $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/debug/app-debug.apk
       - name: Copy uniquely named APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk ../AldanmazDrive_2311260638-1.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk ../AldanmazDrive_2411261600-1.apk
       - name: Create source ZIP
-        run: zip -r ../AldanmazDrive_2311260638-1.zip . -x '.gradle/*' 'app/build/*' '**/.DS_Store' 'local.properties'
+        run: zip -r ../AldanmazDrive_2411261600-1.zip . -x '.gradle/*' 'app/build/*' '**/.DS_Store' 'local.properties'
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: AldanmazDrive_2311260638-1_APK
-          path: Desktop/AldanmazDrive_2311260638-1.apk
+          name: AldanmazDrive_2411261600-1_APK
+          path: Desktop/AldanmazDrive_2411261600-1.apk
           if-no-files-found: error
           retention-days: 30
       - name: Upload source ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: AldanmazDrive_2311260638-1_ZIP
-          path: Desktop/AldanmazDrive_2311260638-1.zip
+          name: AldanmazDrive_2411261600-1_ZIP
+          path: Desktop/AldanmazDrive_2411261600-1.zip
           if-no-files-found: error
           retention-days: 30
