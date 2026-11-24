@@ -34,6 +34,7 @@ jobs:
           HERE_API_KEY: ${{ secrets.HERE_API_KEY }}
         run: |
           test -n "$TOMTOM_API_KEY" || { echo "TOMTOM2 secret is missing."; exit 1; }
+          TOMTOM_API_KEY="$(printf '%s' "$TOMTOM_API_KEY" | tr -d '\r\n')"
           printf 'TOMTOM_API_KEY=%s\\n' "$TOMTOM_API_KEY" > local.properties
           if [ -n "$HERE_API_KEY" ]; then
             printf 'HERE_API_KEY=%s\\n' "$HERE_API_KEY" >> local.properties
