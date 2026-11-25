@@ -409,27 +409,37 @@ internal fun DashcamView(
                 modifier = Modifier.align(Alignment.Center).padding(16.dp).background(Color(0x99000000), RoundedCornerShape(8.dp)).padding(10.dp)
             )
         }
-        if (controlsVisible) {
-            Row(Modifier.align(Alignment.TopEnd).padding(6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                // Arka kamerayi tek dokunusla tam ekrana getirir (henuz genisletilmemisse genisletir de);
-                // tekrar dokununca eski (on + varsa arka) gorunume doner, genisleme durumunu degistirmez.
-                val quickRearLabel = if (singleChannel == "ARKA") "ÖN" else "ARKA"
-                val quickRearAction: () -> Unit = {
-                    if (singleChannel == "ARKA") {
-                        singleChannel = null
-                    } else {
-                        singleChannel = "ARKA"
-                        if (!expanded) onToggleExpand()
-                    }
+        // Arka/on kamera gecis dugmesi: diger kontroller 3 sn sonra gizlense bile BU dugme hep ekranda kalir,
+        // cunku kamera degistirmek "sadece goruntu kalsin" moduyla birlikte en cok ihtiyac duyulan tek islem.
+        run {
+            val quickRearLabel = if (singleChannel == "ARKA") "ÖN" else "ARKA"
+            val quickRearAction: () -> Unit = {
+                if (singleChannel == "ARKA") {
+                    singleChannel = null
+                } else {
+                    singleChannel = "ARKA"
+                    if (!expanded) onToggleExpand()
                 }
+            }
+            Text(
+                quickRearLabel, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                modifier = Modifier.align(Alignment.TopEnd).padding(6.dp)
+                    .background(Color(0x99000000), RoundedCornerShape(8.dp))
+                    .clickable { quickRearAction() }.padding(horizontal = 10.dp, vertical = 4.dp)
+            )
+        }
+        if (controlsVisible) {
+            Row(
+                Modifier.align(Alignment.TopEnd).padding(top = 38.dp, end = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
                 for ((label, action) in listOf(
                     "⟳" to { attempt++ },
-                    quickRearLabel to quickRearAction,
                     (if (expanded) "▭" else "⤢") to onToggleExpand,
                     "✕" to onClose
                 )) {
                     Text(
-                        label, color = Color.White, fontSize = if (label.length > 2) 11.sp else 18.sp, fontWeight = FontWeight.Bold,
+                        label, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold,
                         modifier = Modifier.background(Color(0xAA000000), RoundedCornerShape(8.dp))
                             .clickable { revealControls(); action() }.padding(horizontal = 10.dp, vertical = 4.dp)
                     )
