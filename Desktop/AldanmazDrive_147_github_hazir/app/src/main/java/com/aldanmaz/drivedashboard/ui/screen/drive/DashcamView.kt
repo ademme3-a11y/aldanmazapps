@@ -41,12 +41,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import java.net.InetSocketAddress
 import java.net.Socket
 import kotlinx.coroutines.delay
@@ -54,6 +58,22 @@ import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
 import org.videolan.libvlc.util.VLCVideoLayout
+
+/**
+ * 70mai (veya benzeri) resmi uygulamayi acar: kamera tek bir RTSP akisi verir, hangi sensorun (on/arka)
+ * o akisa bağlı olduğunu yalnızca resmi uygulamadaki dügme değiştirir. Burada hicbir kimlik dogrulama/komut
+ * taklit edilmez; sadece Android'in normal "uygulama baslat" mekanizmasi kullanilir.
+ */
+private fun launchOfficialCameraApp(ctx: Context): Boolean {
+    val candidatePackages = listOf("com.banyac.midrive.app.intl", "com.banyac.midrive.app", "com.mdc.v70mai")
+    val pm = ctx.packageManager
+    val intent = candidatePackages.firstNotNullOfOrNull { pkg -> runCatching { pm.getLaunchIntentForPackage(pkg) }.getOrNull() }
+    return if (intent != null) {
+        runCatching { ctx.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess
+    } else {
+        runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.banyac.midrive.app.intl")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess
+    }
+}
 
 /** Kameranin Wi-Fi agi (internetsiz olsa da). */
 private fun findWifiNetwork(cm: ConnectivityManager?): Network? = try {
@@ -315,6 +335,22 @@ internal fun DashcamView(
     DisposableEffect(Unit) {
         onDispose { runCatching { viewCtx.getSystemService(ConnectivityManager::class.java).bindProcessToNetwork(null) } }
     }
+    // 70mai uygulamasindan (sensor degistirip) geri donulunce bağlantıyı otomatik tazeler: elle ⟳'a basmaya gerek kalmaz.
+    // Not: kameranin tek bir RTSP akisi var; 70mai'de hangi sensor secilmisse goruntu o olur, AldDrive sadece ayni akisi izler.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        var resumedOnce = false
+        val obs = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                if (resumedOnce) attempt++  // ilk acilis sayilmaz; sonraki her donuste tazele
+                resumedOnce = true
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(obs)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
+    }
+    // null = varsayilan (ön + varsa arka, eskisi gibi); "ÖN"/"ARKA" = yalniz o kanali tek panelde goster.
+    var singleChannel by remember { mutableStateOf<String?>(null) }
     var draftFront by remember(frontUrl) { mutableStateOf(frontUrl) }
     var draftRear by remember(rearUrl) { mutableStateOf(rearUrl) }
     val shape = RoundedCornerShape(if (expanded) 0.dp else 12.dp)
@@ -338,7 +374,13 @@ internal fun DashcamView(
         while (logs.size > 200) logs.removeAt(0)
     }
     // Tarama sirasinda canli yayinlar kapatilir: kamera tek oturum tasiyor olabilir.
-    val channels = if (scanning) emptyList() else listOf("ÖN" to frontUrl, "ARKA" to rearUrl).filter { it.second.isNotBlank() }
+    // "ARKA" tek-kanal secilirse ve ayri bir arka adres girilmemisse on adres kullanilir: ayni fiziksel akis,
+    // icerigi 70mai uygulamasindaki sensor secimine gore degisir (bkz. launchOfficialCameraApp acilamasi).
+    val channels = if (scanning) emptyList() else when (singleChannel) {
+        "ÖN" -> listOf("ÖN" to frontUrl)
+        "ARKA" -> listOf("ARKA" to rearUrl.ifBlank { frontUrl })
+        else -> listOf("ÖN" to frontUrl, "ARKA" to rearUrl)
+    }.filter { it.second.isNotBlank() }
 
     Box(
         modifier.clip(shape).background(Color.Black).border(if (expanded) 0.dp else 2.dp, Color(0xFF3A4652), shape)
@@ -369,9 +411,25 @@ internal fun DashcamView(
         }
         if (controlsVisible) {
             Row(Modifier.align(Alignment.TopEnd).padding(6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                for ((label, action) in listOf("⟳" to { attempt++ }, (if (expanded) "▭" else "⤢") to onToggleExpand, "✕" to onClose)) {
+                // Arka kamerayi tek dokunusla tam ekrana getirir (henuz genisletilmemisse genisletir de);
+                // tekrar dokununca eski (on + varsa arka) gorunume doner, genisleme durumunu degistirmez.
+                val quickRearLabel = if (singleChannel == "ARKA") "ÖN" else "ARKA"
+                val quickRearAction: () -> Unit = {
+                    if (singleChannel == "ARKA") {
+                        singleChannel = null
+                    } else {
+                        singleChannel = "ARKA"
+                        if (!expanded) onToggleExpand()
+                    }
+                }
+                for ((label, action) in listOf(
+                    "⟳" to { attempt++ },
+                    quickRearLabel to quickRearAction,
+                    (if (expanded) "▭" else "⤢") to onToggleExpand,
+                    "✕" to onClose
+                )) {
                     Text(
-                        label, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold,
+                        label, color = Color.White, fontSize = if (label.length > 2) 11.sp else 18.sp, fontWeight = FontWeight.Bold,
                         modifier = Modifier.background(Color(0xAA000000), RoundedCornerShape(8.dp))
                             .clickable { revealControls(); action() }.padding(horizontal = 10.dp, vertical = 4.dp)
                     )
@@ -386,8 +444,13 @@ internal fun DashcamView(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text("KAMERA AYARLARI — adresler (RTSP), boş bırakılan kanal gösterilmez", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    "Arka görüntü için: 70mai uygulamasını aç → kamerayı arkaya çevir → AldDrive'a dön (otomatik tazelenir) → sağ üstten ARKA'ya dokun.",
+                    color = Color(0xFFB0BEC5), fontSize = 10.sp
+                )
+                Button(onClick = { revealControls(); launchOfficialCameraApp(viewCtx) }) { Text("70MAI'Yİ AÇ") }
                 OutlinedTextField(draftFront, { draftFront = it; revealControls() }, label = { Text("Ön kamera") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(draftRear, { draftRear = it; revealControls() }, label = { Text("Arka kamera") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(draftRear, { draftRear = it; revealControls() }, label = { Text("Arka kamera (boş bırakılırsa ön adres kullanılır)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = { revealControls(); onUrlsChange(draftFront.trim(), draftRear.trim()) }) { Text("BAĞLAN") }
                     Button(enabled = !scanning, onClick = {
