@@ -44,10 +44,10 @@ android {
         applicationId = "com.aldanmaz.drivedashboard"
         minSdk = 29
         targetSdk = 37
-        // libvlc tum islemci mimarilerini icerir; boyutu sinirlamak icin yalnizca ARM (telefon / multimedya) tutulur.
+        // Boyutu sinirlamak icin yalnizca ARM (telefon / multimedya) mimarileri tutulur.
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
-        versionCode = 291
-        versionName = "2511261440-1"
+        versionCode = 292
+        versionName = "final2711"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "TOMTOM_API_KEY", javaStringLiteral(tomTomApiKey))
         buildConfigField("String", "HERE_API_KEY", "\"$hereApiKey\"" )
@@ -93,8 +93,6 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.4.0")
     // 3D navigasyon: yerel (native) vektor harita motoru, WebView/CDN bagimliligi yok. BSD-2 lisansli.
     implementation("org.maplibre.gl:android-sdk:13.6.1")
-    // Arac kamerasi canli goruntu: VLC oynatici kutuphanesi (kameranin RTSP akisi ExoPlayer ile acilmadi: "missing attribute fmtp")
-    implementation("org.videolan.android:libvlc-all:3.6.0")
     implementation("com.google.android.gms:play-services-mlkit-subject-segmentation:16.0.0-beta1")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.10.0")
