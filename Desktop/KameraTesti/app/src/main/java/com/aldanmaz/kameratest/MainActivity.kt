@@ -3,8 +3,10 @@ package com.aldanmaz.kameratest
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.Network
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -12,6 +14,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,10 +26,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
@@ -36,6 +42,22 @@ import java.net.Socket
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+/**
+ * 70mai (resmi) uygulamasini acar: kamera tek bir RTSP akisi verir, hangi sensorun (on/arka) o akisa
+ * bagli oldugunu yalnizca resmi uygulamadaki dugme degistirir. Burada hicbir kimlik dogrulama/komut
+ * taklit edilmez; sadece Android'in normal "uygulama baslat" mekanizmasi kullanilir.
+ */
+private fun launchOfficialCameraApp(ctx: Context): Boolean {
+    val candidatePackages = listOf("com.banyac.midrive.app.intl", "com.banyac.midrive.app", "com.mdc.v70mai")
+    val pm = ctx.packageManager
+    val intent = candidatePackages.firstNotNullOfOrNull { pkg -> runCatching { pm.getLaunchIntentForPackage(pkg) }.getOrNull() }
+    return if (intent != null) {
+        runCatching { ctx.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess
+    } else {
+        runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.banyac.midrive.app.intl")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess
+    }
+}
 
 /**
  * Bagimsiz, kucuk bir test uygulamasi: yalnizca 70mai A800SE araç kamerasinin
@@ -138,6 +160,21 @@ private fun KameraTestiScreen() {
     var captured by remember { mutableStateOf<String?>(null) }
     var previewUrl by remember { mutableStateOf<String?>(null) }
     var attempt by remember { mutableIntStateOf(0) }
+    var fullScreenRearTest by remember { mutableStateOf(false) }
+
+    // 70mai uygulamasindan (elle sensor degistirip) geri donulunce bu testin akisini otomatik tazeler.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        var resumedOnce = false
+        val obs = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                if (resumedOnce) attempt++
+                resumedOnce = true
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(obs)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
+    }
 
     fun addLog(msg: String) {
         val line = "[${nowStamp()}] $msg"
@@ -169,6 +206,7 @@ private fun KameraTestiScreen() {
     }
 
     Surface(Modifier.fillMaxSize(), color = Color(0xFF0D1218)) {
+        Box(Modifier.fillMaxSize()) {
         Column(
             Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -179,6 +217,22 @@ private fun KameraTestiScreen() {
                     "izleme kapısını (RTSP) dener. AldDrive'dan bağımsızdır.",
                 color = Color(0xFFB0BEC5), fontSize = 12.sp
             )
+
+            Column(
+                Modifier.fillMaxWidth().background(Color(0xFF14202B), RoundedCornerShape(10.dp)).padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text("TEST: 70mai ile elle değiştirip bu uygulamada izleme", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    "1) 70MAİ'Yİ AÇ'a bas → 2) 70mai içinde kamerayı arkaya çevir → 3) geri dön (otomatik tazelenir) → " +
+                        "4) TAM EKRAN ARKA TEST ile doğrula.",
+                    color = Color(0xFFB0BEC5), fontSize = 11.sp
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { launchOfficialCameraApp(ctx) }) { Text("70MAİ'Yİ AÇ") }
+                    Button(onClick = { fullScreenRearTest = true; attempt++ }) { Text("TAM EKRAN ARKA TEST") }
+                }
+            }
 
             if (captured != null) {
                 Column(
@@ -226,6 +280,33 @@ private fun KameraTestiScreen() {
                     color = Color(0xFFCFD8DC), fontSize = 11.sp
                 )
             }
+        }
+
+        // Tam ekran test katmani: hicbir sinyalleme/komut yok, sadece ayni RTSP adresini (rearUrl, bosta
+        // ise frontUrl'e doner) tam ekran izler. Icerigi 70mai'de elle secilen sensore gore degisir.
+        if (fullScreenRearTest) {
+            val testUrl = rearUrl.trim().ifBlank { frontUrl.trim() }
+            Box(Modifier.fillMaxSize().background(Color.Black)) {
+                CameraPane(testUrl, attempt, Modifier.fillMaxSize()) { msg -> addLog("(TAM EKRAN TEST) $msg") }
+                Text(
+                    "ARKA (test)", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold,
+                    modifier = Modifier.align(Alignment.TopStart).padding(10.dp)
+                        .background(Color(0x99000000), RoundedCornerShape(6.dp)).padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+                Text(
+                    "✕ KAPAT", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold,
+                    modifier = Modifier.align(Alignment.TopEnd).padding(10.dp)
+                        .background(Color(0xAA000000), RoundedCornerShape(8.dp))
+                        .clickable { fullScreenRearTest = false }.padding(horizontal = 12.dp, vertical = 6.dp)
+                )
+                Text(
+                    "70MAİ'Yİ AÇ", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp)
+                        .background(Color(0xAA000000), RoundedCornerShape(8.dp))
+                        .clickable { launchOfficialCameraApp(ctx) }.padding(horizontal = 14.dp, vertical = 8.dp)
+                )
+            }
+        }
         }
     }
 }
